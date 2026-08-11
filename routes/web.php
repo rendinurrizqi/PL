@@ -22,6 +22,7 @@ Route::post('/api/daily-menu', [MpasiController::class, 'apiSaveDailyMenu']);
 Route::post('/checkout', [MpasiController::class, 'processCheckout'])->name('mpasi.checkout');
 Route::post('/pos/checkout', [MpasiController::class, 'posCheckout'])->name('mpasi.pos.checkout');
 Route::post('/member/login', [MpasiController::class, 'loginMember'])->name('mpasi.member.login');
+Route::post('/member/profile', [MpasiController::class, 'updateMemberProfile'])->name('mpasi.member.profile');
 Route::post('/member/redeem-reward', [MpasiController::class, 'redeemReward'])->name('mpasi.member.redeem');
 Route::post('/points/rate', [MpasiController::class, 'updatePointsRate'])->name('mpasi.points.rate');
 

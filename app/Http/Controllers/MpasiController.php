@@ -315,6 +315,39 @@ class MpasiController extends Controller
         ]);
     }
 
+    public function updateMemberProfile(Request $request)
+    {
+        $validated = $request->validate([
+            'identifier' => 'required|string',
+            'name' => 'required|string|max:255',
+            'whatsapp' => 'required|string|max:255',
+            'favorite_outlet' => 'nullable|string|max:255',
+        ]);
+
+        $identifier = trim($validated['identifier']);
+        $newWa = trim($validated['whatsapp']);
+
+        $member = Member::query()
+            ->where('email', $identifier)
+            ->orWhere('whatsapp', $identifier)
+            ->first();
+
+        if ($member) {
+            $member->name = $validated['name'];
+            $member->whatsapp = $newWa;
+            if (isset($validated['favorite_outlet'])) {
+                $member->favorite_outlet = $validated['favorite_outlet'];
+            }
+            $member->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui.',
+            'member' => $member,
+        ]);
+    }
+
     public function redeemReward(Request $request)
     {
         $validated = $request->validate([
