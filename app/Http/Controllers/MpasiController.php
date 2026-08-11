@@ -176,11 +176,14 @@ class MpasiController extends Controller
         $validated = $request->validate([
             'customer_name' => 'required|string',
             'whatsapp' => 'required|string',
-            'outlet_id' => 'required|exists:outlets,id',
+            'outlet_id' => 'required',
             'pay_method' => 'required|string',
             'items' => 'required|array',
             'member_identifier' => 'nullable|string',
         ]);
+
+        $outletObj = Outlet::query()->where('id', $validated['outlet_id'])->orWhere('name', $validated['outlet_id'])->first();
+        $outletId = $outletObj ? $outletObj->id : (Outlet::query()->first()?->id ?? 1);
 
         $member = null;
         if (!empty($validated['member_identifier'])) {
@@ -221,7 +224,7 @@ class MpasiController extends Controller
 
         $preOrder = PreOrder::query()->create([
             'member_id' => $member?->id,
-            'outlet_id' => $validated['outlet_id'],
+            'outlet_id' => $outletId,
             'customer_name' => $validated['customer_name'],
             'whatsapp' => $validated['whatsapp'],
             'total_amount' => $totalAmount,
