@@ -112,6 +112,59 @@
         .max-w-1000 { max-width: 1000px; }
         .max-w-600 { max-width: 600px; }
         .max-w-500 { max-width: 500px; }
+
+        /* Mobile Bottom Navbar (Tools Bawah HP) */
+        .mobile-bottom-nav {
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(106, 27, 154, 0.12) !important;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+            height: 64px;
+        }
+
+        .mobile-nav-item {
+            color: #757575;
+            transition: all 0.2s ease-in-out;
+            flex: 1;
+            max-width: 72px;
+        }
+
+        .mobile-nav-item .nav-icon {
+            font-size: 1.2rem;
+            transition: transform 0.2s ease;
+        }
+
+        .mobile-nav-item .nav-label {
+            font-size: 0.68rem;
+            font-weight: 500;
+            line-height: 1;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--brand-purple) !important;
+        }
+
+        .mobile-nav-item.active .nav-icon {
+            transform: translateY(-2px) scale(1.12);
+            color: var(--brand-purple);
+        }
+
+        .mobile-nav-item.active .nav-label {
+            font-weight: 700;
+            color: var(--brand-purple);
+        }
+
+        .fs-9 {
+            font-size: 0.62rem;
+            padding: 0.2em 0.4em;
+        }
+
+        @media (max-width: 767.98px) {
+            .role-portal-page {
+                padding-bottom: 75px !important;
+            }
+        }
     </style>
 </head>
 <body>
