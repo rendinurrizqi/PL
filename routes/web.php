@@ -53,3 +53,9 @@ Route::prefix('owner')->group(function () {
     Route::get('/rewards', [MpasiController::class, 'ownerRewardsPage'])->name('owner.rewards');
     Route::post('/logout', [MpasiController::class, 'ownerLogout'])->name('owner.logout');
 });
+
+Route::get('/db-seed-now', function () {
+    \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
+    return "Database migrated & seeded successfully!";
+});
+
