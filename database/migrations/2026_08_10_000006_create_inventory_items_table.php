@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('inventory_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('outlet_id')->nullable()->constrained('outlets')->nullOnDelete();
+            $table->string('name');
+            $table->string('stock');
+            $table->string('min_stock');
+            $table->string('unit')->default('Kg');
+            $table->string('status')->default('Aman');
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('inventory_items');
+    }
+};
