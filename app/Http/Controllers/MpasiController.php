@@ -767,11 +767,11 @@ class MpasiController extends Controller
     {
         $validated = $request->validate([
             'day' => 'required|string',
-            'product_ids' => 'required|array',
+            'product_ids' => 'present|array',
         ]);
 
         DailyMenu::updateOrCreate(
-            ['day' => $validated['day']],
+            ['day_name' => $validated['day']],
             ['product_ids' => $validated['product_ids']]
         );
 
