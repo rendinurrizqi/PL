@@ -17,6 +17,8 @@ Route::delete('/api/products/{id}', [MpasiController::class, 'apiDeleteProduct']
 Route::post('/api/outlets', [MpasiController::class, 'apiStoreOutlet']);
 Route::put('/api/outlets/{id}', [MpasiController::class, 'apiUpdateOutlet']);
 Route::delete('/api/outlets/{id}', [MpasiController::class, 'apiDeleteOutlet']);
+Route::post('/api/outlets/verify-pin', [MpasiController::class, 'apiVerifyOutletPin']);
+Route::put('/api/outlets/{id}/pin', [MpasiController::class, 'apiUpdateOutletPin']);
 Route::post('/api/daily-menu', [MpasiController::class, 'apiSaveDailyMenu']);
 
 Route::post('/checkout', [MpasiController::class, 'processCheckout'])->name('mpasi.checkout');

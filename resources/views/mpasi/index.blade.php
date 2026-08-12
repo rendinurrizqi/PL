@@ -925,6 +925,7 @@
                 ? window.MPASI_DATA.outlets.map(o => typeof o === 'string' ? o : (o.name || ''))
                 : ['Outlet Pusat (Jl. Pajajaran)', 'Outlet Cabang 1 (Suryakencana)', 'Outlet Cabang 2 (Cibinong)'],
             kasirActiveOutlet: 'Outlet Pusat (Jl. Pajajaran)',
+            authenticatedKasirOutlet: (() => { try { return sessionStorage.getItem('auth_kasir_outlet'); } catch(e) { return null; } })(),
             isStoreOpen: true,
             currentUser: (() => { try { const saved = localStorage.getItem('mpasi_current_user'); return saved ? JSON.parse(saved) : null; } catch(e) { return null; } })(),
             cart: [],
@@ -1023,7 +1024,113 @@
         function computeEarnedPoints(items) { let total = 0; (items || []).forEach(it => { const p = state.products.find(x => x.id == it.productId); if (!p) return; if (p.customPoints && p.customPoints > 0) { total += p.customPoints * it.qty; } else { total += Math.floor((p.price * it.qty) / state.pointsEarnRate); } }); return total; }
         function startLoading() { const el = document.getElementById('loading-overlay'); if (el) el.style.display = 'flex'; }
         function endLoading() { const el = document.getElementById('loading-overlay'); if (el) el.style.display = 'none'; }
-        function selectRolePortal(roleName) { state.activeRole = roleName; const el = document.getElementById('active-role-display'); if (el) el.innerText = roleName.toUpperCase(); document.querySelectorAll('.role-portal-page').forEach(el => el.style.display = 'none'); const targetPortal = document.getElementById('role-portal-' + roleName); if (targetPortal) targetPortal.style.display = 'block'; renderAllUI(); }
+        function promptKasirPinModal(outletName, onSuccess, onCancel) {
+            Swal.fire({
+                title: '<i class="fa-solid fa-lock text-brand-purple me-2"></i> PIN Akses Kasir',
+                html: `
+                    <div class="text-start fs-7 mb-3 text-secondary">
+                        Masukkan PIN Akses Kasir untuk mengaktifkan cabang bertugas:<br>
+                        <b class="text-brand-purple fs-6">${outletName}</b>
+                    </div>
+                    <div class="mb-2">
+                        <input id="swal-kasir-pin-input" type="password" maxlength="6" class="form-control text-center fw-bold fs-4 border-purple-200" placeholder="• • • •" autocomplete="off">
+                    </div>
+                    <div class="text-muted fs-8 text-start fst-italic">
+                        * PIN default: <b class="text-dark">1234</b> (Dapat diatur/diubah di Kelola Outlet oleh Owner).
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-key me-1"></i> Verifikasi PIN',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#6A1B9A',
+                preConfirm: () => {
+                    const pin = document.getElementById('swal-kasir-pin-input').value.trim();
+                    if (!pin) {
+                        Swal.showValidationMessage('Masukkan PIN Akses Kasir!');
+                        return false;
+                    }
+                    return pin;
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    const enteredPin = result.value;
+                    startLoading();
+                    fetch('/api/outlets/verify-pin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ outlet_name: outletName, pin: enteredPin })
+                    }).then(async r => {
+                        const data = await r.json().catch(() => ({}));
+                        if (!r.ok || data.success === false) {
+                            throw new Error(data.message || 'PIN Akses Kasir Salah!');
+                        }
+                        return data;
+                    }).then(() => {
+                        state.kasirActiveOutlet = outletName;
+                        state.authenticatedKasirOutlet = outletName;
+                        try {
+                            sessionStorage.setItem('auth_kasir_outlet', outletName);
+                        } catch(e) {}
+                        renderAllUI();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'PIN Diverifikasi! ✅',
+                            text: `Cabang bertugas aktif: ${outletName}`,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        if (typeof onSuccess === 'function') onSuccess();
+                    }).catch(err => {
+                        const kasirOutletSel = document.getElementById('kasir-active-outlet');
+                        if (kasirOutletSel) {
+                            kasirOutletSel.value = state.kasirActiveOutlet || state.outlets[0];
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Akses Ditolak 🔒',
+                            text: err.message || 'PIN Akses Kasir Salah!'
+                        });
+                        if (typeof onCancel === 'function') onCancel();
+                    }).finally(() => {
+                        endLoading();
+                    });
+                } else {
+                    const kasirOutletSel = document.getElementById('kasir-active-outlet');
+                    if (kasirOutletSel) {
+                        kasirOutletSel.value = state.kasirActiveOutlet || state.outlets[0];
+                    }
+                    if (typeof onCancel === 'function') onCancel();
+                }
+            });
+        }
+
+        function changeKasirOutlet(newOutlet) {
+            if (state.authenticatedKasirOutlet === newOutlet) {
+                state.kasirActiveOutlet = newOutlet;
+                renderAllUI();
+                return;
+            }
+            promptKasirPinModal(newOutlet);
+        }
+
+        function selectRolePortal(roleName) {
+            state.activeRole = roleName;
+            const el = document.getElementById('active-role-display');
+            if (el) el.innerText = roleName.toUpperCase();
+            document.querySelectorAll('.role-portal-page').forEach(el => el.style.display = 'none');
+            const targetPortal = document.getElementById('role-portal-' + roleName);
+            if (targetPortal) targetPortal.style.display = 'block';
+            renderAllUI();
+            if (roleName === 'kasir') {
+                if (!state.authenticatedKasirOutlet || !state.outlets.includes(state.authenticatedKasirOutlet)) {
+                    promptKasirPinModal(state.kasirActiveOutlet || state.outlets[0]);
+                }
+            }
+        }
         function switchKasirTab(tabName) { document.querySelectorAll('.kasir-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#kasir-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('kasir-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } }
         function switchAdminTab(tabName) { document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#admin-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('admin-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } }
         function switchOwnerTab(tabName) { document.querySelectorAll('.owner-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#owner-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('owner-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } if (tabName === 'poin') renderOwnerProductPointsTable(); }
@@ -1277,7 +1384,70 @@
         function renderOutletReportsGeneric(cfg) { const selectedOutlet = document.getElementById(cfg.outletSelectId)?.value || 'ALL'; const selectedPeriod = document.getElementById(cfg.periodSelectId)?.value || 'HARIAN'; const outletsList = state.outlets; const isHarian = selectedPeriod === 'HARIAN'; const outletData = outletsList.map(outletName => { const salesRec = state.outletSalesRecords[outletName] || {}; let omset = 0; let porsi = 0; let loss = 0; state.products.forEach(p => { const prodSales = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const leftover = Math.max(0, allocated - prodSales); omset += prodSales * p.price; porsi += prodSales; loss += leftover * p.price; }); return { name: outletName, harianOmset: omset, bulananOmset: omset * 30, porsi: porsi, loss: loss }; }); const filteredList = selectedOutlet === 'ALL' ? outletData : outletData.filter(o => o.name === selectedOutlet); let totalOmset = 0; let totalLoss = 0; let totalPorsi = 0; filteredList.forEach(o => { const omset = isHarian ? o.harianOmset : o.bulananOmset; totalOmset += omset; totalLoss += (isHarian ? o.loss : o.loss * 30); totalPorsi += (isHarian ? o.porsi : o.porsi * 30); }); const totalProfit = Math.round((totalOmset * 0.4) - totalLoss); const cardContainer = document.getElementById(cfg.cardsId); if (cardContainer) { cardContainer.innerHTML = `<div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET (${selectedPeriod})</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmset.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsi} Cup</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-danger"><div class="text-muted fs-8 fw-bold">KERUGIAN PRODUK SISA</div><div class="fs-5 fw-bold text-danger">Rp ${totalLoss.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-success"><div class="text-muted fs-8 fw-bold">ESTIMASI UNTUNG / LABA BERSIH</div><div class="fs-5 fw-bold text-success">Rp ${totalProfit.toLocaleString('id-ID')}</div></div></div>`; } const tbody = document.getElementById(cfg.summaryTbodyId); if (tbody) { tbody.innerHTML = filteredList.map(o => { const omset = isHarian ? o.harianOmset : o.bulananOmset; const loss = isHarian ? o.loss : o.loss * 30; const porsi = isHarian ? o.porsi : o.porsi * 30; const profit = Math.round((omset * 0.4) - loss); return `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${omset.toLocaleString('id-ID')}</td><td>${porsi} Cup</td><td class="text-danger fw-bold">Rp ${loss.toLocaleString('id-ID')}</td><td class="text-success fw-bold">Rp ${profit.toLocaleString('id-ID')}</td><td class="text-center"><button class="btn btn-sm btn-brand-purple fs-8 font-bold py-1 px-2.5" onclick="Swal.fire('${o.name}', 'Laporan ${selectedPeriod} untuk ${o.name}:<br>Omset: Rp ${omset.toLocaleString('id-ID')}<br>Laba Bersih: Rp ${profit.toLocaleString('id-ID')}', 'info')"><i class="fa-solid fa-eye me-1"></i> Rincian</button></td></tr>`; }).join(''); } const leftoverTbody = document.getElementById(cfg.leftoverTbodyId); if (leftoverTbody) { let allLeftoverRows = []; const outletsToProcess = selectedOutlet === 'ALL' ? outletsList : [selectedOutlet]; outletsToProcess.forEach(outName => { const salesRec = state.outletSalesRecords[outName] || {}; state.products.forEach(p => { const sold = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const leftover = Math.max(0, allocated - sold); const lossAmt = leftover * p.price; allLeftoverRows.push(`<tr><td class="fw-bold text-brand-purple">${outName}</td><td class="fw-bold text-dark">${p.name}</td><td>${allocated} Cup</td><td class="text-success fw-bold">${sold} Cup Terjual</td><td class="text-danger fw-bold">${leftover} Cup Sisa</td><td class="text-danger fw-bold">Rp ${lossAmt.toLocaleString('id-ID')}</td><td class="text-center"><span class="badge bg-success fs-8"><i class="fa-solid fa-check-double me-1"></i> Diterima Dapur</span></td></tr>`); }); }); leftoverTbody.innerHTML = allLeftoverRows.join(''); } }
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const cardsEl = document.getElementById('adm-pesanan-outlet-cards'); if (cardsEl) { cardsEl.innerHTML = state.outlets.map(outletName => { const ordersInOutlet = state.preOrders.filter(p => p.outlet === outletName); const totalOrders = ordersInOutlet.length; const belumDiambil = ordersInOutlet.filter(p => !p.isTaken && p.cancelStatus !== 'approved').length; const dibatalkan = ordersInOutlet.filter(p => p.cancelStatus === 'approved').length; return `<div class="col-md-4"><div class="card-custom p-3 h-100 border-start border-4 border-primary"><div class="fw-bold text-brand-purple fs-7 mb-2"><i class="fa-solid fa-shop me-1"></i> ${outletName}</div><div class="d-flex justify-content-between fs-8 mb-1"><span class="text-muted">Total Pesanan</span><span class="fw-bold">${totalOrders}</span></div><div class="d-flex justify-content-between fs-8 mb-1"><span class="text-muted">Belum Diambil</span><span class="fw-bold text-warning">${belumDiambil}</span></div><div class="d-flex justify-content-between fs-8"><span class="text-muted">Dibatalkan</span><span class="fw-bold text-danger">${dibatalkan}</span></div></div></div>`; }).join(''); } const tbody = document.getElementById('adm-pesanan-tbody'); if (tbody) { const filteredOrders = selectedOutlet === 'ALL' ? state.preOrders : state.preOrders.filter(p => p.outlet === selectedOutlet); tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan untuk cabang ini.</td></tr>`; } }
         function renderOutletDropdowns() { const coOutlet = document.getElementById('co-outlet'); if (coOutlet) { const currentVal = coOutlet.value; coOutlet.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join(''); if (state.outlets.includes(currentVal)) coOutlet.value = currentVal; } const kasirOutletSel = document.getElementById('kasir-active-outlet'); if (kasirOutletSel) { kasirOutletSel.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}" ${o === state.kasirActiveOutlet ? 'selected' : ''}>${o}</option>`).join(''); } ['adm-report-outlet-filter', 'own-report-outlet-filter', 'adm-pesanan-outlet-filter', 'adm-dapur-outlet-filter', 'own-dapur-outlet-filter'].forEach(selId => { const sel = document.getElementById(selId); if (!sel) return; const currentVal = sel.value || 'ALL'; sel.innerHTML = '<option value="ALL">KONSOLIDASI SEMUA OUTLET</option>' + state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join(''); sel.value = (currentVal === 'ALL' || state.outlets.includes(currentVal)) ? currentVal : 'ALL'; }); }
-        function renderOwnerOutletsTable() { const tbody = document.getElementById('own-outlets-tbody'); if (!tbody) return; tbody.innerHTML = state.outlets.map(o => { const totalOrders = state.preOrders.filter(p => p.outlet === o).length; const pendingOrders = state.preOrders.filter(p => p.outlet === o && !p.isTaken && p.cancelStatus !== 'approved').length; return `<tr><td class="fw-bold text-brand-purple">${o}</td><td>${totalOrders} Pesanan</td><td>${pendingOrders > 0 ? `<span class="badge bg-warning text-dark fs-8">${pendingOrders} Belum Diambil</span>` : '<span class="text-muted fs-8">-</span>'}</td><td class="text-center"><button class="btn btn-sm btn-outline-secondary py-1 px-2 fs-8 fw-bold" data-outlet="${escAttr(o)}" onclick="editOutletModal(this.dataset.outlet)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button><button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8 fw-bold ms-1" data-outlet="${escAttr(o)}" onclick="deleteOutlet(this.dataset.outlet)"><i class="fa-solid fa-trash"></i></button></td></tr>`; }).join(''); }
+        function renderOwnerOutletsTable() {
+            const tbody = document.getElementById('own-outlets-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = state.outlets.map(o => {
+                const totalOrders = state.preOrders.filter(p => p.outlet === o).length;
+                const pendingOrders = state.preOrders.filter(p => p.outlet === o && !p.isTaken && p.cancelStatus !== 'approved').length;
+                return `<tr>
+                    <td class="fw-bold text-brand-purple">${o}</td>
+                    <td>${totalOrders} Pesanan</td>
+                    <td>${pendingOrders > 0 ? `<span class="badge bg-warning text-dark fs-8">${pendingOrders} Belum Diambil</span>` : '<span class="text-muted fs-8">-</span>'}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-purple py-1 px-2 fs-8 fw-bold" data-outlet="${escAttr(o)}" onclick="editOutletPinModal(this.dataset.outlet)"><i class="fa-solid fa-key me-1"></i> Edit PIN</button>
+                        <button class="btn btn-sm btn-outline-secondary py-1 px-2 fs-8 fw-bold ms-1" data-outlet="${escAttr(o)}" onclick="editOutletModal(this.dataset.outlet)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
+                        <button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8 fw-bold ms-1" data-outlet="${escAttr(o)}" onclick="deleteOutlet(this.dataset.outlet)"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+        function editOutletPinModal(outletName) {
+            Swal.fire({
+                title: `Edit PIN Akses Kasir - ${outletName}`,
+                input: 'password',
+                inputLabel: 'PIN Akses Kasir Baru (4-6 digit angka)',
+                inputPlaceholder: 'Contoh: 5678',
+                showCancelButton: true,
+                confirmButtonText: 'Simpan PIN Baru',
+                confirmButtonColor: '#6A1B9A',
+                inputValidator: (value) => {
+                    const v = (value || '').trim();
+                    if (!v || v.length < 4 || v.length > 6) return 'PIN wajib berisi 4 sampai 6 digit angka!';
+                }
+            }).then(res => {
+                if (res.isConfirmed && res.value) {
+                    const newPin = res.value.trim();
+                    startLoading();
+                    fetch('/api/outlets/' + encodeURIComponent(outletName) + '/pin', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ pin: newPin })
+                    }).then(async r => {
+                        const data = await r.json().catch(() => ({}));
+                        if (!r.ok || data.success === false) {
+                            throw new Error(data.message || 'Gagal menyimpan PIN baru');
+                        }
+                        return data;
+                    }).then(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'PIN Kasir Diperbarui!',
+                            text: `PIN akses kasir untuk ${outletName} berhasil diubah.`,
+                            timer: 1600,
+                            showConfirmButton: false
+                        });
+                    }).catch(err => {
+                        Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: err.message || 'Terjadi kesalahan sistem.' });
+                    }).finally(() => {
+                        endLoading();
+                    });
+                }
+            });
+        }
         function showAddOutletModal() {
             Swal.fire({
                 title: 'Tambah Outlet Baru',

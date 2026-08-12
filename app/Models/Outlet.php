@@ -14,6 +14,7 @@ class Outlet extends Model
         'address',
         'phone',
         'is_active',
+        'pin',
     ];
 
     public function preOrders()

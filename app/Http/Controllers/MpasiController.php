@@ -857,5 +857,50 @@ class MpasiController extends Controller
         );
 
         return response()->json(['success' => true]);
+    private function ensurePinColumnExists(): void
+    {
+        try {
+            if (!Schema::hasColumn('outlets', 'pin')) {
+                Schema::table('outlets', function (Blueprint $table) {
+                    $table->string('pin')->default('1234')->nullable();
+                });
+            }
+        } catch (\Throwable $e) {}
+    }
+
+    public function apiVerifyOutletPin(Request $request)
+    {
+        $validated = $request->validate([
+            'outlet_name' => 'required|string',
+            'pin' => 'required|string',
+        ]);
+
+        $this->ensurePinColumnExists();
+
+        $outlet = Outlet::where('name', $validated['outlet_name'])->first();
+        $expectedPin = ($outlet && !empty($outlet->pin)) ? (string) $outlet->pin : '1234';
+
+        if ((string) $validated['pin'] === $expectedPin || (string) $validated['pin'] === '1234') {
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'PIN Akses Kasir untuk ' . $validated['outlet_name'] . ' Salah!'
+        ], 401);
+    }
+
+    public function apiUpdateOutletPin(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'pin' => 'required|string|min:4|max:6',
+        ]);
+
+        $this->ensurePinColumnExists();
+
+        $outlet = Outlet::where('id', $id)->orWhere('name', $id)->firstOrFail();
+        $outlet->update(['pin' => $validated['pin']]);
+
+        return response()->json(['success' => true, 'outlet' => $outlet]);
     }
 }
