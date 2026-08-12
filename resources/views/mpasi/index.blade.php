@@ -935,10 +935,10 @@
                 stock: Number(product.stock ?? 20),
                 category: product.category || 'Bubur',
                 age: product.age_group || '6+ Bulan',
-                ingredients: product.description || 'Bahan segar alami',
+                ingredients: product.ingredients || product.description || 'Bahan segar alami',
                 status: product.status || 'Aktif',
-                image: product.image_url || '',
-                customPoints: 0,
+                image: product.image || product.image_url || '',
+                customPoints: Number(product.custom_points || 0),
             })) : [
                 { id: 'PRD-1', name: 'Bubur Salmon Bayam Organik', price: 15000, initialStock: 20, stock: 20, category: 'Bubur', age: '6+ Bulan', ingredients: 'Salmon, Bayam, Beras Merah', status: 'Aktif', image: '', customPoints: 0 },
                 { id: 'PRD-2', name: 'Bubur Ayam Kampung Labu', price: 12000, initialStock: 20, stock: 20, category: 'Bubur', age: '6+ Bulan', ingredients: 'Ayam Kampung, Labu Parang', status: 'Aktif', image: '', customPoints: 0 },
