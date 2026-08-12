@@ -300,6 +300,22 @@
                 </div>
 
                 <div class="flex-grow-1 p-4 overflow-auto">
+                    <!-- Lock Card for Unauthenticated Cashier -->
+                    <div id="kasir-unauth-lock-card" class="card-custom p-5 text-center my-4 border-purple-200" style="display:none;">
+                        <div class="mb-3 text-brand-purple">
+                            <i class="fa-solid fa-store-slash fa-4x opacity-75"></i>
+                        </div>
+                        <h4 class="fw-bold text-brand-purple mb-2">Kasir Belum Login Cabang</h4>
+                        <p class="text-muted fs-7 mb-4 mx-auto" style="max-width: 520px;">
+                            Silakan pilih cabang bertugas dan masukkan <b>PIN Akses Kasir</b> terlebih dahulu untuk membuka menu Daftar Pre-Order, Kasir POS Walk-In, dan Lapor Sisa Produk.
+                        </p>
+                        <div>
+                            <button type="button" class="btn btn-brand-purple btn-lg px-4 py-2.5 fw-bold fs-7 shadow-sm" onclick="openKasirSwitchOutletModal()">
+                                <i class="fa-solid fa-key me-2"></i> Login & Pilih Cabang Bertugas (PIN)
+                            </button>
+                        </div>
+                    </div>
+
                     <div id="kasir-tab-preorder" class="kasir-tab-content">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
@@ -931,8 +947,8 @@
             outlets: (Array.isArray(window.MPASI_DATA?.outlets) && window.MPASI_DATA.outlets.length > 0)
                 ? window.MPASI_DATA.outlets.map(o => typeof o === 'string' ? o : (o.name || ''))
                 : ['Outlet Pusat (Jl. Pajajaran)', 'Outlet Cabang 1 (Suryakencana)', 'Outlet Cabang 2 (Cibinong)'],
-            kasirActiveOutlet: 'Outlet Pusat (Jl. Pajajaran)',
-            authenticatedKasirOutlet: (() => { try { return sessionStorage.getItem('auth_kasir_outlet'); } catch(e) { return null; } })(),
+            kasirActiveOutlet: (() => { try { const saved = sessionStorage.getItem('auth_kasir_outlet'); return saved || null; } catch(e) { return null; } })(),
+            authenticatedKasirOutlet: (() => { try { const saved = sessionStorage.getItem('auth_kasir_outlet'); return saved || null; } catch(e) { return null; } })(),
             isStoreOpen: true,
             currentUser: (() => { try { const saved = localStorage.getItem('mpasi_current_user'); return saved ? JSON.parse(saved) : null; } catch(e) { return null; } })(),
             cart: [],
@@ -1133,12 +1149,39 @@
             if (targetPortal) targetPortal.style.display = 'block';
             renderAllUI();
             if (roleName === 'kasir') {
-                if (!state.authenticatedKasirOutlet || !state.outlets.includes(state.authenticatedKasirOutlet)) {
-                    promptKasirPinModal(state.kasirActiveOutlet || state.outlets[0]);
+                const isAuth = !!(state.authenticatedKasirOutlet && state.outlets.includes(state.authenticatedKasirOutlet));
+                if (!isAuth) {
+                    const unauthCard = document.getElementById('kasir-unauth-lock-card');
+                    if (unauthCard) unauthCard.style.display = 'block';
+                    document.querySelectorAll('.kasir-tab-content').forEach(el => el.style.display = 'none');
+                    openKasirSwitchOutletModal();
                 }
             }
         }
-        function switchKasirTab(tabName) { document.querySelectorAll('.kasir-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#kasir-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('kasir-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } }
+        function switchKasirTab(tabName) {
+            const isAuth = !!(state.authenticatedKasirOutlet && state.outlets.includes(state.authenticatedKasirOutlet));
+            if (!isAuth) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Kasir Belum Login 🔒',
+                    text: 'Silakan pilih cabang bertugas dan masukkan PIN akses kasir terlebih dahulu!',
+                    confirmButtonText: '🔑 Login / Pilih Cabang (PIN)',
+                    confirmButtonColor: '#6A1B9A'
+                }).then(() => {
+                    openKasirSwitchOutletModal();
+                });
+                return;
+            }
+            const unauthCard = document.getElementById('kasir-unauth-lock-card');
+            if (unauthCard) unauthCard.style.display = 'none';
+            document.querySelectorAll('.kasir-tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('#kasir-sidebar-nav .nav-link').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById('kasir-tab-' + tabName);
+            if (target) target.style.display = 'block';
+            if (window.event && window.event.currentTarget) {
+                window.event.currentTarget.classList.add('active');
+            }
+        }
         function switchAdminTab(tabName) { document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#admin-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('admin-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } }
         function switchOwnerTab(tabName) { document.querySelectorAll('.owner-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#owner-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('owner-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } if (tabName === 'poin') renderOwnerProductPointsTable(); }
         function switchOwnerPoinSubTab(tabName) { const memberPane = document.getElementById('owner-poin-sub-member'); const rewardPane = document.getElementById('owner-poin-sub-reward'); const ratePane = document.getElementById('owner-poin-sub-rate'); if (memberPane) memberPane.style.display = tabName === 'member' ? 'block' : 'none'; if (rewardPane) rewardPane.style.display = tabName === 'reward' ? 'block' : 'none'; if (ratePane) ratePane.style.display = tabName === 'rate' ? 'block' : 'none'; document.querySelectorAll('#owner-poin-subnav .nav-link').forEach(el => { el.classList.remove('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); el.classList.add('border'); }); if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); } if (tabName === 'rate') { const rateInput = document.getElementById('owner-points-rate-input'); if (rateInput) rateInput.value = state.pointsEarnRate; updatePointsRateExample(); renderOwnerProductPointsTable(); } }
@@ -1452,6 +1495,7 @@
                             sessionStorage.setItem('auth_kasir_outlet', targetOutlet);
                         } catch(e) {}
                         renderAllUI();
+                        switchKasirTab('preorder');
                         Swal.fire({
                             icon: 'success',
                             title: 'Berhasil Pindah Cabang! ✅',
@@ -1479,10 +1523,29 @@
                 coOutlet.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
                 if (state.outlets.includes(currentVal)) coOutlet.value = currentVal;
             }
+            const isAuth = !!(state.authenticatedKasirOutlet && state.outlets.includes(state.authenticatedKasirOutlet));
             const activeOutletEl = document.getElementById('kasir-active-outlet-name');
+            const activeOutletBadge = document.getElementById('kasir-active-outlet-badge');
+            const unauthCard = document.getElementById('kasir-unauth-lock-card');
+
             if (activeOutletEl) {
-                activeOutletEl.innerText = state.kasirActiveOutlet || state.outlets[0] || '-';
+                activeOutletEl.innerText = isAuth ? state.authenticatedKasirOutlet : 'Belum Login Cabang';
             }
+            if (activeOutletBadge) {
+                activeOutletBadge.innerHTML = isAuth 
+                    ? `<i class="fa-solid fa-location-dot me-1 text-danger"></i> ${state.authenticatedKasirOutlet}`
+                    : `<i class="fa-solid fa-lock me-1 text-warning"></i> Belum Verifikasi Cabang`;
+            }
+
+            if (unauthCard) {
+                if (!isAuth && state.activeRole === 'kasir') {
+                    unauthCard.style.display = 'block';
+                    document.querySelectorAll('.kasir-tab-content').forEach(el => el.style.display = 'none');
+                } else if (isAuth && state.activeRole === 'kasir') {
+                    unauthCard.style.display = 'none';
+                }
+            }
+
             ['adm-report-outlet-filter', 'own-report-outlet-filter', 'adm-pesanan-outlet-filter', 'adm-dapur-outlet-filter', 'own-dapur-outlet-filter'].forEach(selId => {
                 const sel = document.getElementById(selId);
                 if (!sel) return;
