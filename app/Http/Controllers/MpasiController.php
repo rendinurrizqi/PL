@@ -23,6 +23,7 @@ class MpasiController extends Controller
 {
     public function index()
     {
+        $this->ensurePinColumnExists();
         $products = Product::query()->orderBy('id')->get();
         $outlets = Outlet::query()->orderBy('id')->get();
         $dailyMenus = DailyMenu::query()->get();
@@ -810,6 +811,7 @@ class MpasiController extends Controller
 
     public function apiStoreOutlet(Request $request)
     {
+        $this->ensurePinColumnExists();
         $validated = $request->validate([
             'name' => 'required|string|unique:outlets,name',
         ]);
@@ -819,6 +821,7 @@ class MpasiController extends Controller
             'address' => $validated['name'],
             'phone' => '08123456789',
             'is_active' => true,
+            'pin' => '1234',
         ]);
 
         return response()->json(['success' => true, 'outlet' => $outlet]);
@@ -826,6 +829,7 @@ class MpasiController extends Controller
 
     public function apiUpdateOutlet(Request $request, $id)
     {
+        $this->ensurePinColumnExists();
         $outlet = Outlet::where('id', $id)->orWhere('name', $id)->firstOrFail();
         $validated = $request->validate([
             'name' => 'required|string',
@@ -859,15 +863,13 @@ class MpasiController extends Controller
         return response()->json(['success' => true]);
     }
 
-    private function ensurePinColumnExists(): void
+    protected function ensurePinColumnExists(): void
     {
         try {
-            if (!Schema::hasColumn('outlets', 'pin')) {
-                Schema::table('outlets', function (Blueprint $table) {
-                    $table->string('pin')->default('1234')->nullable();
-                });
-            }
-        } catch (\Throwable $e) {}
+            DB::statement("ALTER TABLE outlets ADD COLUMN pin VARCHAR(255) NULL DEFAULT '1234'");
+        } catch (\Throwable $e) {
+            // Ignore if column 'pin' already exists
+        }
     }
 
     public function apiVerifyOutletPin(Request $request)
