@@ -884,7 +884,7 @@ class MpasiController extends Controller
         $outlet = Outlet::where('name', $validated['outlet_name'])->first();
         $expectedPin = ($outlet && !empty($outlet->pin)) ? (string) $outlet->pin : '1234';
 
-        if ((string) $validated['pin'] === $expectedPin || (string) $validated['pin'] === '1234') {
+        if ((string) $validated['pin'] === $expectedPin) {
             return response()->json(['success' => true]);
         }
 
