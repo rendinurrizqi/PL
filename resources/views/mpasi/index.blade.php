@@ -279,13 +279,17 @@
                     <div class="mb-3 px-1">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label text-warning fs-8 fw-bold mb-0"><i class="fa-solid fa-store me-1"></i> Cabang Bertugas:</label>
-                            <span class="badge bg-success fs-8 text-white" title="Pindah cabang wajib PIN"><i class="fa-solid fa-lock me-1"></i> Terkunci PIN</span>
+                            <span class="badge bg-success fs-8 text-white"><i class="fa-solid fa-lock me-1"></i> Terkunci PIN</span>
                         </div>
-                        <select id="kasir-active-outlet" class="form-select form-select-sm fs-8 fw-bold text-dark border-warning" onchange="changeKasirOutlet(this.value)">
-                            <option value="Outlet Pusat (Jl. Pajajaran)">Outlet Pusat (Jl. Pajajaran)</option>
-                            <option value="Outlet Cabang 1 (Suryakencana)">Outlet Cabang 1 (Suryakencana)</option>
-                            <option value="Outlet Cabang 2 (Cibinong)">Outlet Cabang 2 (Cibinong)</option>
-                        </select>
+                        <div class="bg-white border border-warning rounded-3 p-2 text-start mb-2">
+                            <div class="fw-bold text-dark fs-8 text-truncate">
+                                <i class="fa-solid fa-building-circle-check text-brand-purple me-1"></i>
+                                <span id="kasir-active-outlet-name">Outlet Pusat (Jl. Pajajaran)</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-warning text-white w-100 fw-bold fs-8" onclick="openKasirSwitchOutletModal()">
+                            <i class="fa-solid fa-key me-1"></i> Ganti Cabang (PIN)
+                        </button>
                     </div>
 
                     <nav class="nav flex-column fs-7" id="kasir-sidebar-nav">
@@ -1386,7 +1390,107 @@
         function renderOwnerOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'own-report-period-filter', outletSelectId: 'own-report-outlet-filter', cardsId: 'own-outlet-metric-cards', summaryTbodyId: 'own-outlet-report-tbody', leftoverTbodyId: 'own-leftover-report-tbody' }); }
         function renderOutletReportsGeneric(cfg) { const selectedOutlet = document.getElementById(cfg.outletSelectId)?.value || 'ALL'; const selectedPeriod = document.getElementById(cfg.periodSelectId)?.value || 'HARIAN'; const outletsList = state.outlets; const isHarian = selectedPeriod === 'HARIAN'; const outletData = outletsList.map(outletName => { const salesRec = state.outletSalesRecords[outletName] || {}; let omset = 0; let porsi = 0; let loss = 0; state.products.forEach(p => { const prodSales = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const leftover = Math.max(0, allocated - prodSales); omset += prodSales * p.price; porsi += prodSales; loss += leftover * p.price; }); return { name: outletName, harianOmset: omset, bulananOmset: omset * 30, porsi: porsi, loss: loss }; }); const filteredList = selectedOutlet === 'ALL' ? outletData : outletData.filter(o => o.name === selectedOutlet); let totalOmset = 0; let totalLoss = 0; let totalPorsi = 0; filteredList.forEach(o => { const omset = isHarian ? o.harianOmset : o.bulananOmset; totalOmset += omset; totalLoss += (isHarian ? o.loss : o.loss * 30); totalPorsi += (isHarian ? o.porsi : o.porsi * 30); }); const totalProfit = Math.round((totalOmset * 0.4) - totalLoss); const cardContainer = document.getElementById(cfg.cardsId); if (cardContainer) { cardContainer.innerHTML = `<div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET (${selectedPeriod})</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmset.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsi} Cup</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-danger"><div class="text-muted fs-8 fw-bold">KERUGIAN PRODUK SISA</div><div class="fs-5 fw-bold text-danger">Rp ${totalLoss.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-success"><div class="text-muted fs-8 fw-bold">ESTIMASI UNTUNG / LABA BERSIH</div><div class="fs-5 fw-bold text-success">Rp ${totalProfit.toLocaleString('id-ID')}</div></div></div>`; } const tbody = document.getElementById(cfg.summaryTbodyId); if (tbody) { tbody.innerHTML = filteredList.map(o => { const omset = isHarian ? o.harianOmset : o.bulananOmset; const loss = isHarian ? o.loss : o.loss * 30; const porsi = isHarian ? o.porsi : o.porsi * 30; const profit = Math.round((omset * 0.4) - loss); return `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${omset.toLocaleString('id-ID')}</td><td>${porsi} Cup</td><td class="text-danger fw-bold">Rp ${loss.toLocaleString('id-ID')}</td><td class="text-success fw-bold">Rp ${profit.toLocaleString('id-ID')}</td><td class="text-center"><button class="btn btn-sm btn-brand-purple fs-8 font-bold py-1 px-2.5" onclick="Swal.fire('${o.name}', 'Laporan ${selectedPeriod} untuk ${o.name}:<br>Omset: Rp ${omset.toLocaleString('id-ID')}<br>Laba Bersih: Rp ${profit.toLocaleString('id-ID')}', 'info')"><i class="fa-solid fa-eye me-1"></i> Rincian</button></td></tr>`; }).join(''); } const leftoverTbody = document.getElementById(cfg.leftoverTbodyId); if (leftoverTbody) { let allLeftoverRows = []; const outletsToProcess = selectedOutlet === 'ALL' ? outletsList : [selectedOutlet]; outletsToProcess.forEach(outName => { const salesRec = state.outletSalesRecords[outName] || {}; state.products.forEach(p => { const sold = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const leftover = Math.max(0, allocated - sold); const lossAmt = leftover * p.price; allLeftoverRows.push(`<tr><td class="fw-bold text-brand-purple">${outName}</td><td class="fw-bold text-dark">${p.name}</td><td>${allocated} Cup</td><td class="text-success fw-bold">${sold} Cup Terjual</td><td class="text-danger fw-bold">${leftover} Cup Sisa</td><td class="text-danger fw-bold">Rp ${lossAmt.toLocaleString('id-ID')}</td><td class="text-center"><span class="badge bg-success fs-8"><i class="fa-solid fa-check-double me-1"></i> Diterima Dapur</span></td></tr>`); }); }); leftoverTbody.innerHTML = allLeftoverRows.join(''); } }
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const cardsEl = document.getElementById('adm-pesanan-outlet-cards'); if (cardsEl) { cardsEl.innerHTML = state.outlets.map(outletName => { const ordersInOutlet = state.preOrders.filter(p => p.outlet === outletName); const totalOrders = ordersInOutlet.length; const belumDiambil = ordersInOutlet.filter(p => !p.isTaken && p.cancelStatus !== 'approved').length; const dibatalkan = ordersInOutlet.filter(p => p.cancelStatus === 'approved').length; return `<div class="col-md-4"><div class="card-custom p-3 h-100 border-start border-4 border-primary"><div class="fw-bold text-brand-purple fs-7 mb-2"><i class="fa-solid fa-shop me-1"></i> ${outletName}</div><div class="d-flex justify-content-between fs-8 mb-1"><span class="text-muted">Total Pesanan</span><span class="fw-bold">${totalOrders}</span></div><div class="d-flex justify-content-between fs-8 mb-1"><span class="text-muted">Belum Diambil</span><span class="fw-bold text-warning">${belumDiambil}</span></div><div class="d-flex justify-content-between fs-8"><span class="text-muted">Dibatalkan</span><span class="fw-bold text-danger">${dibatalkan}</span></div></div></div>`; }).join(''); } const tbody = document.getElementById('adm-pesanan-tbody'); if (tbody) { const filteredOrders = selectedOutlet === 'ALL' ? state.preOrders : state.preOrders.filter(p => p.outlet === selectedOutlet); tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan untuk cabang ini.</td></tr>`; } }
-        function renderOutletDropdowns() { const coOutlet = document.getElementById('co-outlet'); if (coOutlet) { const currentVal = coOutlet.value; coOutlet.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join(''); if (state.outlets.includes(currentVal)) coOutlet.value = currentVal; } const kasirOutletSel = document.getElementById('kasir-active-outlet'); if (kasirOutletSel) { kasirOutletSel.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}" ${o === state.kasirActiveOutlet ? 'selected' : ''}>${o}</option>`).join(''); } ['adm-report-outlet-filter', 'own-report-outlet-filter', 'adm-pesanan-outlet-filter', 'adm-dapur-outlet-filter', 'own-dapur-outlet-filter'].forEach(selId => { const sel = document.getElementById(selId); if (!sel) return; const currentVal = sel.value || 'ALL'; sel.innerHTML = '<option value="ALL">KONSOLIDASI SEMUA OUTLET</option>' + state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join(''); sel.value = (currentVal === 'ALL' || state.outlets.includes(currentVal)) ? currentVal : 'ALL'; }); }
+        function openKasirSwitchOutletModal() {
+            const currentOutlet = state.kasirActiveOutlet || state.outlets[0];
+            const outletOptions = state.outlets.map(o => `<option value="${escAttr(o)}" ${o === currentOutlet ? 'selected' : ''}>${o}</option>`).join('');
+
+            Swal.fire({
+                title: '<i class="fa-solid fa-lock text-brand-purple me-2"></i> Pindah Cabang Kasir',
+                html: `
+                    <div class="text-start fs-7 mb-3 text-secondary">
+                        Pilih cabang outlet yang ingin Anda buka dan masukkan PIN akses kasirnya:
+                    </div>
+                    <div class="mb-3 text-start">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Pilih Cabang Outlet Tujuan:</label>
+                        <select id="swal-target-outlet-select" class="form-select border-purple-200 fs-7 fw-bold text-brand-purple">
+                            ${outletOptions}
+                        </select>
+                    </div>
+                    <div class="mb-2 text-start">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">PIN Akses Kasir (4-6 Digit):</label>
+                        <input id="swal-kasir-pin-input" type="password" maxlength="6" class="form-control text-center fw-bold fs-4 border-purple-200" placeholder="• • • •" autocomplete="off">
+                    </div>
+                    <div class="text-muted fs-8 text-start fst-italic">
+                        * PIN default: <b class="text-dark">1234</b>. (Dapat diubah oleh Owner).
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-key me-1"></i> Verifikasi & Pindah Cabang',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#6A1B9A',
+                preConfirm: () => {
+                    const targetOutlet = document.getElementById('swal-target-outlet-select').value;
+                    const pin = document.getElementById('swal-kasir-pin-input').value.trim();
+                    if (!pin) {
+                        Swal.showValidationMessage('Masukkan PIN Akses Kasir!');
+                        return false;
+                    }
+                    return { targetOutlet, pin };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    const { targetOutlet, pin } = result.value;
+                    startLoading();
+                    fetch('/api/outlets/verify-pin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ outlet_name: targetOutlet, pin: pin })
+                    }).then(async r => {
+                        const data = await r.json().catch(() => ({}));
+                        if (!r.ok || data.success === false) {
+                            throw new Error(data.message || 'PIN Akses Kasir Salah!');
+                        }
+                        return data;
+                    }).then(() => {
+                        state.kasirActiveOutlet = targetOutlet;
+                        state.authenticatedKasirOutlet = targetOutlet;
+                        try {
+                            sessionStorage.setItem('auth_kasir_outlet', targetOutlet);
+                        } catch(e) {}
+                        renderAllUI();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil Pindah Cabang! ✅',
+                            text: `Cabang bertugas aktif saat ini: ${targetOutlet}`,
+                            timer: 1600,
+                            showConfirmButton: false
+                        });
+                    }).catch(err => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Akses Ditolak 🔒',
+                            text: err.message || 'PIN Akses Kasir Salah!'
+                        });
+                    }).finally(() => {
+                        endLoading();
+                    });
+                }
+            });
+        }
+
+        function renderOutletDropdowns() {
+            const coOutlet = document.getElementById('co-outlet');
+            if (coOutlet) {
+                const currentVal = coOutlet.value;
+                coOutlet.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
+                if (state.outlets.includes(currentVal)) coOutlet.value = currentVal;
+            }
+            const activeOutletEl = document.getElementById('kasir-active-outlet-name');
+            if (activeOutletEl) {
+                activeOutletEl.innerText = state.kasirActiveOutlet || state.outlets[0] || '-';
+            }
+            ['adm-report-outlet-filter', 'own-report-outlet-filter', 'adm-pesanan-outlet-filter', 'adm-dapur-outlet-filter', 'own-dapur-outlet-filter'].forEach(selId => {
+                const sel = document.getElementById(selId);
+                if (!sel) return;
+                const currentVal = sel.value || 'ALL';
+                sel.innerHTML = '<option value="ALL">KONSOLIDASI SEMUA OUTLET</option>' + state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
+                sel.value = (currentVal === 'ALL' || state.outlets.includes(currentVal)) ? currentVal : 'ALL';
+            });
+        }
         function renderOwnerOutletsTable() {
             const tbody = document.getElementById('own-outlets-tbody');
             if (!tbody) return;
