@@ -277,7 +277,10 @@
                     </div>
 
                     <div class="mb-3 px-1">
-                        <label class="form-label text-warning fs-8 fw-bold mb-1"><i class="fa-solid fa-store me-1"></i> Cabang Bertugas:</label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label text-warning fs-8 fw-bold mb-0"><i class="fa-solid fa-store me-1"></i> Cabang Bertugas:</label>
+                            <span class="badge bg-success fs-8 text-white" title="Pindah cabang wajib PIN"><i class="fa-solid fa-lock me-1"></i> Terkunci PIN</span>
+                        </div>
                         <select id="kasir-active-outlet" class="form-select form-select-sm fs-8 fw-bold text-dark border-warning" onchange="changeKasirOutlet(this.value)">
                             <option value="Outlet Pusat (Jl. Pajajaran)">Outlet Pusat (Jl. Pajajaran)</option>
                             <option value="Outlet Cabang 1 (Suryakencana)">Outlet Cabang 1 (Suryakencana)</option>
