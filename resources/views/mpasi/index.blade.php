@@ -1033,9 +1033,144 @@
         function renderHomeProducts() { const grid = document.getElementById('home-products-grid'); if (!grid) return; const todayProds = getTodayProducts(); const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const todayName = days[new Date().getDay()]; if (todayProds.length === 0) { grid.innerHTML = `<div class="col-12 text-center py-4 bg-purple-light rounded-3 text-muted"><i class="fa-solid fa-utensils fs-3 mb-2 text-brand-purple d-block"></i><h6 class="fw-bold text-dark">Belum Ada Menu MPASI untuk Hari ${todayName}</h6><p class="fs-8 mb-0">Menu rotasi harian belum diisi oleh Admin/Owner.</p></div>`; return; } grid.innerHTML = todayProds.slice(0, 3).map(p => ` <div class="col-md-4 mb-3"><div class="card-custom h-100 p-0 overflow-hidden d-flex flex-column justify-content-between border rounded-3 shadow-sm bg-white">${productImageHtml(p)}<div class="p-3 d-flex flex-column justify-content-between flex-grow-1"><div><span class="badge bg-warning text-dark fs-8 fw-bold mb-2">${p.age}</span><h6 class="fw-bold mb-1 text-dark fs-6" style="line-height:1.3;">${p.name}</h6><div class="text-muted fs-8 mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.ingredients}</div></div><div><div class="fw-bold text-brand-purple fs-5 mb-2">Rp ${p.price.toLocaleString('id-ID')}</div><button class="btn btn-brand-yellow btn-sm w-100 fw-bold text-dark py-2" onclick="addToCart('${p.id}')"><i class="fa-solid fa-cart-plus me-1"></i> + Tambah Ke Keranjang</button></div></div></div></div>`).join(''); }
         function renderCatalogProducts() { const grid = document.getElementById('full-products-grid'); if (!grid) return; const todayProds = getTodayProducts(); const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const todayName = days[new Date().getDay()]; if (todayProds.length === 0) { grid.innerHTML = `<div class="col-12 text-center py-5 bg-purple-light rounded-3 text-muted"><i class="fa-solid fa-calendar-xmark fs-1 mb-3 text-brand-purple d-block"></i><h5 class="fw-bold text-dark">Belum Ada Menu MPASI untuk Hari ${todayName}</h5><p class="fs-7 mb-0">Owner / Admin belum menambahkan varian menu rotasi harian untuk hari ${todayName}.</p></div>`; return; } grid.innerHTML = todayProds.map(p => ` <div class="col-md-4 mb-3"><div class="card-custom h-100 p-0 overflow-hidden d-flex flex-column justify-content-between border rounded-3 shadow-sm bg-white">${productImageHtml(p)}<div class="p-3 d-flex flex-column justify-content-between flex-grow-1"><div><span class="badge bg-warning text-dark fs-8 fw-bold mb-2">${p.age}</span><h6 class="fw-bold mb-1 text-dark fs-6" style="line-height:1.3;">${p.name}</h6><div class="text-muted fs-8 mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.ingredients}</div></div><div><div class="fw-bold text-brand-purple fs-5 mb-2">Rp ${p.price.toLocaleString('id-ID')}</div><button class="btn btn-brand-yellow btn-sm w-100 fw-bold text-dark py-2" onclick="addToCart('${p.id}')"><i class="fa-solid fa-cart-plus me-1"></i> + Tambah Ke Keranjang</button></div></div></div></div>`).join(''); }
         function addToCart(prodId) { if (!state.isStoreOpen) { Swal.fire({ icon: 'error', title: 'Pemesanan Tutup', text: 'Maaf pesanan hari ini sudah tutup, silakan pesan besok jam 06.00.' }); return; } const p = state.products.find(x => x.id == prodId); if (!p) return; const exist = state.cart.find(c => c.productId == prodId); if (exist) { exist.qty += 1; } else { state.cart.push({ productId: p.id, name: p.name, price: p.price, qty: 1 }); } renderCartUI(); Swal.fire({ icon: 'success', title: 'Masuk Keranjang', text: p.name + ' ditambahkan!', timer: 1000, showConfirmButton: false }); }
-        function renderAdminDailyMenuGrid(targetGridId) { const grid = document.getElementById(targetGridId || 'admin-daily-menu-grid'); if (!grid) return; const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']; grid.innerHTML = days.map(day => { let menuConfig = state.dailyMenu.find(d => d.day === day); let pIds = menuConfig ? (menuConfig.productIds || []).map(String) : []; let assignedProducts = state.products.filter(p => pIds.includes(String(p.id))); return ` <div class="col-md-3"><div class="card-custom p-3 h-100 d-flex flex-column justify-content-between"><div><div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2"><h6 class="fw-bold text-brand-purple mb-0">${day.toUpperCase()}</h6><span class="badge bg-success fs-8">Aktif</span></div><ul class="list-unstyled fs-7 text-secondary mb-3">${assignedProducts.length > 0 ? assignedProducts.map(ap => `<li class="mb-1"><i class="fa-solid fa-check text-success me-1"></i> ${ap.name}</li>`).join('') : '<li class="text-muted fs-8 fst-italic">Belum ada menu di hari ini</li>'}</ul></div><button class="btn btn-sm btn-outline-purple w-100 fw-bold" onclick="editDailyMenuModal('${day}')"><i class="fa-solid fa-pen-to-square me-1"></i> Edit Menu ${day}</button></div></div>`; }).join(''); }
+        function renderAdminDailyMenuGrid(targetGridId) {
+            const grid = document.getElementById(targetGridId || 'admin-daily-menu-grid');
+            if (!grid) return;
+            const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+            grid.innerHTML = days.map(day => {
+                let menuConfig = state.dailyMenu.find(d => d.day === day);
+                let pIds = menuConfig ? (menuConfig.productIds || []).map(String) : [];
+                let assignedProducts = state.products.filter(p => pIds.includes(String(p.id)));
+                return `
+                    <div class="col-md-3 mb-3">
+                        <div class="card-custom p-3 h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                    <h6 class="fw-bold text-brand-purple mb-0">${day.toUpperCase()}</h6>
+                                    <span class="badge bg-success fs-8">Aktif</span>
+                                </div>
+                                <ul class="list-unstyled fs-7 text-secondary mb-3">
+                                    ${assignedProducts.length > 0 ? assignedProducts.map(ap => `
+                                        <li class="mb-2 border-bottom pb-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="fw-bold text-dark fs-8">${ap.name}</span>
+                                                <span class="badge ${ap.stock > 0 ? 'bg-primary' : 'bg-danger'} fs-8">${ap.stock || 0} Cup</span>
+                                            </div>
+                                        </li>
+                                    `).join('') : '<li class="text-muted fs-8 fst-italic py-2">Belum ada menu di hari ini</li>'}
+                                </ul>
+                            </div>
+                            <button class="btn btn-sm btn-outline-purple w-100 fw-bold py-2" onclick="editDailyMenuModal('${day}')">
+                                <i class="fa-solid fa-pen-to-square me-1"></i> Edit Menu & Stok ${day}
+                            </button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
         function renderOwnerDailyMenuGrid() { renderAdminDailyMenuGrid('own-daily-menu-grid'); }
-        function editDailyMenuModal(dayName) { let menuConfig = state.dailyMenu.find(d => d.day === dayName); let currentIds = menuConfig ? (menuConfig.productIds || []).map(String) : []; let checkboxesHtml = state.products.map(p => ` <div class="form-check text-start mb-2 p-2 border rounded bg-light"><input class="form-check-input menu-chk" type="checkbox" value="${p.id}" id="chk-${p.id}" ${currentIds.includes(String(p.id)) ? 'checked' : ''}><label class="form-check-label fw-bold fs-7 ms-2 cursor-pointer w-100" for="chk-${p.id}">${p.name} <span class="text-muted fw-normal fs-8">(Rp ${p.price.toLocaleString('id-ID')})</span></label></div>`).join(''); Swal.fire({ title: `Atur Menu Harian - ${dayName}`, html: `<div class="text-start fs-7 text-muted mb-3">Centang (Tambah) atau batalkan centang (Hapus) varian MPASI untuk hari <b>${dayName}</b>:</div><div style="max-height:280px; overflow-y:auto;" class="px-1 text-start">${checkboxesHtml}</div>`, showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-floppy-disk me-1"></i> Simpan Perubahan', cancelButtonText: 'Batal', confirmButtonColor: '#6A1B9A', preConfirm: () => { return Array.from(document.querySelectorAll('.menu-chk:checked')).map(cb => cb.value); } }).then(result => { if (result.isConfirmed) { let newSelectedIds = result.value; fetch('/api/daily-menu', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ day: dayName, product_ids: newSelectedIds }) }).then(() => { if (menuConfig) { menuConfig.productIds = newSelectedIds; } else { state.dailyMenu.push({ day: dayName, productIds: newSelectedIds }); } renderAllUI(); Swal.fire({ icon: 'success', title: 'Menu Diperbarui', text: `Rotasi menu ${dayName} berhasil disimpan dan disinkronkan ke pelanggan!`, timer: 1400, showConfirmButton: false }); }); } }); }
+        function toggleStockInputDisabled(prodId) {
+            const chk = document.getElementById('chk-' + prodId);
+            const input = document.getElementById('stock-input-' + prodId);
+            if (chk && input) {
+                input.disabled = !chk.checked;
+            }
+        }
+        function editDailyMenuModal(dayName) {
+            let menuConfig = state.dailyMenu.find(d => d.day === dayName);
+            let currentIds = menuConfig ? (menuConfig.productIds || []).map(String) : [];
+            let itemsHtml = state.products.map(p => {
+                const isChecked = currentIds.includes(String(p.id));
+                return `
+                    <div class="p-2 border rounded bg-light mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check text-start mb-0">
+                                <input class="form-check-input menu-chk" type="checkbox" value="${p.id}" id="chk-${p.id}" ${isChecked ? 'checked' : ''} onchange="toggleStockInputDisabled('${p.id}')">
+                                <label class="form-check-label fw-bold fs-7 ms-2 cursor-pointer" for="chk-${p.id}">
+                                    ${p.name} <span class="text-brand-purple fw-bold fs-8">(Rp ${p.price.toLocaleString('id-ID')})</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mt-2 ms-4">
+                            <span class="fs-8 text-secondary fw-semibold"><i class="fa-solid fa-boxes-stacked me-1"></i> Stok Ready Harian:</span>
+                            <input type="number" id="stock-input-${p.id}" class="form-control form-control-sm menu-stock-input fw-bold" value="${p.stock || 0}" min="0" style="width: 100px;" ${isChecked ? '' : 'disabled'}>
+                            <span class="fs-8 text-muted">Cup</span>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            Swal.fire({
+                title: `Atur Menu & Stok Harian - ${dayName}`,
+                html: `
+                    <div class="text-start fs-7 text-muted mb-3">Centang varian MPASI untuk hari <b>${dayName}</b> dan atur jumlah <b>Stok Ready Harian (Cup)</b>:</div>
+                    <div style="max-height:340px; overflow-y:auto;" class="px-1 text-start">${itemsHtml}</div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-floppy-disk me-1"></i> Simpan Menu & Stok',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#6A1B9A',
+                preConfirm: () => {
+                    const selectedCheckboxes = Array.from(document.querySelectorAll('.menu-chk:checked'));
+                    const selectedIds = selectedCheckboxes.map(cb => cb.value);
+                    const stockUpdates = {};
+                    selectedIds.forEach(id => {
+                        const stockInput = document.getElementById('stock-input-' + id);
+                        stockUpdates[id] = stockInput ? (parseInt(stockInput.value) || 0) : 0;
+                    });
+                    return { selectedIds, stockUpdates };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    const { selectedIds, stockUpdates } = result.value;
+                    startLoading();
+                    fetch('/api/daily-menu', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ day: dayName, product_ids: selectedIds })
+                    }).then(() => {
+                        if (menuConfig) {
+                            menuConfig.productIds = selectedIds;
+                        } else {
+                            state.dailyMenu.push({ day: dayName, productIds: selectedIds });
+                        }
+
+                        const updatePromises = Object.keys(stockUpdates).map(prodId => {
+                            const newStockVal = stockUpdates[prodId];
+                            const p = state.products.find(x => x.id == prodId);
+                            if (p) {
+                                p.stock = newStockVal;
+                                p.initialStock = newStockVal;
+                            }
+                            return fetch('/api/products/' + prodId, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({ stock: newStockVal })
+                            }).catch(() => {});
+                        });
+
+                        return Promise.all(updatePromises);
+                    }).then(() => {
+                        endLoading();
+                        renderAllUI();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Menu & Stok Diperbarui',
+                            text: `Rotasi menu & stok ready untuk hari ${dayName} berhasil disimpan!`,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }).catch(err => {
+                        endLoading();
+                        Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: err.message || 'Gagal menyimpan stok.' });
+                    });
+                }
+            });
+        }
         function computeProductionNumbers(productId, outletFilter) { const relevantOrders = state.preOrders.filter(o => o.cancelStatus !== 'approved' && (outletFilter === 'ALL' || o.outlet === outletFilter)); const onlinePreorder = relevantOrders.reduce((sum, o) => { const item = (o.itemsDetail || []).find(it => it.productId == productId); return sum + (item ? item.qty : 0); }, 0); return { onlinePreorder, total: onlinePreorder }; }
         function renderProductionGeneric(cfg) { const outletFilter = document.getElementById(cfg.filterSelectId)?.value || 'ALL'; const cardsEl = document.getElementById(cfg.cardsId); if (cardsEl) { cardsEl.innerHTML = state.outlets.map(outletName => { const totalForOutlet = state.products.reduce((sum, p) => sum + computeProductionNumbers(p.id, outletName).total, 0); const isActiveFilter = outletFilter === outletName; return ` <div class="col-md-4"><div class="card-custom p-3 h-100 border-start border-4 ${isActiveFilter ? 'border-warning bg-purple-light' : 'border-primary'}"><div class="fw-bold text-brand-purple fs-7 mb-1"><i class="fa-solid fa-shop me-1"></i> ${outletName}</div><div class="fs-5 fw-bold text-primary">${totalForOutlet} Cup</div><div class="text-muted fs-8">Total porsi harus dimasak untuk cabang ini</div></div></div>`; }).join(''); } const tbody = document.getElementById(cfg.tbodyId); if (!tbody) return; let totalOnline = 0, totalAll = 0; const rows = state.products.map(p => { const { onlinePreorder, total } = computeProductionNumbers(p.id, outletFilter); totalOnline += onlinePreorder; totalAll += total; return ` <tr><td class="fw-bold text-dark">${p.name}</td><td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td><td class="fw-bold text-brand-purple">${total} Cup</td></tr>`; }).join(''); tbody.innerHTML = rows + `<tr class="table-light"><td class="fw-bold">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td><td class="fw-bold">${totalOnline} Cup</td><td class="fw-bold text-brand-purple">${totalAll} Cup</td></tr>`; }
         function renderAdminProduction() { renderProductionGeneric({ filterSelectId: 'adm-dapur-outlet-filter', cardsId: 'adm-dapur-outlet-cards', tbodyId: 'adm-production-tbody' }); }
