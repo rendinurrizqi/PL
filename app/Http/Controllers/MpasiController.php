@@ -695,69 +695,109 @@ class MpasiController extends Controller
         );
     }
 
+    protected function ensureImageColumnIsLongText(): void
+    {
+        try {
+            DB::statement('ALTER TABLE products MODIFY image LONGTEXT NULL');
+        } catch (\Throwable $e) {
+            // Ignore if already LONGTEXT or not supported driver
+        }
+    }
+
     public function apiStoreProduct(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|integer|min:1',
-            'stock' => 'nullable|integer|min:0',
-            'category' => 'nullable|string',
-            'age_group' => 'nullable|string',
-            'age' => 'nullable|string',
-            'ingredients' => 'nullable|string',
-            'image' => 'nullable|string',
-            'status' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'price' => 'required|integer|min:1',
+                'stock' => 'nullable|integer|min:0',
+                'category' => 'nullable|string',
+                'age_group' => 'nullable|string',
+                'age' => 'nullable|string',
+                'ingredients' => 'nullable|string',
+                'image' => 'nullable|string',
+                'status' => 'nullable|string',
+            ]);
 
-        $ageGroup = $validated['age_group'] ?? $validated['age'] ?? '6+ Bulan';
-        $image = !empty($validated['image']) ? $validated['image'] : null;
+            $ageGroup = $validated['age_group'] ?? $validated['age'] ?? '6+ Bulan';
+            $image = !empty($validated['image']) ? $validated['image'] : null;
 
-        $product = Product::create([
-            'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
-            'price' => $validated['price'],
-            'stock' => $validated['stock'] ?? 0,
-            'initial_stock' => $validated['stock'] ?? 0,
-            'category' => $validated['category'] ?? 'Bubur',
-            'age_group' => $ageGroup,
-            'ingredients' => $validated['ingredients'] ?? 'Bahan segar alami',
-            'image' => $image,
-            'status' => $validated['status'] ?? 'Aktif',
-            'custom_points' => 0,
-        ]);
+            $baseSlug = Str::slug($validated['name']) ?: 'produk';
+            $slug = $baseSlug;
+            $count = 1;
+            while (Product::query()->where('slug', $slug)->exists()) {
+                $slug = $baseSlug . '-' . $count++;
+            }
 
-        return response()->json(['success' => true, 'product' => $product]);
+            $this->ensureImageColumnIsLongText();
+
+            $product = Product::create([
+                'name' => $validated['name'],
+                'slug' => $slug,
+                'price' => $validated['price'],
+                'stock' => $validated['stock'] ?? 0,
+                'initial_stock' => $validated['stock'] ?? 0,
+                'category' => $validated['category'] ?? 'Bubur',
+                'age_group' => $ageGroup,
+                'ingredients' => $validated['ingredients'] ?? 'Bahan segar alami',
+                'image' => $image,
+                'status' => $validated['status'] ?? 'Aktif',
+                'custom_points' => 0,
+            ]);
+
+            return response()->json(['success' => true, 'product' => $product]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan produk: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function apiUpdateProduct(Request $request, $id)
     {
-        $product = Product::findOrFail($id);
+        try {
+            $product = Product::findOrFail($id);
 
-        $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'price' => 'nullable|integer|min:1',
-            'stock' => 'nullable|integer|min:0',
-            'category' => 'nullable|string',
-            'age_group' => 'nullable|string',
-            'age' => 'nullable|string',
-            'ingredients' => 'nullable|string',
-            'image' => 'nullable|string',
-            'status' => 'nullable|string',
-            'custom_points' => 'nullable|integer',
-        ]);
+            $validated = $request->validate([
+                'name' => 'nullable|string|max:255',
+                'price' => 'nullable|integer|min:1',
+                'stock' => 'nullable|integer|min:0',
+                'category' => 'nullable|string',
+                'age_group' => 'nullable|string',
+                'age' => 'nullable|string',
+                'ingredients' => 'nullable|string',
+                'image' => 'nullable|string',
+                'status' => 'nullable|string',
+                'custom_points' => 'nullable|integer',
+            ]);
 
-        if (isset($validated['name'])) {
-            $validated['slug'] = Str::slug($validated['name']);
+            if (isset($validated['name'])) {
+                $baseSlug = Str::slug($validated['name']) ?: 'produk';
+                $slug = $baseSlug;
+                $count = 1;
+                while (Product::query()->where('slug', $slug)->where('id', '!=', $product->id)->exists()) {
+                    $slug = $baseSlug . '-' . $count++;
+                }
+                $validated['slug'] = $slug;
+            }
+
+            if (isset($validated['age']) && !empty($validated['age'])) {
+                $validated['age_group'] = $validated['age'];
+                unset($validated['age']);
+            }
+
+            $this->ensureImageColumnIsLongText();
+
+            $product->update(array_filter($validated, fn($v) => $v !== null));
+
+            return response()->json(['success' => true, 'product' => $product]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui produk: ' . $e->getMessage()
+            ], 500);
         }
-
-        if (isset($validated['age']) && !empty($validated['age'])) {
-            $validated['age_group'] = $validated['age'];
-            unset($validated['age']);
-        }
-
-        $product->update(array_filter($validated, fn($v) => $v !== null));
-
-        return response()->json(['success' => true, 'product' => $product]);
     }
 
     public function apiDeleteProduct($id)
