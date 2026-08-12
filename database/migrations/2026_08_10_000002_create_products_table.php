@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('ingredients')->nullable();
             $table->integer('stock')->default(0);
             $table->integer('initial_stock')->default(0);
-            $table->string('image')->nullable();
+            $table->longText('image')->nullable();
             $table->string('status')->default('Aktif');
             $table->integer('custom_points')->default(0);
             $table->timestamps();

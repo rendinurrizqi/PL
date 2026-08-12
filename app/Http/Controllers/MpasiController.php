@@ -703,10 +703,14 @@ class MpasiController extends Controller
             'stock' => 'nullable|integer|min:0',
             'category' => 'nullable|string',
             'age_group' => 'nullable|string',
+            'age' => 'nullable|string',
             'ingredients' => 'nullable|string',
             'image' => 'nullable|string',
             'status' => 'nullable|string',
         ]);
+
+        $ageGroup = $validated['age_group'] ?? $validated['age'] ?? '6+ Bulan';
+        $image = !empty($validated['image']) ? $validated['image'] : null;
 
         $product = Product::create([
             'name' => $validated['name'],
@@ -715,9 +719,9 @@ class MpasiController extends Controller
             'stock' => $validated['stock'] ?? 0,
             'initial_stock' => $validated['stock'] ?? 0,
             'category' => $validated['category'] ?? 'Bubur',
-            'age_group' => $validated['age_group'] ?? '6+ Bulan',
+            'age_group' => $ageGroup,
             'ingredients' => $validated['ingredients'] ?? 'Bahan segar alami',
-            'image' => $validated['image'] ?? null,
+            'image' => $image,
             'status' => $validated['status'] ?? 'Aktif',
             'custom_points' => 0,
         ]);
@@ -735,6 +739,7 @@ class MpasiController extends Controller
             'stock' => 'nullable|integer|min:0',
             'category' => 'nullable|string',
             'age_group' => 'nullable|string',
+            'age' => 'nullable|string',
             'ingredients' => 'nullable|string',
             'image' => 'nullable|string',
             'status' => 'nullable|string',
@@ -745,7 +750,7 @@ class MpasiController extends Controller
             $validated['slug'] = Str::slug($validated['name']);
         }
 
-        if (isset($validated['age'])) {
+        if (isset($validated['age']) && !empty($validated['age'])) {
             $validated['age_group'] = $validated['age'];
             unset($validated['age']);
         }
