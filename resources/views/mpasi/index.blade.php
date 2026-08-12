@@ -1058,9 +1058,6 @@
                     <div class="mb-2">
                         <input id="swal-kasir-pin-input" type="password" maxlength="6" class="form-control text-center fw-bold fs-4 border-purple-200" placeholder="• • • •" autocomplete="off">
                     </div>
-                    <div class="text-muted fs-8 text-start fst-italic">
-                        * PIN default: <b class="text-dark">1234</b> (Dapat diatur/diubah di Kelola Outlet oleh Owner).
-                    </div>
                 `,
                 focusConfirm: false,
                 showCancelButton: true,
@@ -1452,9 +1449,6 @@
                     <div class="mb-2 text-start">
                         <label class="form-label fs-8 fw-bold text-dark mb-1">PIN Akses Kasir (4-6 Digit):</label>
                         <input id="swal-kasir-pin-input" type="password" maxlength="6" class="form-control text-center fw-bold fs-4 border-purple-200" placeholder="• • • •" autocomplete="off">
-                    </div>
-                    <div class="text-muted fs-8 text-start fst-italic">
-                        * PIN default: <b class="text-dark">1234</b>. (Dapat diubah oleh Owner).
                     </div>
                 `,
                 focusConfirm: false,
