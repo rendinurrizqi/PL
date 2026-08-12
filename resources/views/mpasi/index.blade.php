@@ -1088,7 +1088,50 @@
             }).join('');
         }
         function addPosCart(prodId) { const p = state.products.find(x => x.id == prodId); if (!p) return; const currentStock = p.stock || 0; const exist = state.posCart.find(x => x.productId == prodId); const currentCartQty = exist ? exist.qty : 0; if (currentCartQty + 1 > currentStock) { Swal.fire({ icon: 'warning', title: 'Stok Tidak Cukup!', text: `Stok ready ${p.name} hanya tersisa ${currentStock} cup.` }); return; } if (exist) { exist.qty += 1; } else { state.posCart.push({ productId: p.id, name: p.name, price: p.price, qty: 1 }); } renderPosCartList(); }
-        function renderPosCartList() { const list = document.getElementById('pos-cart-list'); if (!list) return; list.innerHTML = state.posCart.map(c => `<div class="d-flex justify-content-between align-items-center"><span>${c.name} (x${c.qty})</span><span class="fw-bold text-brand-purple">Rp ${(c.price * c.qty).toLocaleString('id-ID')}</span></div>`).join(''); const total = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0); document.getElementById('pos-total-display').innerText = 'Rp ' + total.toLocaleString('id-ID'); }
+        function updatePosCartQty(prodId, delta) {
+            const item = state.posCart.find(x => x.productId == prodId);
+            if (!item) return;
+            if (delta > 0) {
+                const p = state.products.find(x => x.id == prodId);
+                const currentStock = p ? (p.stock || 0) : 999;
+                if (item.qty + 1 > currentStock) {
+                    Swal.fire({ icon: 'warning', title: 'Stok Tidak Cukup!', text: `Stok ready ${item.name} hanya tersisa ${currentStock} cup.` });
+                    return;
+                }
+                item.qty += 1;
+            } else {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    state.posCart = state.posCart.filter(x => x.productId != prodId);
+                }
+            }
+            renderPosCartList();
+        }
+        function renderPosCartList() {
+            const list = document.getElementById('pos-cart-list');
+            if (!list) return;
+            if (state.posCart.length === 0) {
+                list.innerHTML = `<div class="text-center text-muted fs-8 py-3 fst-italic"><i class="fa-solid fa-basket-shopping fs-4 d-block mb-1 text-secondary opacity-50"></i>Keranjang POS masih kosong.<br>Klik produk di sebelah kiri untuk memilih.</div>`;
+                document.getElementById('pos-total-display').innerText = 'Rp 0';
+                return;
+            }
+            list.innerHTML = state.posCart.map(c => `
+                <div class="d-flex justify-content-between align-items-center p-2 border rounded bg-white shadow-sm mb-1">
+                    <div style="flex: 1; min-width: 0;" class="pe-2 text-start">
+                        <div class="fw-bold text-dark fs-8 text-truncate">${c.name}</div>
+                        <div class="text-muted fs-8">Rp ${c.price.toLocaleString('id-ID')} / cup</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold" onclick="updatePosCartQty('${c.productId}', -1)">-</button>
+                        <span class="fw-bold fs-7 px-1">${c.qty}</span>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold" onclick="updatePosCartQty('${c.productId}', 1)">+</button>
+                        <button class="btn btn-sm text-danger ms-1 py-0 px-1.5" onclick="updatePosCartQty('${c.productId}', -99)" title="Hapus varian ini"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            const total = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0);
+            document.getElementById('pos-total-display').innerText = 'Rp ' + total.toLocaleString('id-ID');
+        }
         function processPosCheckout() { if (state.posCart.length === 0) { Swal.fire({ icon: 'warning', title: 'POS Kosong', text: 'Pilih produk terlebih dahulu.' }); return; } const totalPosAmount = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0); const totalPosQty = state.posCart.reduce((a, b) => a + b.qty, 0); if (!state.outletSalesRecords[state.kasirActiveOutlet]) { state.outletSalesRecords[state.kasirActiveOutlet] = {}; } state.posCart.forEach(item => { const p = state.products.find(x => x.id == item.productId); if (p) { p.stock = Math.max(0, (p.stock || 0) - item.qty); if (!state.outletSalesRecords[state.kasirActiveOutlet][item.productId]) { state.outletSalesRecords[state.kasirActiveOutlet][item.productId] = { sold: 0 }; } state.outletSalesRecords[state.kasirActiveOutlet][item.productId].sold += item.qty; } }); state.posCart = []; renderPosCartList(); renderPosProductsGrid(); renderKasirLeftoverTable(); renderAdminProducts('adm-products-tbody', true); renderOwnerProducts(); renderAdminOutletReports(); renderOwnerOutletReports(); renderOwnerDashboard(); renderAdminProduction(); renderOwnerProduction(); Swal.fire({ icon: 'success', title: 'Transaksi POS Berhasil!', text: 'Penjualan tercatat ke laporan outlet, stok dipotong, dan rekap terbarui real-time!' }); }
         function renderKasirLeftoverTable() { const tbody = document.getElementById('kasir-leftover-tbody'); if (!tbody) return; const todayProds = getTodayProducts(); const targetProducts = todayProds.length > 0 ? todayProds : state.products; const outletSales = state.outletSalesRecords[state.kasirActiveOutlet] || {}; tbody.innerHTML = targetProducts.map(p => { const prodId = p.id; const price = p.price; const allocatedQty = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const soldQty = outletSales[prodId] ? outletSales[prodId].sold : 0; const leftoverQty = Math.max(0, allocatedQty - soldQty); const lossAmount = leftoverQty * price; return `<tr><td class="fw-bold text-dark">${p.name}</td><td>Rp ${price.toLocaleString('id-ID')}</td><td class="fw-bold text-primary">${allocatedQty} Cup</td><td class="fw-bold text-success">${soldQty} Cup Terjual</td><td class="fw-bold text-danger">${leftoverQty} Cup</td><td class="fw-bold text-danger">Rp ${lossAmount.toLocaleString('id-ID')}</td><td class="text-center"><span class="badge bg-success fs-8"><i class="fa-solid fa-circle-check me-1"></i> Siap Kirim</span></td></tr>`; }).join(''); }
         function submitAllKasirLeftovers() { renderAdminOutletReports(); Swal.fire({ icon: 'success', title: 'Rekap Sisa Dikirim!', text: 'Laporan sisa seluruh produk untuk ' + state.kasirActiveOutlet + ' telah diteruskan ke Admin & Owner secara real-time!', confirmButtonColor: '#6A1B9A' }); }
