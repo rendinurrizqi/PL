@@ -921,7 +921,9 @@
     <script>
         let state = {
             activeRole: window.MPASI_DATA?.initialRole || 'pelanggan',
-            outlets: ['Outlet Pusat (Jl. Pajajaran)', 'Outlet Cabang 1 (Suryakencana)', 'Outlet Cabang 2 (Cibinong)'],
+            outlets: (Array.isArray(window.MPASI_DATA?.outlets) && window.MPASI_DATA.outlets.length > 0)
+                ? window.MPASI_DATA.outlets.map(o => typeof o === 'string' ? o : (o.name || ''))
+                : ['Outlet Pusat (Jl. Pajajaran)', 'Outlet Cabang 1 (Suryakencana)', 'Outlet Cabang 2 (Cibinong)'],
             kasirActiveOutlet: 'Outlet Pusat (Jl. Pajajaran)',
             isStoreOpen: true,
             currentUser: (() => { try { const saved = localStorage.getItem('mpasi_current_user'); return saved ? JSON.parse(saved) : null; } catch(e) { return null; } })(),
@@ -1276,9 +1278,171 @@
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const cardsEl = document.getElementById('adm-pesanan-outlet-cards'); if (cardsEl) { cardsEl.innerHTML = state.outlets.map(outletName => { const ordersInOutlet = state.preOrders.filter(p => p.outlet === outletName); const totalOrders = ordersInOutlet.length; const belumDiambil = ordersInOutlet.filter(p => !p.isTaken && p.cancelStatus !== 'approved').length; const dibatalkan = ordersInOutlet.filter(p => p.cancelStatus === 'approved').length; return `<div class="col-md-4"><div class="card-custom p-3 h-100 border-start border-4 border-primary"><div class="fw-bold text-brand-purple fs-7 mb-2"><i class="fa-solid fa-shop me-1"></i> ${outletName}</div><div class="d-flex justify-content-between fs-8 mb-1"><span class="text-muted">Total Pesanan</span><span class="fw-bold">${totalOrders}</span></div><div class="d-flex justify-content-between fs-8 mb-1"><span class="text-muted">Belum Diambil</span><span class="fw-bold text-warning">${belumDiambil}</span></div><div class="d-flex justify-content-between fs-8"><span class="text-muted">Dibatalkan</span><span class="fw-bold text-danger">${dibatalkan}</span></div></div></div>`; }).join(''); } const tbody = document.getElementById('adm-pesanan-tbody'); if (tbody) { const filteredOrders = selectedOutlet === 'ALL' ? state.preOrders : state.preOrders.filter(p => p.outlet === selectedOutlet); tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan untuk cabang ini.</td></tr>`; } }
         function renderOutletDropdowns() { const coOutlet = document.getElementById('co-outlet'); if (coOutlet) { const currentVal = coOutlet.value; coOutlet.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join(''); if (state.outlets.includes(currentVal)) coOutlet.value = currentVal; } const kasirOutletSel = document.getElementById('kasir-active-outlet'); if (kasirOutletSel) { kasirOutletSel.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}" ${o === state.kasirActiveOutlet ? 'selected' : ''}>${o}</option>`).join(''); } ['adm-report-outlet-filter', 'own-report-outlet-filter', 'adm-pesanan-outlet-filter', 'adm-dapur-outlet-filter', 'own-dapur-outlet-filter'].forEach(selId => { const sel = document.getElementById(selId); if (!sel) return; const currentVal = sel.value || 'ALL'; sel.innerHTML = '<option value="ALL">KONSOLIDASI SEMUA OUTLET</option>' + state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join(''); sel.value = (currentVal === 'ALL' || state.outlets.includes(currentVal)) ? currentVal : 'ALL'; }); }
         function renderOwnerOutletsTable() { const tbody = document.getElementById('own-outlets-tbody'); if (!tbody) return; tbody.innerHTML = state.outlets.map(o => { const totalOrders = state.preOrders.filter(p => p.outlet === o).length; const pendingOrders = state.preOrders.filter(p => p.outlet === o && !p.isTaken && p.cancelStatus !== 'approved').length; return `<tr><td class="fw-bold text-brand-purple">${o}</td><td>${totalOrders} Pesanan</td><td>${pendingOrders > 0 ? `<span class="badge bg-warning text-dark fs-8">${pendingOrders} Belum Diambil</span>` : '<span class="text-muted fs-8">-</span>'}</td><td class="text-center"><button class="btn btn-sm btn-outline-secondary py-1 px-2 fs-8 fw-bold" data-outlet="${escAttr(o)}" onclick="editOutletModal(this.dataset.outlet)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button><button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8 fw-bold ms-1" data-outlet="${escAttr(o)}" onclick="deleteOutlet(this.dataset.outlet)"><i class="fa-solid fa-trash"></i></button></td></tr>`; }).join(''); }
-        function showAddOutletModal() { Swal.fire({ title: 'Tambah Outlet Baru', input: 'text', inputLabel: 'Nama Outlet', inputPlaceholder: 'Contoh: Outlet Cabang 3 (Bogor Kota)', showCancelButton: true, confirmButtonText: 'Simpan Outlet', confirmButtonColor: '#6A1B9A', inputValidator: (value) => { const v = (value || '').trim(); if (!v) return 'Nama outlet wajib diisi!'; if (state.outlets.includes(v)) return 'Nama outlet sudah ada!'; } }).then(res => { if (res.isConfirmed) { const name = res.value.trim(); state.outlets.push(name); state.outletSalesRecords[name] = {}; renderAllUI(); Swal.fire({ icon: 'success', title: 'Outlet Ditambahkan', text: `${name} berhasil ditambahkan!`, timer: 1200, showConfirmButton: false }); } }); }
-        function editOutletModal(outletName) { Swal.fire({ title: 'Edit Nama Outlet', input: 'text', inputValue: outletName, showCancelButton: true, confirmButtonText: 'Simpan Perubahan', confirmButtonColor: '#6A1B9A', inputValidator: (value) => { const v = (value || '').trim(); if (!v) return 'Nama outlet wajib diisi!'; if (v !== outletName && state.outlets.includes(v)) return 'Nama outlet sudah dipakai outlet lain!'; } }).then(res => { if (res.isConfirmed) { const newName = res.value.trim(); if (newName === outletName) return; const idx = state.outlets.indexOf(outletName); if (idx > -1) state.outlets[idx] = newName; if (state.outletSalesRecords[outletName]) { state.outletSalesRecords[newName] = state.outletSalesRecords[outletName]; delete state.outletSalesRecords[outletName]; } else if (!state.outletSalesRecords[newName]) { state.outletSalesRecords[newName] = {}; } state.preOrders.forEach(p => { if (p.outlet === outletName) p.outlet = newName; }); if (state.kasirActiveOutlet === outletName) state.kasirActiveOutlet = newName; renderAllUI(); Swal.fire({ icon: 'success', title: 'Outlet Diperbarui', text: `Outlet berhasil diubah menjadi "${newName}".`, timer: 1400, showConfirmButton: false }); } }); }
-        function deleteOutlet(outletName) { if (state.outlets.length <= 1) { Swal.fire({ icon: 'warning', title: 'Tidak Bisa Dihapus', text: 'Minimal harus ada 1 outlet aktif.' }); return; } const activePreOrders = state.preOrders.filter(p => p.outlet === outletName && !p.isTaken && p.cancelStatus !== 'approved').length; Swal.fire({ icon: 'warning', title: 'Hapus Outlet?', html: `Outlet <b>${outletName}</b> akan dihapus permanen.${activePreOrders > 0 ? `<br><span class="text-danger fw-bold">Perhatian: masih ada ${activePreOrders} pre-order yang belum diambil di outlet ini!</span>` : ''}`, showCancelButton: true, confirmButtonText: 'Ya, Hapus Outlet', cancelButtonText: 'Batal', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { state.outlets = state.outlets.filter(o => o !== outletName); delete state.outletSalesRecords[outletName]; if (state.kasirActiveOutlet === outletName) { state.kasirActiveOutlet = state.outlets[0]; } renderAllUI(); Swal.fire({ icon: 'success', title: 'Outlet Dihapus', timer: 1000, showConfirmButton: false }); } }); }
+        function showAddOutletModal() {
+            Swal.fire({
+                title: 'Tambah Outlet Baru',
+                input: 'text',
+                inputLabel: 'Nama Outlet',
+                inputPlaceholder: 'Contoh: Outlet Cabang 3 (Bogor Kota)',
+                showCancelButton: true,
+                confirmButtonText: 'Simpan Outlet',
+                confirmButtonColor: '#6A1B9A',
+                inputValidator: (value) => {
+                    const v = (value || '').trim();
+                    if (!v) return 'Nama outlet wajib diisi!';
+                    if (state.outlets.includes(v)) return 'Nama outlet sudah ada!';
+                }
+            }).then(res => {
+                if (res.isConfirmed && res.value) {
+                    const name = res.value.trim();
+                    startLoading();
+                    fetch('/api/outlets', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ name: name })
+                    }).then(async r => {
+                        const data = await r.json().catch(() => ({}));
+                        if (!r.ok || data.success === false) {
+                            throw new Error(data.message || 'Gagal menyimpan outlet');
+                        }
+                        return data;
+                    }).then(() => {
+                        if (!state.outlets.includes(name)) {
+                            state.outlets.push(name);
+                        }
+                        state.outletSalesRecords[name] = {};
+                        renderAllUI();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Outlet Ditambahkan',
+                            text: `${name} berhasil disimpan ke database!`,
+                            timer: 1400,
+                            showConfirmButton: false
+                        });
+                    }).catch(err => {
+                        Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: err.message || 'Terjadi kesalahan sistem.' });
+                    }).finally(() => {
+                        endLoading();
+                    });
+                }
+            });
+        }
+        function editOutletModal(outletName) {
+            Swal.fire({
+                title: 'Edit Nama Outlet',
+                input: 'text',
+                inputValue: outletName,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan Perubahan',
+                confirmButtonColor: '#6A1B9A',
+                inputValidator: (value) => {
+                    const v = (value || '').trim();
+                    if (!v) return 'Nama outlet wajib diisi!';
+                    if (v !== outletName && state.outlets.includes(v)) return 'Nama outlet sudah dipakai outlet lain!';
+                }
+            }).then(res => {
+                if (res.isConfirmed && res.value) {
+                    const newName = res.value.trim();
+                    if (newName === outletName) return;
+                    startLoading();
+                    fetch('/api/outlets/' + encodeURIComponent(outletName), {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ name: newName })
+                    }).then(async r => {
+                        const data = await r.json().catch(() => ({}));
+                        if (!r.ok || data.success === false) {
+                            throw new Error(data.message || 'Gagal memperbarui outlet');
+                        }
+                        return data;
+                    }).then(() => {
+                        const idx = state.outlets.indexOf(outletName);
+                        if (idx > -1) state.outlets[idx] = newName;
+                        if (state.outletSalesRecords[outletName]) {
+                            state.outletSalesRecords[newName] = state.outletSalesRecords[outletName];
+                            delete state.outletSalesRecords[outletName];
+                        } else if (!state.outletSalesRecords[newName]) {
+                            state.outletSalesRecords[newName] = {};
+                        }
+                        state.preOrders.forEach(p => {
+                            if (p.outlet === outletName) p.outlet = newName;
+                        });
+                        if (state.kasirActiveOutlet === outletName) state.kasirActiveOutlet = newName;
+                        renderAllUI();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Outlet Diperbarui',
+                            text: `Nama outlet berhasil diubah menjadi "${newName}".`,
+                            timer: 1400,
+                            showConfirmButton: false
+                        });
+                    }).catch(err => {
+                        Swal.fire({ icon: 'error', title: 'Gagal Memperbarui', text: err.message || 'Terjadi kesalahan sistem.' });
+                    }).finally(() => {
+                        endLoading();
+                    });
+                }
+            });
+        }
+        function deleteOutlet(outletName) {
+            if (state.outlets.length <= 1) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Tidak Bisa Dihapus',
+                    text: 'Minimal harus ada 1 outlet aktif.'
+                });
+                return;
+            }
+            const activePreOrders = state.preOrders.filter(p => p.outlet === outletName && !p.isTaken && p.cancelStatus !== 'approved').length;
+            Swal.fire({
+                icon: 'warning',
+                title: 'Hapus Outlet?',
+                html: `Outlet <b>${outletName}</b> akan dihapus permanen.${activePreOrders > 0 ? `<br><span class="text-danger fw-bold">Perhatian: masih ada ${activePreOrders} pre-order yang belum diambil di outlet ini!</span>` : ''}`,
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Hapus Outlet',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc3545'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    startLoading();
+                    fetch('/api/outlets/' + encodeURIComponent(outletName), {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    }).then(async r => {
+                        const data = await r.json().catch(() => ({}));
+                        if (!r.ok || data.success === false) {
+                            throw new Error(data.message || 'Gagal menghapus outlet');
+                        }
+                        return data;
+                    }).then(() => {
+                        state.outlets = state.outlets.filter(o => o !== outletName);
+                        delete state.outletSalesRecords[outletName];
+                        if (state.kasirActiveOutlet === outletName) {
+                            state.kasirActiveOutlet = state.outlets[0];
+                        }
+                        renderAllUI();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Outlet Dihapus',
+                            timer: 1200,
+                            showConfirmButton: false
+                        });
+                    }).catch(err => {
+                        Swal.fire({ icon: 'error', title: 'Gagal Menghapus', text: err.message || 'Terjadi kesalahan sistem.' });
+                    }).finally(() => {
+                        endLoading();
+                    });
+                }
+            });
+        }
         function requestResetPasswordModal() { Swal.fire({ title: 'Permohonan Reset Password', text: 'Kirimkan tiket permohonan reset kata sandi ke Owner?', showCancelButton: true, confirmButtonText: 'Kirim Tiket' }).then(res => { if (res.isConfirmed) { state.resetTickets.push({ id: 'RST-' + Math.floor(100 + Math.random() * 900), name: 'Bunda Pemesan', wa: '081298765432', time: '11:00 WIB', isResolved: false }); renderOwnerResetPasswordTable(); renderOwnerDashboard(); Swal.fire({ icon: 'success', title: 'Tiket Terkirim', text: 'Owner akan memproses reset kata sandi Anda.' }); } }); }
         function renderOwnerDashboard() { const outletsList = state.outlets; let totalOmsetHariIni = 0; let totalPorsiHariIni = 0; let totalLabaHariIni = 0; const perOutletRows = []; outletsList.forEach(outletName => { const salesRec = state.outletSalesRecords[outletName] || {}; let omset = 0, porsi = 0, loss = 0; state.products.forEach(p => { const sold = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const leftover = Math.max(0, allocated - sold); omset += sold * p.price; porsi += sold; loss += leftover * p.price; }); const profit = Math.round((omset * 0.4) - loss); totalOmsetHariIni += omset; totalPorsiHariIni += porsi; totalLabaHariIni += profit; perOutletRows.push({ name: outletName, omset, porsi, profit }); }); const pendingTickets = state.resetTickets.filter(t => !t.isResolved); const pendingPreOrders = state.preOrders.filter(p => !p.isTaken).length; const cardsEl = document.getElementById('owner-dashboard-cards'); if (cardsEl) { cardsEl.innerHTML = `<div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET SEMUA OUTLET (HARI INI)</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmsetHariIni.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsiHariIni} Cup</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-success"><div class="text-muted fs-8 fw-bold">ESTIMASI LABA BERSIH HARI INI</div><div class="fs-5 fw-bold text-success">Rp ${totalLabaHariIni.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-warning"><div class="text-muted fs-8 fw-bold">PRE-ORDER MENUNGGU DIAMBIL</div><div class="fs-5 fw-bold text-warning">${pendingPreOrders} Pesanan</div></div></div>`; } const outletTbody = document.getElementById('owner-dashboard-outlet-tbody'); if (outletTbody) { outletTbody.innerHTML = perOutletRows.map(o => `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${o.omset.toLocaleString('id-ID')}</td><td>${o.porsi} Cup</td><td class="text-success fw-bold">Rp ${o.profit.toLocaleString('id-ID')}</td></tr>`).join(''); } const resetListEl = document.getElementById('owner-dashboard-resetpass-list'); if (resetListEl) { resetListEl.innerHTML = pendingTickets.length > 0 ? pendingTickets.map(t => `<div class="d-flex justify-content-between align-items-center border rounded-3 p-2 bg-light"><div><div class="fw-bold">${t.name}</div><div class="text-muted fs-8">${t.wa} • ${t.time}</div></div><button class="btn btn-sm btn-brand-purple fs-8 fw-bold" onclick="resolveResetTicket('${t.id}')"><i class="fa-solid fa-key me-1"></i> Reset</button></div>`).join('') : '<div class="text-muted fs-8 fst-italic">Tidak ada tiket menunggu diproses 🎉</div>'; } const badgeEl = document.getElementById('owner-resetpass-badge'); if (badgeEl) { badgeEl.innerText = pendingTickets.length; badgeEl.style.display = pendingTickets.length > 0 ? 'inline-block' : 'none'; } }
         function renderOwnerResetPasswordTable() { const tbody = document.getElementById('own-resetpass-tbody'); if (!tbody) return; if (state.resetTickets.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-8 fst-italic py-3">Belum ada permintaan reset password.</td></tr>`; } else { tbody.innerHTML = state.resetTickets.map(t => `<tr class="${t.isResolved ? 'bg-light opacity-75' : ''}"><td class="fw-bold text-brand-purple">${t.id}</td><td class="fw-bold text-dark">${t.name}</td><td><a href="https://wa.me/${t.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${t.wa}</a></td><td>${t.time}</td><td><span class="badge ${t.isResolved ? 'bg-success' : 'bg-warning text-dark'} fs-8">${t.isResolved ? 'Selesai Direset ✅' : 'Menunggu Diproses'}</span></td><td class="text-center">${t.isResolved ? '<span class="text-muted fs-8 fst-italic">-</span>' : `<button class="btn btn-sm btn-brand-purple fs-8 fw-bold" onclick="resolveResetTicket('${t.id}')"><i class="fa-solid fa-key me-1"></i> Reset Sekarang</button>`}</td></tr>`).join(''); } const pendingCount = state.resetTickets.filter(t => !t.isResolved).length; const badgeEl = document.getElementById('owner-resetpass-badge'); if (badgeEl) { badgeEl.innerText = pendingCount; badgeEl.style.display = pendingCount > 0 ? 'inline-block' : 'none'; } }
