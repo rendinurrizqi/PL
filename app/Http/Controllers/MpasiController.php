@@ -857,6 +857,8 @@ class MpasiController extends Controller
         );
 
         return response()->json(['success' => true]);
+    }
+
     private function ensurePinColumnExists(): void
     {
         try {
