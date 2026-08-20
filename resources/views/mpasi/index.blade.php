@@ -1491,9 +1491,18 @@
                 }
             });
         }
+        function isOutletMatch(orderOutlet, targetFilter) {
+            if (!targetFilter || targetFilter === 'ALL') return true;
+            if (!orderOutlet) return false;
+            if (orderOutlet === targetFilter) return true;
+            const norm1 = String(orderOutlet).replace(/\s+/g, '').toLowerCase();
+            const norm2 = String(targetFilter).replace(/\s+/g, '').toLowerCase();
+            return norm1 === norm2 || norm1.includes(norm2) || norm2.includes(norm1);
+        }
+
         function computeProductionNumbers(productId, outletFilter) {
             const todayStr = getTodayDateString();
-            const relevantOrders = state.preOrders.filter(o => o.date === todayStr && o.cancelStatus !== 'approved' && (outletFilter === 'ALL' || o.outlet === outletFilter));
+            const relevantOrders = state.preOrders.filter(o => o.date === todayStr && o.cancelStatus !== 'approved' && isOutletMatch(o.outlet, outletFilter));
             const prod = state.products.find(p => p.id == productId);
             const prodName = prod ? prod.name.toLowerCase() : '';
 
@@ -2470,8 +2479,7 @@
         function printDapurMasakReport(filterSelectId) {
             const filterEl = document.getElementById(filterSelectId || 'adm-dapur-outlet-filter');
             const selectedOutlet = filterEl ? filterEl.value : 'ALL';
-            const todayProds = getTodayProducts();
-            const targetProducts = todayProds.length > 0 ? todayProds : state.products;
+            const targetProducts = state.products;
 
             const todayStr = getTodayDateString();
             const tomorrowDate = new Date();
@@ -2482,7 +2490,7 @@
             let outletBreakdownHtml = '';
 
             outletsList.forEach(outletName => {
-                if (selectedOutlet !== 'ALL' && selectedOutlet !== outletName) return;
+                if (selectedOutlet !== 'ALL' && !isOutletMatch(outletName, selectedOutlet)) return;
                 const totalOutletPorsi = state.products.reduce((sum, p) => sum + computeProductionNumbers(p.id, outletName).total, 0);
 
                 outletBreakdownHtml += `
