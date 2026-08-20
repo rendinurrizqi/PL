@@ -970,7 +970,7 @@
                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                             <div>
                                 <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-receipt text-brand-purple me-2"></i> Catatan Pengeluaran Operasional</h4>
-                                <p class="text-muted fs-7 mb-0">Catat dan kelola pengeluaran harian/bulanan. Anda dapat menambah, mengedit <b>nama barang yang dibeli</b>, nominal, kategori, dan cabang outlet.</p>
+                                <p class="text-muted fs-7 mb-0">Catat dan kelola pengeluaran harian/bulanan. Anda dapat menambah, mengedit <b>nama barang yang dibeli</b>, nominal, dan kategori.</p>
                             </div>
                             <button class="btn btn-brand-purple fw-bold px-3 py-2" onclick="showAddExpenseModal()"><i class="fa-solid fa-plus-circle me-1"></i> Tambah Pengeluaran Baru</button>
                         </div>
@@ -999,9 +999,6 @@
                         <div class="card-custom p-3 border-purple-200">
                             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                                 <div class="fw-bold text-brand-purple fs-7"><i class="fa-solid fa-boxes-stacked me-1"></i> Daftar Barang Dibeli & Pengeluaran Operasional</div>
-                                <select id="exp-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderOwnerExpenses()">
-                                    <option value="ALL">SEMUA OUTLET</option>
-                                </select>
                             </div>
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
@@ -1010,7 +1007,6 @@
                                             <th>Tanggal</th>
                                             <th>Nama Barang Yang Dibeli</th>
                                             <th>Kategori</th>
-                                            <th>Outlet</th>
                                             <th>Biaya / Nominal</th>
                                             <th>Catatan</th>
                                             <th class="text-center">Aksi</th>
@@ -1140,9 +1136,9 @@
                 const d = new Date();
                 const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 return [
-                    { id: 'EXP-101', name: 'Gas LPG 3kg (2 Tabung)', amount: 44000, category: 'Bahan Baku & Dapur', outlet: 'Semua Outlet', date: todayStr, note: 'Pembelian gas dapur utama' },
-                    { id: 'EXP-102', name: 'Cup Kemasan MPASI (500 Pcs)', amount: 125000, category: 'Peralatan & Stiker', outlet: 'Outlet Pusat (Jl. Pajajaran)', date: todayStr, note: 'Restok cup 100ml' },
-                    { id: 'EXP-103', name: 'Plastik Packing & Sendok Bayi', amount: 35000, category: 'Peralatan & Stiker', outlet: 'Semua Outlet', date: todayStr, note: 'Perlengkapan kemasan' }
+                    { id: 'EXP-101', name: 'Gas LPG 3kg (2 Tabung)', amount: 44000, category: 'Bahan Baku & Dapur', date: todayStr, note: 'Pembelian gas dapur utama' },
+                    { id: 'EXP-102', name: 'Cup Kemasan MPASI (500 Pcs)', amount: 125000, category: 'Peralatan & Stiker', date: todayStr, note: 'Restok cup 100ml' },
+                    { id: 'EXP-103', name: 'Plastik Packing & Sendok Bayi', amount: 35000, category: 'Peralatan & Stiker', date: todayStr, note: 'Perlengkapan kemasan' }
                 ];
             })()
         };
@@ -1926,21 +1922,11 @@
         function renderOwnerExpenses() {
             const tbody = document.getElementById('owner-expenses-tbody');
             if (!tbody) return;
-            const filterSelect = document.getElementById('exp-outlet-filter');
-            const filterOutlet = filterSelect?.value || 'ALL';
-
-            if (filterSelect && filterSelect.options.length <= 1) {
-                filterSelect.innerHTML = '<option value="ALL">SEMUA OUTLET</option>' +
-                    '<option value="Semua Outlet">Semua Outlet (Nasional)</option>' +
-                    state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
-            }
 
             const todayStr = getTodayDateString();
             const currentMonthStr = todayStr.substring(0, 7);
 
-            const filteredExpenses = filterOutlet === 'ALL'
-                ? state.expenses
-                : state.expenses.filter(e => e.outlet === filterOutlet || e.outlet === 'Semua Outlet');
+            const filteredExpenses = state.expenses || [];
 
             let totalToday = 0;
             let totalMonth = 0;
@@ -1961,7 +1947,7 @@
             if (expItemsEl) expItemsEl.innerText = filteredExpenses.length + ' Item';
 
             if (filteredExpenses.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-receipt me-2 text-secondary"></i>Belum ada catatan pengeluaran operasional. Klik "+ Tambah Pengeluaran Baru" untuk mencatat.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-receipt me-2 text-secondary"></i>Belum ada catatan pengeluaran operasional. Klik "+ Tambah Pengeluaran Baru" untuk mencatat.</td></tr>`;
                 return;
             }
 
@@ -1970,7 +1956,6 @@
                     <td class="fw-bold text-muted fs-8">${e.date || '-'}</td>
                     <td class="fw-bold text-dark fs-7">${e.name}</td>
                     <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${e.category || 'Operasional'}</span></td>
-                    <td><span class="badge bg-light text-dark border fs-8">${e.outlet || 'Semua Outlet'}</span></td>
                     <td class="fw-bold text-danger fs-7">Rp ${Number(e.amount || 0).toLocaleString('id-ID')}</td>
                     <td class="text-muted fs-8">${e.note || '-'}</td>
                     <td class="text-center text-nowrap">
@@ -1983,13 +1968,11 @@
 
         function showAddExpenseModal() {
             const todayStr = getTodayDateString();
-            const outletOptions = '<option value="Semua Outlet">Semua Outlet (Nasional)</option>' +
-                state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
 
             Swal.fire({
                 title: '<i class="fa-solid fa-plus-circle text-brand-purple me-2"></i> Tambah Pengeluaran Baru',
                 html: `
-                    <div class="text-start fs-8 text-muted mb-2">Isi detail barang yang dibeli dan biaya pengeluaran operasional outlet:</div>
+                    <div class="text-start fs-8 text-muted mb-2">Isi detail barang yang dibeli dan biaya pengeluaran operasional:</div>
                     <div class="mb-2 text-start">
                         <label class="form-label fs-8 fw-bold mb-1">Nama Barang yang Dibeli *</label>
                         <input id="swal-exp-name" class="swal2-input m-0 w-100" placeholder="Contoh: Gas LPG 3kg / Cup Kemasan 100ml / Stiker Label">
@@ -1998,24 +1981,16 @@
                         <label class="form-label fs-8 fw-bold mb-1">Biaya / Nominal Pengeluaran (Rp) *</label>
                         <input id="swal-exp-amount" type="number" class="swal2-input m-0 w-100" placeholder="Contoh: 50000">
                     </div>
-                    <div class="row g-2 mb-2 text-start">
-                        <div class="col-6">
-                            <label class="form-label fs-8 fw-bold mb-1">Kategori Barang</label>
-                            <select id="swal-exp-category" class="swal2-select m-0 w-100 fs-8">
-                                <option value="Bahan Baku & Dapur">Bahan Baku & Dapur</option>
-                                <option value="Peralatan & Stiker">Peralatan & Kemasan</option>
-                                <option value="Transportasi & Bensin">Transportasi & Bensin</option>
-                                <option value="Listrik & Air">Listrik, Air & Internet</option>
-                                <option value="Gaji & Bonus Staff">Gaji & Bonus Staff</option>
-                                <option value="Operasional Lainnya">Operasional Lainnya</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fs-8 fw-bold mb-1">Cabang Outlet</label>
-                            <select id="swal-exp-outlet" class="swal2-select m-0 w-100 fs-8">
-                                ${outletOptions}
-                            </select>
-                        </div>
+                    <div class="mb-2 text-start">
+                        <label class="form-label fs-8 fw-bold mb-1">Kategori Barang</label>
+                        <select id="swal-exp-category" class="swal2-select m-0 w-100 fs-8">
+                            <option value="Bahan Baku & Dapur">Bahan Baku & Dapur</option>
+                            <option value="Peralatan & Stiker">Peralatan & Kemasan</option>
+                            <option value="Transportasi & Bensin">Transportasi & Bensin</option>
+                            <option value="Listrik & Air">Listrik, Air & Internet</option>
+                            <option value="Gaji & Bonus Staff">Gaji & Bonus Staff</option>
+                            <option value="Operasional Lainnya">Operasional Lainnya</option>
+                        </select>
                     </div>
                     <div class="row g-2 mb-2 text-start">
                         <div class="col-6">
@@ -2036,7 +2011,6 @@
                     const name = document.getElementById('swal-exp-name').value.trim();
                     const amount = parseInt(document.getElementById('swal-exp-amount').value) || 0;
                     const category = document.getElementById('swal-exp-category').value;
-                    const outlet = document.getElementById('swal-exp-outlet').value;
                     const date = document.getElementById('swal-exp-date').value || todayStr;
                     const note = document.getElementById('swal-exp-note').value.trim();
 
@@ -2044,7 +2018,7 @@
                         Swal.showValidationMessage('Harap isi Nama Barang yang Dibeli dan Nominal Biaya dengan benar!');
                         return false;
                     }
-                    return { name, amount, category, outlet, date, note };
+                    return { name, amount, category, date, note };
                 }
             }).then(result => {
                 if (result.isConfirmed && result.value) {
@@ -2053,7 +2027,6 @@
                         name: result.value.name,
                         amount: result.value.amount,
                         category: result.value.category,
-                        outlet: result.value.outlet,
                         date: result.value.date,
                         note: result.value.note
                     };
@@ -2086,8 +2059,6 @@
             ];
 
             const categoryOptions = categories.map(c => `<option value="${c}" ${exp.category === c ? 'selected' : ''}>${c}</option>`).join('');
-            const outletOptions = `<option value="Semua Outlet" ${exp.outlet === 'Semua Outlet' ? 'selected' : ''}>Semua Outlet (Nasional)</option>` +
-                state.outlets.map(o => `<option value="${escAttr(o)}" ${exp.outlet === o ? 'selected' : ''}>${o}</option>`).join('');
 
             Swal.fire({
                 title: '<i class="fa-solid fa-pen-to-square text-brand-purple me-2"></i> Edit Pengeluaran',
@@ -2101,19 +2072,11 @@
                         <label class="form-label fs-8 fw-bold mb-1">Biaya / Nominal Pengeluaran (Rp) *</label>
                         <input id="swal-eexp-amount" type="number" class="swal2-input m-0 w-100" value="${exp.amount}" placeholder="Biaya / Nominal">
                     </div>
-                    <div class="row g-2 mb-2 text-start">
-                        <div class="col-6">
-                            <label class="form-label fs-8 fw-bold mb-1">Kategori Barang</label>
-                            <select id="swal-eexp-category" class="swal2-select m-0 w-100 fs-8">
-                                ${categoryOptions}
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fs-8 fw-bold mb-1">Cabang Outlet</label>
-                            <select id="swal-eexp-outlet" class="swal2-select m-0 w-100 fs-8">
-                                ${outletOptions}
-                            </select>
-                        </div>
+                    <div class="mb-2 text-start">
+                        <label class="form-label fs-8 fw-bold mb-1">Kategori Barang</label>
+                        <select id="swal-eexp-category" class="swal2-select m-0 w-100 fs-8">
+                            ${categoryOptions}
+                        </select>
                     </div>
                     <div class="row g-2 mb-2 text-start">
                         <div class="col-6">
@@ -2134,7 +2097,6 @@
                     const name = document.getElementById('swal-eexp-name').value.trim();
                     const amount = parseInt(document.getElementById('swal-eexp-amount').value) || 0;
                     const category = document.getElementById('swal-eexp-category').value;
-                    const outlet = document.getElementById('swal-eexp-outlet').value;
                     const date = document.getElementById('swal-eexp-date').value || todayStr;
                     const note = document.getElementById('swal-eexp-note').value.trim();
 
@@ -2142,14 +2104,13 @@
                         Swal.showValidationMessage('Harap isi Nama Barang yang Dibeli dan Nominal Biaya dengan benar!');
                         return false;
                     }
-                    return { name, amount, category, outlet, date, note };
+                    return { name, amount, category, date, note };
                 }
             }).then(result => {
                 if (result.isConfirmed && result.value) {
                     exp.name = result.value.name;
                     exp.amount = result.value.amount;
                     exp.category = result.value.category;
-                    exp.outlet = result.value.outlet;
                     exp.date = result.value.date;
                     exp.note = result.value.note;
 
