@@ -30,6 +30,42 @@ class MpasiController extends Controller
         $rewards = PointReward::query()->where('is_active', true)->get();
         $settings = Setting::query()->pluck('value', 'key')->toArray();
 
+        $preOrders = PreOrder::query()
+            ->with(['outlet', 'items.product', 'member'])
+            ->latest()
+            ->get()
+            ->map(function ($po) {
+                $itemsText = $po->items->map(function ($item) {
+                    $name = $item->product ? $item->product->name : ('Produk ID ' . $item->product_id);
+                    return $name . ' x' . $item->qty;
+                })->join(', ');
+
+                $itemsDetail = $po->items->map(function ($item) {
+                    return [
+                        'productId' => $item->product_id,
+                        'qty' => $item->qty,
+                    ];
+                })->toArray();
+
+                return [
+                    'id' => 'ORD-' . str_pad($po->id, 3, '0', STR_PAD_LEFT),
+                    'customerName' => $po->customer_name,
+                    'wa' => $po->whatsapp,
+                    'outlet' => $po->outlet ? $po->outlet->name : 'Outlet Pusat (Jl. Pajajaran)',
+                    'items' => $itemsText,
+                    'itemsDetail' => $itemsDetail,
+                    'totalAmount' => (float) $po->total_amount,
+                    'isPaid' => (bool) $po->is_paid,
+                    'payMethod' => $po->pay_method,
+                    'isTaken' => (bool) $po->is_taken,
+                    'cancelStatus' => $po->cancel_status,
+                    'cancelReason' => $po->cancel_reason,
+                    'memberIdentifier' => $po->member ? $po->member->email : null,
+                    'pointsAwarded' => (int) $po->points_awarded,
+                    'date' => $po->created_at ? $po->created_at->format('Y-m-d') : date('Y-m-d'),
+                ];
+            });
+
         $member = null;
 
         return view('mpasi.index', compact(
@@ -38,7 +74,8 @@ class MpasiController extends Controller
             'dailyMenus',
             'rewards',
             'settings',
-            'member'
+            'member',
+            'preOrders'
         ));
     }
 

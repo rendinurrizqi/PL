@@ -1023,20 +1023,34 @@
                     const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                     d.setDate(d.getDate() - 1);
                     const yesterdayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+                    const dbOrders = Array.isArray(window.MPASI_DATA?.preOrders) ? window.MPASI_DATA.preOrders : [];
                     const saved = localStorage.getItem('mpasi_customer_orders');
-                    if (!saved) return [];
-                    const parsed = JSON.parse(saved);
-                    if (!Array.isArray(parsed)) return [];
-                    const filtered = parsed.map(order => {
-                        if (!order.date) {
-                            if (order.id === 'ORD-872') {
-                                order.date = todayStr;
+                    const localOrders = saved ? (JSON.parse(saved) || []) : [];
+
+                    const combinedMap = {};
+                    dbOrders.forEach(o => {
+                        if (o && o.id) combinedMap[String(o.id)] = o;
+                    });
+                    localOrders.forEach(o => {
+                        if (o && o.id) {
+                            if (!combinedMap[String(o.id)]) {
+                                combinedMap[String(o.id)] = o;
                             } else {
-                                order.date = yesterdayStr;
+                                if (o.isPaid !== undefined) combinedMap[String(o.id)].isPaid = o.isPaid;
+                                if (o.isTaken !== undefined) combinedMap[String(o.id)].isTaken = o.isTaken;
+                                if (o.cancelStatus !== undefined) combinedMap[String(o.id)].cancelStatus = o.cancelStatus;
+                                if (o.cancelReason !== undefined) combinedMap[String(o.id)].cancelReason = o.cancelReason;
                             }
                         }
+                    });
+
+                    const combinedList = Object.values(combinedMap);
+                    const filtered = combinedList.map(order => {
+                        if (!order.date) order.date = todayStr;
                         return order;
                     }).filter(order => order.date === todayStr || order.date === yesterdayStr);
+
                     localStorage.setItem('mpasi_customer_orders', JSON.stringify(filtered));
                     return filtered;
                 } catch(e) { return []; }
