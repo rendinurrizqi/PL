@@ -1491,7 +1491,43 @@
                 }
             });
         }
-        function computeProductionNumbers(productId, outletFilter) { const todayStr = getTodayDateString(); const relevantOrders = state.preOrders.filter(o => o.date === todayStr && o.cancelStatus !== 'approved' && (outletFilter === 'ALL' || o.outlet === outletFilter)); const onlinePreorder = relevantOrders.reduce((sum, o) => { const item = (o.itemsDetail || []).find(it => it.productId == productId); return sum + (item ? item.qty : 0); }, 0); return { onlinePreorder, total: onlinePreorder }; }
+        function computeProductionNumbers(productId, outletFilter) {
+            const todayStr = getTodayDateString();
+            const relevantOrders = state.preOrders.filter(o => o.date === todayStr && o.cancelStatus !== 'approved' && (outletFilter === 'ALL' || o.outlet === outletFilter));
+            const prod = state.products.find(p => p.id == productId);
+            const prodName = prod ? prod.name.toLowerCase() : '';
+
+            const onlinePreorder = relevantOrders.reduce((sum, o) => {
+                let orderQty = 0;
+                if (o.itemsDetail && Array.isArray(o.itemsDetail) && o.itemsDetail.length > 0) {
+                    const item = o.itemsDetail.find(it => it.productId == productId || String(it.productId) === String(productId));
+                    if (item) {
+                        orderQty = parseInt(item.qty) || 0;
+                    }
+                }
+                if (orderQty === 0 && o.items && prodName) {
+                    const parts = o.items.split(',');
+                    parts.forEach(part => {
+                        const trimmed = part.trim();
+                        const matchX = trimmed.match(/^(.*?)\s*x(\d+)$/i);
+                        const matchCup = trimmed.match(/^(.*?)\s*\((\d+)\s*Cup\)/i);
+                        if (matchX) {
+                            if (matchX[1].trim().toLowerCase() === prodName) {
+                                orderQty += parseInt(matchX[2]) || 0;
+                            }
+                        } else if (matchCup) {
+                            if (matchCup[1].trim().toLowerCase() === prodName) {
+                                orderQty += parseInt(matchCup[2]) || 0;
+                            }
+                        } else if (trimmed.toLowerCase().includes(prodName)) {
+                            orderQty += 1;
+                        }
+                    });
+                }
+                return sum + orderQty;
+            }, 0);
+            return { onlinePreorder, total: onlinePreorder };
+        }
         function renderProductionGeneric(cfg) { const outletFilter = document.getElementById(cfg.filterSelectId)?.value || 'ALL'; const cardsEl = document.getElementById(cfg.cardsId); if (cardsEl) { cardsEl.innerHTML = state.outlets.map(outletName => { const totalForOutlet = state.products.reduce((sum, p) => sum + computeProductionNumbers(p.id, outletName).total, 0); const isActiveFilter = outletFilter === outletName; return ` <div class="col-md-4"><div class="card-custom p-3 h-100 border-start border-4 ${isActiveFilter ? 'border-warning bg-purple-light' : 'border-primary'}"><div class="fw-bold text-brand-purple fs-7 mb-1"><i class="fa-solid fa-shop me-1"></i> ${outletName}</div><div class="fs-5 fw-bold text-primary">${totalForOutlet} Cup</div><div class="text-muted fs-8">Total porsi harus dimasak untuk cabang ini</div></div></div>`; }).join(''); } const tbody = document.getElementById(cfg.tbodyId); if (!tbody) return; let totalOnline = 0, totalAll = 0; let rows = ''; let count = 0; state.products.forEach(p => { const { onlinePreorder, total } = computeProductionNumbers(p.id, outletFilter); if (total > 0) { count++; totalOnline += onlinePreorder; totalAll += total; rows += ` <tr><td class="fw-bold text-dark">${p.name}</td><td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td><td class="fw-bold text-brand-purple">${total} Cup</td></tr>`; } }); if (count === 0) { tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}.</td></tr>`; } else { tbody.innerHTML = rows + `<tr class="table-light"><td class="fw-bold">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td><td class="fw-bold">${totalOnline} Cup</td><td class="fw-bold text-brand-purple">${totalAll} Cup</td></tr>`; } }
         function renderAdminProduction() { renderProductionGeneric({ filterSelectId: 'adm-dapur-outlet-filter', cardsId: 'adm-dapur-outlet-cards', tbodyId: 'adm-production-tbody' }); }
         function renderOwnerProduction() { renderProductionGeneric({ filterSelectId: 'own-dapur-outlet-filter', cardsId: 'own-dapur-outlet-cards', tbodyId: 'own-production-tbody' }); }
@@ -2442,28 +2478,12 @@
             tomorrowDate.setDate(tomorrowDate.getDate() + 1);
             const tomorrowStr = tomorrowDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-            const todayOrders = state.preOrders.filter(p => p.date === todayStr && p.cancelStatus !== 'approved');
-
             const outletsList = state.outlets;
             let outletBreakdownHtml = '';
 
             outletsList.forEach(outletName => {
                 if (selectedOutlet !== 'ALL' && selectedOutlet !== outletName) return;
-                const ordersInOutlet = todayOrders.filter(p => p.outlet === outletName);
-                let totalOutletPorsi = 0;
-
-                ordersInOutlet.forEach(order => {
-                    if (!order.items) return;
-                    const itemsArr = order.items.split(',').map(s => s.trim());
-                    itemsArr.forEach(itemStr => {
-                        const match = itemStr.match(/(.+?)\s*\((\d+)\s*Cup\)/i);
-                        if (match) {
-                            totalOutletPorsi += parseInt(match[2]);
-                        } else {
-                            totalOutletPorsi += 1;
-                        }
-                    });
-                });
+                const totalOutletPorsi = state.products.reduce((sum, p) => sum + computeProductionNumbers(p.id, outletName).total, 0);
 
                 outletBreakdownHtml += `
                     <div style="border: 1px solid #ddd; border-radius: 6px; padding: 10px; flex: 1; min-width: 130px; background: #fafafa;">
@@ -2475,36 +2495,27 @@
             });
 
             let totalMasakAll = 0;
-            const menuRowsHtml = targetProducts.map((p, idx) => {
-                let totalCupNeeded = 0;
-                todayOrders.forEach(order => {
-                    if (selectedOutlet !== 'ALL' && order.outlet !== selectedOutlet) return;
-                    if (!order.items) return;
-                    const itemsArr = order.items.split(',').map(s => s.trim());
-                    itemsArr.forEach(itemStr => {
-                        const match = itemStr.match(/(.+?)\s*\((\d+)\s*Cup\)/i);
-                        if (match) {
-                            const nameInOrder = match[1].trim();
-                            const qtyInOrder = parseInt(match[2]);
-                            if (nameInOrder.toLowerCase() === p.name.toLowerCase()) {
-                                totalCupNeeded += qtyInOrder;
-                            }
-                        } else if (itemStr.toLowerCase().includes(p.name.toLowerCase())) {
-                            totalCupNeeded += 1;
-                        }
-                    });
-                });
+            let menuIndex = 0;
+            let menuRowsHtml = '';
 
-                totalMasakAll += totalCupNeeded;
+            targetProducts.forEach(p => {
+                const { onlinePreorder, total } = computeProductionNumbers(p.id, selectedOutlet);
+                if (total > 0) {
+                    menuIndex++;
+                    totalMasakAll += total;
+                    menuRowsHtml += `
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">${menuIndex}. ${p.name}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold; color: #1976D2;">${onlinePreorder} Cup</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A; font-size: 14px;">${total} Cup</td>
+                        </tr>
+                    `;
+                }
+            });
 
-                return `
-                    <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">${idx + 1}. ${p.name}</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold; color: #1976D2;">${totalCupNeeded} Cup</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A; font-size: 14px;">${totalCupNeeded} Cup</td>
-                    </tr>
-                `;
-            }).join('');
+            if (menuIndex === 0) {
+                menuRowsHtml = `<tr><td colspan="3" style="text-align: center; padding: 15px; color: #777; font-style: italic;">Belum ada varian produk yang dipesan untuk ${selectedOutlet !== 'ALL' ? selectedOutlet : 'semua outlet'}.</td></tr>`;
+            }
 
             const titleFilterText = selectedOutlet === 'ALL' ? 'KONSOLIDASI SEMUA OUTLET' : selectedOutlet;
 
