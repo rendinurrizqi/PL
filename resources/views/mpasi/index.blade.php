@@ -365,6 +365,22 @@
                                             <span>Total:</span>
                                             <span id="pos-total-display" class="text-brand-purple">Rp 0</span>
                                         </div>
+
+                                        <!-- Pilihan Cetak Belanja (Ya / Engga) -->
+                                        <div class="mb-3 p-2.5 bg-purple-light rounded-3 border border-purple-200">
+                                            <label class="form-label fs-8 fw-bold text-brand-purple mb-1.5 d-block"><i class="fa-solid fa-print me-1"></i> Cetak Struk Belanja?</label>
+                                            <div class="d-flex gap-4 fs-7 fw-bold">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input" type="radio" name="posPrintReceipt" id="posPrintYes" value="yes" checked>
+                                                    <label class="form-check-label text-dark cursor-pointer" for="posPrintYes">Ya (Cetak)</label>
+                                                </div>
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input" type="radio" name="posPrintReceipt" id="posPrintNo" value="no">
+                                                    <label class="form-check-label text-dark cursor-pointer" for="posPrintNo">Engga</label>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <button class="btn btn-brand-yellow w-100 py-2.5 fw-bold text-dark" onclick="processPosCheckout()">
                                             <i class="fa-solid fa-receipt me-1"></i> Selesaikan Transaksi Kasir
                                         </button>
@@ -1559,7 +1575,129 @@
             const total = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0);
             document.getElementById('pos-total-display').innerText = 'Rp ' + total.toLocaleString('id-ID');
         }
-        function processPosCheckout() { if (state.posCart.length === 0) { Swal.fire({ icon: 'warning', title: 'POS Kosong', text: 'Pilih produk terlebih dahulu.' }); return; } const totalPosAmount = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0); const totalPosQty = state.posCart.reduce((a, b) => a + b.qty, 0); if (!state.outletSalesRecords[state.kasirActiveOutlet]) { state.outletSalesRecords[state.kasirActiveOutlet] = {}; } state.posCart.forEach(item => { const p = state.products.find(x => x.id == item.productId); if (p) { p.stock = Math.max(0, (p.stock || 0) - item.qty); if (!state.outletSalesRecords[state.kasirActiveOutlet][item.productId]) { state.outletSalesRecords[state.kasirActiveOutlet][item.productId] = { sold: 0 }; } state.outletSalesRecords[state.kasirActiveOutlet][item.productId].sold += item.qty; } }); state.posCart = []; renderPosCartList(); renderPosProductsGrid(); renderKasirLeftoverTable(); renderAdminProducts('adm-products-tbody', true); renderOwnerProducts(); renderAdminOutletReports(); renderOwnerOutletReports(); renderOwnerDashboard(); renderAdminProduction(); renderOwnerProduction(); Swal.fire({ icon: 'success', title: 'Transaksi POS Berhasil!', text: 'Penjualan tercatat ke laporan outlet, stok dipotong, dan rekap terbarui real-time!' }); }
+        function printPosReceipt(items, totalAmount, outletName, trxId) {
+            const d = new Date();
+            const dateTimeStr = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+            const itemsHtml = items.map(item => `
+                <tr>
+                    <td style="padding: 4px 0; border-bottom: 1px dotted #ccc;">
+                        <strong style="color:#000;">${item.name}</strong><br>
+                        <span style="color:#555;">${item.qty} cup x Rp ${item.price.toLocaleString('id-ID')}</span>
+                    </td>
+                    <td style="text-align: right; vertical-align: top; padding: 4px 0; border-bottom: 1px dotted #ccc; font-weight: bold;">
+                        Rp ${(item.qty * item.price).toLocaleString('id-ID')}
+                    </td>
+                </tr>
+            `).join('');
+
+            const receiptHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Struk Belanja MPASI - ${trxId}</title>
+                    <style>
+                        @page { size: 80mm auto; margin: 0; }
+                        body { font-family: 'Courier New', Courier, monospace; width: 270px; margin: 0 auto; padding: 12px; font-size: 12px; color: #000; background: #fff; }
+                        .text-center { text-align: center; }
+                        .fw-bold { font-weight: bold; }
+                        .border-dashed { border-top: 1px dashed #000; margin: 8px 0; }
+                        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+                    </style>
+                </head>
+                <body onload="window.print(); setTimeout(() => window.close(), 600);">
+                    <div class="text-center">
+                        <h3 style="margin: 0 0 2px 0; font-size: 16px; font-weight: bold;">MPASI SI KECIL</h3>
+                        <div style="font-size: 11px; font-weight: bold;">${outletName || 'Outlet Kasir'}</div>
+                        <div style="font-size: 10px; color: #333; margin-top: 2px;">Waktu: ${dateTimeStr}</div>
+                        <div style="font-size: 10px; color: #333;">No. Trx: <b>${trxId}</b></div>
+                    </div>
+                    <div class="border-dashed"></div>
+                    <table>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+                    <div class="border-dashed"></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;" class="fw-bold">
+                        <span>TOTAL BELANJA:</span>
+                        <span>Rp ${totalAmount.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="border-dashed"></div>
+                    <div class="text-center" style="font-size: 10px; margin-top: 8px; line-height: 1.4;">
+                        <b>Terima Kasih Bunda! ❤️</b><br>
+                        Nutrisi MPASI Sehat & Segar Setiap Hari
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const printWindow = window.open('', '_blank', 'width=380,height=520');
+            if (printWindow) {
+                printWindow.document.write(receiptHtml);
+                printWindow.document.close();
+            }
+        }
+
+        function processPosCheckout() {
+            if (state.posCart.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'POS Kosong', text: 'Pilih produk terlebih dahulu.' });
+                return;
+            }
+
+            const printOption = document.querySelector('input[name="posPrintReceipt"]:checked')?.value || 'yes';
+            const totalPosAmount = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0);
+            const totalPosQty = state.posCart.reduce((a, b) => a + b.qty, 0);
+            const trxId = 'POS-' + Math.floor(1000 + Math.random() * 9000);
+            const activeOutlet = state.kasirActiveOutlet || 'Outlet Kasir';
+            const purchasedItems = [...state.posCart];
+
+            if (!state.outletSalesRecords[activeOutlet]) {
+                state.outletSalesRecords[activeOutlet] = {};
+            }
+
+            state.posCart.forEach(item => {
+                const p = state.products.find(x => x.id == item.productId);
+                if (p) {
+                    p.stock = Math.max(0, (p.stock || 0) - item.qty);
+                    if (!state.outletSalesRecords[activeOutlet][item.productId]) {
+                        state.outletSalesRecords[activeOutlet][item.productId] = { sold: 0 };
+                    }
+                    state.outletSalesRecords[activeOutlet][item.productId].sold += item.qty;
+                }
+            });
+
+            state.posCart = [];
+            renderPosCartList();
+            renderPosProductsGrid();
+            renderKasirLeftoverTable();
+            renderAdminProducts('adm-products-tbody', true);
+            renderOwnerProducts();
+            renderAdminOutletReports();
+            renderOwnerOutletReports();
+            renderOwnerDashboard();
+            renderAdminProduction();
+            renderOwnerProduction();
+
+            if (printOption === 'yes') {
+                printPosReceipt(purchasedItems, totalPosAmount, activeOutlet, trxId);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Transaksi POS Berhasil! 🧾',
+                    text: 'Penjualan tercatat, stok dipotong, dan struk belanja telah dicetak!',
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Transaksi POS Berhasil!',
+                    text: 'Penjualan tercatat dan stok dipotong (tanpa cetak struk).',
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+            }
+        }
         function renderKasirLeftoverTable() { const tbody = document.getElementById('kasir-leftover-tbody'); if (!tbody) return; const todayProds = getTodayProducts(); const targetProducts = todayProds.length > 0 ? todayProds : state.products; const outletSales = state.outletSalesRecords[state.kasirActiveOutlet] || {}; tbody.innerHTML = targetProducts.map(p => { const prodId = p.id; const price = p.price; const allocatedQty = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const soldQty = outletSales[prodId] ? outletSales[prodId].sold : 0; const leftoverQty = Math.max(0, allocatedQty - soldQty); const lossAmount = leftoverQty * price; return `<tr><td class="fw-bold text-dark">${p.name}</td><td>Rp ${price.toLocaleString('id-ID')}</td><td class="fw-bold text-primary">${allocatedQty} Cup</td><td class="fw-bold text-success">${soldQty} Cup Terjual</td><td class="fw-bold text-danger">${leftoverQty} Cup</td><td class="fw-bold text-danger">Rp ${lossAmount.toLocaleString('id-ID')}</td><td class="text-center"><span class="badge bg-success fs-8"><i class="fa-solid fa-circle-check me-1"></i> Siap Kirim</span></td></tr>`; }).join(''); }
         function submitAllKasirLeftovers() { renderAdminOutletReports(); Swal.fire({ icon: 'success', title: 'Rekap Sisa Dikirim!', text: 'Laporan sisa seluruh produk untuk ' + state.kasirActiveOutlet + ' telah diteruskan ke Admin & Owner secara real-time!', confirmButtonColor: '#6A1B9A' }); }
         function renderAdminOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'adm-report-period-filter', outletSelectId: 'adm-report-outlet-filter', cardsId: 'adm-outlet-metric-cards', summaryTbodyId: 'adm-outlet-report-tbody', leftoverTbodyId: 'adm-leftover-report-tbody', isAdmin: true }); }
