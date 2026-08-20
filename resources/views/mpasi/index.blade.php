@@ -477,6 +477,9 @@
                                 <p class="text-muted fs-7 mb-0">Pantau siapa memesan apa di cabang mana. Pesanan otomatis di-reset setiap pergantian hari.</p>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printAdminPesananReport()">
+                                    <i class="fa-solid fa-print me-1"></i> Cetak Rekap Pesanan
+                                </button>
                                 <button class="btn btn-sm btn-outline-danger fs-8 fw-bold" onclick="confirmResetAllOrders()"><i class="fa-solid fa-trash-can me-1"></i> Bersihkan Pesanan Hari Ini</button>
                                 <select id="adm-pesanan-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderAdminPesananPerOutlet()">
                                     <option value="ALL">SEMUA CABANG OUTLET</option>
@@ -522,9 +525,14 @@
                                 <h4 class="fw-bold text-dark mb-1"><i class="fa-solid fa-industry text-brand-purple me-2"></i> Rekapitulasi Dapur Masak Esok Hari</h4>
                                 <p class="text-muted fs-7 mb-0">Terintegrasi dengan data Pesanan Per Outlet: Total Porsi Masak dihitung murni dari pre-order online yang masih berlaku (tanpa buffer walk-in).</p>
                             </div>
-                            <select id="adm-dapur-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderAdminProduction()">
-                                <option value="ALL">SEMUA OUTLET (KONSOLIDASI)</option>
-                            </select>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('adm-dapur-outlet-filter')">
+                                    <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
+                                </button>
+                                <select id="adm-dapur-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderAdminProduction()">
+                                    <option value="ALL">SEMUA OUTLET (KONSOLIDASI)</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="row g-3 mb-4 mt-1" id="adm-dapur-outlet-cards"></div>
@@ -770,9 +778,14 @@
                                 <h4 class="fw-bold text-dark mb-1"><i class="fa-solid fa-industry text-brand-purple me-2"></i> Rekapitulasi Dapur Masak Esok Hari</h4>
                                 <p class="text-muted fs-7 mb-0">Terintegrasi dengan data Pesanan Per Outlet: Total Porsi Masak dihitung murni dari pre-order online yang masih berlaku (tanpa buffer walk-in).</p>
                             </div>
-                            <select id="own-dapur-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderOwnerProduction()">
-                                <option value="ALL">SEMUA OUTLET (KONSOLIDASI)</option>
-                            </select>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('own-dapur-outlet-filter')">
+                                    <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
+                                </button>
+                                <select id="own-dapur-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderOwnerProduction()">
+                                    <option value="ALL">SEMUA OUTLET (KONSOLIDASI)</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="row g-3 mb-4 mt-1" id="own-dapur-outlet-cards"></div>
@@ -2418,6 +2431,229 @@
         function renderCustomerProfilePage() { const container = document.getElementById('akun-page-content'); if (!container) return; if (!state.currentUser) { switchCustView('login'); return; } const member = state.currentUser; container.innerHTML = `<div class="max-w-600 mx-auto"><div class="card-custom p-4 bg-purple-light border border-purple-200 mb-4 shadow-sm"><div class="text-center mb-3"><div class="bg-brand-purple text-white d-inline-flex p-3 rounded-circle mb-2 fs-2 shadow-sm"><i class="fa-solid fa-circle-user"></i></div><h4 class="fw-bold text-brand-purple mb-0">${member.name}</h4><span class="badge bg-brand-yellow text-dark fs-8 fw-bold mt-1 px-3 py-1.5 rounded-pill"><i class="fa-solid fa-coins me-1"></i> ${member.points} Poin Belanja</span></div><hr class="border-purple-200"><div class="fs-7 text-dark space-y-2 mb-4"><div class="d-flex justify-content-between align-items-center py-2 border-bottom"><span class="text-muted"><i class="fa-solid fa-whatsapp text-success me-1"></i> No. WhatsApp:</span><span class="fw-bold text-dark">${member.wa}</span></div><div class="d-flex justify-content-between align-items-center py-2 border-bottom"><span class="text-muted"><i class="fa-solid fa-shop text-brand-purple me-1"></i> Outlet Favorit:</span><span class="fw-bold text-brand-purple">${member.favoriteOutlet || 'Belum Diatur'}</span></div><div class="d-flex justify-content-between align-items-center py-2"><span class="text-muted"><i class="fa-solid fa-shield-check text-primary me-1"></i> Status Akun:</span><span class="badge bg-success fs-8">Member Aktif</span></div></div><div class="d-flex flex-column gap-2 pt-2 border-top"><button class="btn btn-brand-purple w-100 fw-bold py-2.5 rounded-pill shadow-sm fs-7" onclick="showEditCustomerProfileModal()"><i class="fa-solid fa-user-pen me-2 text-warning"></i> Edit Profil Saya</button><button class="btn btn-outline-danger w-100 fw-bold py-2 rounded-pill fs-7" onclick="logoutCustomer()"><i class="fa-solid fa-right-from-bracket me-1"></i> Keluar dari Akun</button></div></div></div>`; }
         function handleSaveCustomerProfile(e) { e.preventDefault(); if (!state.currentUser) return; const member = state.currentUser; const oldIdentifier = member.identifier || member.wa; const newName = document.getElementById('prof-name').value.trim(); const newWa = document.getElementById('prof-wa').value.trim(); const newOutlet = document.getElementById('prof-outlet').value; if (!newName || !newWa) { Swal.fire({ icon: 'warning', title: 'Data Belum Lengkap', text: 'Nama dan Nomor WhatsApp wajib diisi!' }); return; } if (newWa !== oldIdentifier && state.members[oldIdentifier]) { delete state.members[oldIdentifier]; member.identifier = newWa; } member.name = newName; member.wa = newWa; if (newOutlet) member.favoriteOutlet = newOutlet; state.members[member.identifier || newWa] = member; state.currentUser = member; try { localStorage.setItem('mpasi_current_user', JSON.stringify(member)); } catch(err){} fetch('/member/profile', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ identifier: oldIdentifier, name: newName, whatsapp: newWa, favorite_outlet: newOutlet }) }).catch(() => {}); const coName = document.getElementById('co-name'); const coWa = document.getElementById('co-wa'); const coOutlet = document.getElementById('co-outlet'); if (coName) coName.value = newName; if (coWa) coWa.value = newWa; if (coOutlet && newOutlet) coOutlet.value = newOutlet; renderAllUI(); Swal.fire({ icon: 'success', title: 'Profil Diperbarui! 🎉', text: `Terima kasih, data profil Bunda ${newName} berhasil disimpan.`, timer: 1600, showConfirmButton: false }); }
         function redeemReward(rewardId) { if (!state.currentUser) return; const reward = state.pointRewards.find(r => r.id == rewardId); if (!reward) return; const member = state.currentUser; if (member.points < reward.pointsCost) { Swal.fire({ icon: 'warning', title: 'Poin Tidak Cukup', text: `Anda butuh ${reward.pointsCost} poin, saat ini baru punya ${member.points} poin.` }); return; } Swal.fire({ title: 'Tukar Poin Sekarang?', html: `Tukar <b>${reward.pointsCost} Poin</b> dengan <b>${reward.name}</b>?<br><span class="fs-8 text-muted">Sisa poin setelah ditukar: ${member.points - reward.pointsCost}</span>`, showCancelButton: true, confirmButtonText: 'Ya, Tukar Sekarang', cancelButtonText: 'Batal', confirmButtonColor: '#6A1B9A' }).then(res => { if (res.isConfirmed) { member.points -= reward.pointsCost; const redemptionCode = 'RDM-' + Math.floor(1000 + Math.random() * 9000); member.pointsHistory.unshift({ type: 'redeem', label: `Tukar reward: ${reward.name} (Kode: ${redemptionCode})`, points: -reward.pointsCost, date: new Date().toLocaleString('id-ID') }); renderAllUI(); switchCustView('poin'); Swal.fire({ icon: 'success', title: 'Penukaran Berhasil! 🎉', html: `Reward: <b>${reward.name}</b><br>Kode Penukaran: <b class="text-brand-purple fs-5">${redemptionCode}</b><br><span class="fs-8 text-muted">Tunjukkan kode ini ke Kasir saat mengambil pesanan di outlet.</span>` }); } }); }
+        function printDapurMasakReport(filterSelectId) {
+            const filterEl = document.getElementById(filterSelectId || 'adm-dapur-outlet-filter');
+            const selectedOutlet = filterEl ? filterEl.value : 'ALL';
+            const todayProds = getTodayProducts();
+            const targetProducts = todayProds.length > 0 ? todayProds : state.products;
+
+            const todayStr = getTodayDateString();
+            const tomorrowDate = new Date();
+            tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+            const tomorrowStr = tomorrowDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+            const todayOrders = state.preOrders.filter(p => p.date === todayStr && p.cancelStatus !== 'approved');
+
+            const outletsList = state.outlets;
+            let outletBreakdownHtml = '';
+
+            outletsList.forEach(outletName => {
+                if (selectedOutlet !== 'ALL' && selectedOutlet !== outletName) return;
+                const ordersInOutlet = todayOrders.filter(p => p.outlet === outletName);
+                let totalOutletPorsi = 0;
+
+                ordersInOutlet.forEach(order => {
+                    if (!order.items) return;
+                    const itemsArr = order.items.split(',').map(s => s.trim());
+                    itemsArr.forEach(itemStr => {
+                        const match = itemStr.match(/(.+?)\s*\((\d+)\s*Cup\)/i);
+                        if (match) {
+                            totalOutletPorsi += parseInt(match[2]);
+                        } else {
+                            totalOutletPorsi += 1;
+                        }
+                    });
+                });
+
+                outletBreakdownHtml += `
+                    <div style="border: 1px solid #ddd; border-radius: 6px; padding: 10px; flex: 1; min-width: 130px; background: #fafafa;">
+                        <div style="font-weight: bold; color: #6A1B9A; font-size: 11px; margin-bottom: 4px;">${outletName}</div>
+                        <div style="font-size: 18px; font-weight: bold; color: #000;">${totalOutletPorsi} <span style="font-size: 12px; font-weight: normal;">Cup</span></div>
+                        <div style="font-size: 10px; color: #666;">Pre-order online</div>
+                    </div>
+                `;
+            });
+
+            let totalMasakAll = 0;
+            const menuRowsHtml = targetProducts.map((p, idx) => {
+                let totalCupNeeded = 0;
+                todayOrders.forEach(order => {
+                    if (selectedOutlet !== 'ALL' && order.outlet !== selectedOutlet) return;
+                    if (!order.items) return;
+                    const itemsArr = order.items.split(',').map(s => s.trim());
+                    itemsArr.forEach(itemStr => {
+                        const match = itemStr.match(/(.+?)\s*\((\d+)\s*Cup\)/i);
+                        if (match) {
+                            const nameInOrder = match[1].trim();
+                            const qtyInOrder = parseInt(match[2]);
+                            if (nameInOrder.toLowerCase() === p.name.toLowerCase()) {
+                                totalCupNeeded += qtyInOrder;
+                            }
+                        } else if (itemStr.toLowerCase().includes(p.name.toLowerCase())) {
+                            totalCupNeeded += 1;
+                        }
+                    });
+                });
+
+                totalMasakAll += totalCupNeeded;
+
+                return `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">${idx + 1}. ${p.name}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold; color: #1976D2;">${totalCupNeeded} Cup</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A; font-size: 14px;">${totalCupNeeded} Cup</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const titleFilterText = selectedOutlet === 'ALL' ? 'KONSOLIDASI SEMUA OUTLET' : selectedOutlet;
+
+            const printHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Rekapitulasi Dapur Masak - ${titleFilterText}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 12mm; }
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; margin: 0; padding: 10px; font-size: 13px; line-height: 1.4; }
+                        .header { text-align: center; border-bottom: 3px double #6A1B9A; padding-bottom: 10px; margin-bottom: 12px; }
+                        .header h2 { margin: 0 0 4px 0; color: #6A1B9A; font-size: 20px; font-weight: bold; text-transform: uppercase; }
+                        .header p { margin: 0; color: #555; font-size: 12px; }
+                        .meta-info { display: flex; justify-content: space-between; background: #f3e5f5; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #e1bee7; font-size: 11px; }
+                        .cards-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+                        th { background: #6A1B9A; color: #fff; text-align: left; padding: 8px; font-size: 12px; }
+                        th.text-center { text-align: center; }
+                        .total-row td { background: #f3e5f5; font-weight: bold; font-size: 14px; border-top: 2px solid #6A1B9A; color: #6A1B9A; }
+                        .footer { margin-top: 40px; display: flex; justify-content: space-between; text-align: center; }
+                        .signature-box { width: 40%; border-top: 1px solid #888; padding-top: 6px; font-size: 11px; margin-top: 50px; }
+                    </style>
+                </head>
+                <body onload="window.print(); setTimeout(() => window.close(), 600);">
+                    <div class="header">
+                        <h2>🍳 REKAPITULASI DAPUR MASAK ESOK HARI</h2>
+                        <p><b>MPASI SI KECIL</b> — Laporan Produksi Dapur Masak Hari Ini</p>
+                    </div>
+
+                    <div class="meta-info">
+                        <div><b>Jadwal Ambil (Besok):</b> ${tomorrowStr}</div>
+                        <div><b>Filter Cabang:</b> ${titleFilterText}</div>
+                        <div><b>Waktu Cetak:</b> ${new Date().toLocaleTimeString('id-ID')}</div>
+                    </div>
+
+                    <div style="font-weight: bold; margin-bottom: 6px; color: #6A1B9A; font-size: 12px;">📌 Ringkasan Porsi Per Cabang Outlet:</div>
+                    <div class="cards-grid">
+                        ${outletBreakdownHtml}
+                    </div>
+
+                    <div style="font-weight: bold; margin-bottom: 6px; color: #6A1B9A; font-size: 12px;">📋 Target Porsi Masak Varian MPASI:</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Varian MPASI</th>
+                                <th class="text-center" style="width: 25%;">Pre-Order Online</th>
+                                <th class="text-center" style="width: 25%;">Total Porsi Masak</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${menuRowsHtml}
+                            <tr class="total-row">
+                                <td style="padding: 8px;">TOTAL SELURUH VARIAN</td>
+                                <td style="text-align: center; padding: 8px;">${totalMasakAll} Cup</td>
+                                <td style="text-align: center; padding: 8px;">${totalMasakAll} Cup</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="background: #fff8e1; border: 1px solid #ffe082; padding: 8px 12px; border-radius: 6px; font-size: 11px; margin-top: 10px;">
+                        <b>⚠️ Catatan Tim Dapur:</b> Total Porsi Masak di atas dihitung murni berdasarkan Pre-Order Online pelanggan untuk jadwal ambil besok (${tomorrowStr}).
+                    </div>
+
+                    <div class="footer">
+                        <div class="signature-box">
+                            Penanggung Jawab Dapur
+                        </div>
+                        <div class="signature-box">
+                            Admin Operasional
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const printWin = window.open('', '_blank', 'width=800,height=900');
+            if (printWin) {
+                printWin.document.write(printHtml);
+                printWin.document.close();
+            }
+        }
+
+        function printAdminPesananReport() {
+            const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL';
+            const todayStr = getTodayDateString();
+            const todayOrders = state.preOrders.filter(p => p.date === todayStr);
+            const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet);
+
+            const titleText = selectedOutlet === 'ALL' ? 'SEMUA CABANG OUTLET' : selectedOutlet;
+            const tomorrowDate = new Date();
+            tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+            const tomorrowStr = tomorrowDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+            const rowsHtml = filteredOrders.map((p, idx) => `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 6px;">${idx + 1}</td>
+                    <td style="padding: 6px; font-weight: bold;">${p.id} - ${p.customerName}</td>
+                    <td style="padding: 6px;">${p.outlet}</td>
+                    <td style="padding: 6px;">${p.wa}</td>
+                    <td style="padding: 6px; font-weight: bold;">${p.items}</td>
+                    <td style="padding: 6px;">${p.isPaid ? 'Lunas ✅' : 'Belum (COD)'}</td>
+                    <td style="padding: 6px;">${p.isTaken ? 'Sudah Diambil' : 'Menunggu Ambil'}</td>
+                </tr>
+            `).join('');
+
+            const printHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Rekap Pesanan Pelanggan - ${titleText}</title>
+                    <style>
+                        @page { size: A4 landscape; margin: 10mm; }
+                        body { font-family: sans-serif; color: #333; font-size: 11px; }
+                        h2 { color: #6A1B9A; margin: 0 0 5px 0; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th { background: #6A1B9A; color: #fff; padding: 6px; text-align: left; }
+                    </style>
+                </head>
+                <body onload="window.print(); setTimeout(() => window.close(), 600);">
+                    <h2>🛒 REKAP PESANAN PELANGGAN PER OUTLET</h2>
+                    <div><b>Jadwal Pengambilan (Besok):</b> ${tomorrowStr} | <b>Cabang:</b> ${titleText} | <b>Total Pesanan:</b> ${filteredOrders.length}</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nama Pelanggan</th>
+                                <th>Outlet</th>
+                                <th>No WA</th>
+                                <th>Detail Menu Dipesan</th>
+                                <th>Status Bayar</th>
+                                <th>Status Ambil</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+            const printWin = window.open('', '_blank', 'width=900,height=700');
+            if (printWin) {
+                printWin.document.write(printHtml);
+                printWin.document.close();
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() { try { selectRolePortal(state.activeRole); renderAllUI(); if (state.activeRole === 'pelanggan') { if (!state.currentUser) { switchCustView('login'); } else { switchCustView('beranda'); } } updateStoreHoursStatus(); setInterval(updateStoreHoursStatus, 30000); } catch (err) { console.error("Render UI Error:", err); } finally { endLoading(); } }); window.onload = function() { endLoading(); }; setTimeout(endLoading, 800);
     </script>
 @endsection
