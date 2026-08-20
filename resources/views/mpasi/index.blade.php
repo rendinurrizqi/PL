@@ -627,6 +627,9 @@
                         <a class="nav-link" href="#" onclick="switchOwnerTab('poin')">
                             <i class="fa-solid fa-coins"></i> Poin & Reward Pelanggan
                         </a>
+                        <a class="nav-link" href="#" onclick="switchOwnerTab('pengeluaran')">
+                            <i class="fa-solid fa-receipt"></i> Kelola Pengeluaran
+                        </a>
                         <a class="nav-link" href="#" onclick="switchOwnerTab('resetpass')">
                             <i class="fa-solid fa-key"></i> Reset Password Pelanggan
                             <span id="owner-resetpass-badge" class="badge bg-danger fs-8 ms-auto" style="display:none;">0</span>
@@ -962,6 +965,62 @@
                             </div>
                         </div>
                     </div>
+
+                    <div id="owner-tab-pengeluaran" class="owner-tab-content" style="display:none;">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                            <div>
+                                <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-receipt text-brand-purple me-2"></i> Catatan Pengeluaran Operasional</h4>
+                                <p class="text-muted fs-7 mb-0">Catat dan kelola pengeluaran harian/bulanan. Anda dapat menambah, mengedit <b>nama barang yang dibeli</b>, nominal, kategori, dan cabang outlet.</p>
+                            </div>
+                            <button class="btn btn-brand-purple fw-bold px-3 py-2" onclick="showAddExpenseModal()"><i class="fa-solid fa-plus-circle me-1"></i> Tambah Pengeluaran Baru</button>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="card-custom p-3 border-start border-4 border-danger">
+                                    <div class="text-muted fs-8 fw-bold">TOTAL PENGELUARAN HARI INI</div>
+                                    <div class="fs-4 fw-bold text-danger" id="exp-total-today">Rp 0</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card-custom p-3 border-start border-4 border-warning">
+                                    <div class="text-muted fs-8 fw-bold">TOTAL PENGELUARAN BULAN INI</div>
+                                    <div class="fs-4 fw-bold text-warning" id="exp-total-month">Rp 0</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card-custom p-3 border-start border-4 border-info">
+                                    <div class="text-muted fs-8 fw-bold">TOTAL ITEM PENGELUARAN</div>
+                                    <div class="fs-4 fw-bold text-info" id="exp-total-items">0 Item</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-custom p-3 border-purple-200">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                                <div class="fw-bold text-brand-purple fs-7"><i class="fa-solid fa-boxes-stacked me-1"></i> Daftar Barang Dibeli & Pengeluaran Operasional</div>
+                                <select id="exp-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderOwnerExpenses()">
+                                    <option value="ALL">SEMUA OUTLET</option>
+                                </select>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table align-middle fs-7 mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Tanggal</th>
+                                            <th>Nama Barang Yang Dibeli</th>
+                                            <th>Kategori</th>
+                                            <th>Outlet</th>
+                                            <th>Biaya / Nominal</th>
+                                            <th>Catatan</th>
+                                            <th class="text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="owner-expenses-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1072,7 +1131,20 @@
                 { id: 'RWD-3', name: 'Voucher Potongan Rp 25.000', pointsCost: 220, description: 'Potongan langsung Rp 25.000, cocok untuk belanja borongan mingguan.' },
                 { id: 'RWD-4', name: 'Gratis 1 Cup Puding Alpukat Kurma', pointsCost: 150, description: 'Tukar poin dengan 1 cup Puding Alpukat Kurma gratis, tunjukkan kode ke Kasir saat ambil.' }
             ],
-            pointsEarnRate: 1000
+            pointsEarnRate: 1000,
+            expenses: (() => {
+                try {
+                    const saved = localStorage.getItem('mpasi_owner_expenses');
+                    if (saved) return JSON.parse(saved);
+                } catch(e){}
+                const d = new Date();
+                const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                return [
+                    { id: 'EXP-101', name: 'Gas LPG 3kg (2 Tabung)', amount: 44000, category: 'Bahan Baku & Dapur', outlet: 'Semua Outlet', date: todayStr, note: 'Pembelian gas dapur utama' },
+                    { id: 'EXP-102', name: 'Cup Kemasan MPASI (500 Pcs)', amount: 125000, category: 'Peralatan & Stiker', outlet: 'Outlet Pusat (Jl. Pajajaran)', date: todayStr, note: 'Restok cup 100ml' },
+                    { id: 'EXP-103', name: 'Plastik Packing & Sendok Bayi', amount: 35000, category: 'Peralatan & Stiker', outlet: 'Semua Outlet', date: todayStr, note: 'Perlengkapan kemasan' }
+                ];
+            })()
         };
 
         const PRODUCT_IMG_PLACEHOLDER_CLASS = 'bg-purple-light rounded-3 p-4 text-center mb-2 fs-1 text-brand-purple d-flex align-items-center justify-content-center';
@@ -1243,7 +1315,7 @@
             }
         }
         function switchAdminTab(tabName) { document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#admin-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('admin-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } }
-        function switchOwnerTab(tabName) { document.querySelectorAll('.owner-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#owner-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('owner-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } if (tabName === 'poin') renderOwnerProductPointsTable(); }
+        function switchOwnerTab(tabName) { document.querySelectorAll('.owner-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#owner-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('owner-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } if (tabName === 'poin') renderOwnerProductPointsTable(); if (tabName === 'pengeluaran') renderOwnerExpenses(); }
         function switchOwnerPoinSubTab(tabName) { const memberPane = document.getElementById('owner-poin-sub-member'); const rewardPane = document.getElementById('owner-poin-sub-reward'); const ratePane = document.getElementById('owner-poin-sub-rate'); if (memberPane) memberPane.style.display = tabName === 'member' ? 'block' : 'none'; if (rewardPane) rewardPane.style.display = tabName === 'reward' ? 'block' : 'none'; if (ratePane) ratePane.style.display = tabName === 'rate' ? 'block' : 'none'; document.querySelectorAll('#owner-poin-subnav .nav-link').forEach(el => { el.classList.remove('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); el.classList.add('border'); }); if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); } if (tabName === 'rate') { const rateInput = document.getElementById('owner-points-rate-input'); if (rateInput) rateInput.value = state.pointsEarnRate; updatePointsRateExample(); renderOwnerProductPointsTable(); } }
         function switchCustView(viewName) { document.querySelectorAll('.cust-view').forEach(el => el.style.display = 'none'); document.querySelectorAll('.navbar-custom .nav-link').forEach(el => el.classList.remove('active')); document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active')); const target = document.getElementById('cust-view-' + viewName); if (target) target.style.display = 'block'; const navTarget = document.getElementById('cust-nav-' + viewName); if (navTarget) navTarget.classList.add('active'); const mobileNavTarget = document.getElementById('mobile-nav-' + viewName); if (mobileNavTarget) mobileNavTarget.classList.add('active'); const mobileBottomNav = document.querySelector('.mobile-bottom-nav'); const custNavContent = document.getElementById('custNavContent'); const custToggler = document.querySelector('.navbar-toggler'); if (viewName === 'login') { if (mobileBottomNav) mobileBottomNav.style.setProperty('display', 'none', 'important'); if (custNavContent) custNavContent.style.setProperty('display', 'none', 'important'); if (custToggler) custToggler.style.setProperty('display', 'none', 'important'); } else { if (mobileBottomNav) mobileBottomNav.style.removeProperty('display'); if (custNavContent) custNavContent.style.removeProperty('display'); if (custToggler) custToggler.style.removeProperty('display'); } if (viewName === 'checkout') prefillCheckoutForm(); if (viewName === 'poin') renderCustomerPointsPage(); if (viewName === 'akun') renderCustomerProfilePage(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
         function updateStoreHoursStatus() { const now = new Date(); const hour = now.getHours(); const isOpenNow = hour >= 6 && hour < 16; state.isStoreOpen = isOpenNow; const alertEl = document.getElementById('closed-hours-alert'); const labelEl = document.getElementById('store-hours-label'); const mobileLabelEl = document.getElementById('store-hours-label-mobile'); if (isOpenNow) { if (alertEl) alertEl.style.display = 'none'; if (labelEl) labelEl.innerHTML = '<span id="store-hours-dot" class="d-inline-block rounded-circle bg-success" style="width:8px;height:8px;"></span> BUKA (06.00 - 16.00)'; if (mobileLabelEl) mobileLabelEl.innerHTML = '<span id="store-hours-dot-mobile" class="d-inline-block rounded-circle bg-success" style="width:7px;height:7px;"></span> BUKA'; } else { if (alertEl) alertEl.style.display = 'block'; if (labelEl) labelEl.innerHTML = '<span id="store-hours-dot" class="d-inline-block rounded-circle bg-danger" style="width:8px;height:8px;"></span> TUTUP (16.00 - 06.00)'; if (mobileLabelEl) mobileLabelEl.innerHTML = '<span id="store-hours-dot-mobile" class="d-inline-block rounded-circle bg-danger" style="width:7px;height:7px;"></span> TUTUP'; } }
@@ -1251,7 +1323,7 @@
         function getYesterdayDateString() { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function purgeOldPreOrders() { const todayStr = getTodayDateString(); const yesterdayStr = getYesterdayDateString(); let changed = false; state.preOrders = (state.preOrders || []).filter(order => { if (!order.date) { order.date = todayStr; return true; } if (order.date === todayStr || order.date === yesterdayStr) { return true; } changed = true; return false; }); if (changed) savePreOrdersToStorage(); }
         function confirmResetAllOrders() { Swal.fire({ icon: 'warning', title: 'Bersihkan Semua Pesanan Hari Ini?', text: 'Seluruh pesanan per outlet hari ini akan dihapus agar data baru besok bersih.', showCancelButton: true, confirmButtonText: 'Ya, Bersihkan', cancelButtonText: 'Batal', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { state.preOrders = []; savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: 'Pesanan Dibersihkan!', text: 'Seluruh pesanan hari ini berhasil dihapus.', timer: 1500, showConfirmButton: false }); } }); }
-        function renderAllUI() { purgeOldPreOrders(); renderOutletDropdowns(); renderHomeProducts(); renderCatalogProducts(); renderCartUI(); renderCustomerHistory(); renderCustomerAuthArea(); renderCustomerPointsPage(); renderCustomerProfilePage(); renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); renderAdminProducts('adm-products-tbody', true); renderAdminProduction(); renderAdminInventory(); renderAdminDailyMenuGrid(); renderAdminOutletReports(); renderAdminPesananPerOutlet(); renderOwnerDashboard(); renderOwnerDailyMenuGrid(); renderOwnerProducts(); renderOwnerPreOrders(); renderOwnerProduction(); renderOwnerInventory(); renderOwnerOutletReports(); renderOwnerResetPasswordTable(); renderOwnerOutletsTable(); renderOwnerMembersTable(); renderOwnerRewardsTable(); renderOwnerProductPointsTable(); }
+        function renderAllUI() { purgeOldPreOrders(); renderOutletDropdowns(); renderHomeProducts(); renderCatalogProducts(); renderCartUI(); renderCustomerHistory(); renderCustomerAuthArea(); renderCustomerPointsPage(); renderCustomerProfilePage(); renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); renderAdminProducts('adm-products-tbody', true); renderAdminProduction(); renderAdminInventory(); renderAdminDailyMenuGrid(); renderAdminOutletReports(); renderAdminPesananPerOutlet(); renderOwnerDashboard(); renderOwnerDailyMenuGrid(); renderOwnerProducts(); renderOwnerPreOrders(); renderOwnerProduction(); renderOwnerInventory(); renderOwnerOutletReports(); renderOwnerResetPasswordTable(); renderOwnerOutletsTable(); renderOwnerMembersTable(); renderOwnerRewardsTable(); renderOwnerProductPointsTable(); renderOwnerExpenses(); }
         function getTodayProducts() { const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const todayName = days[new Date().getDay()]; const todayConfig = state.dailyMenu.find(d => (d.day || '').toLowerCase() === todayName.toLowerCase()); if (!todayConfig || !Array.isArray(todayConfig.productIds) || todayConfig.productIds.length === 0) { return []; } const activeIds = todayConfig.productIds.map(String); return state.products.filter(p => activeIds.includes(String(p.id)) && p.status === 'Aktif'); }
         function renderHomeProducts() { const grid = document.getElementById('home-products-grid'); if (!grid) return; const todayProds = getTodayProducts(); const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const todayName = days[new Date().getDay()]; if (todayProds.length === 0) { grid.innerHTML = `<div class="col-12 text-center py-4 bg-purple-light rounded-3 text-muted"><i class="fa-solid fa-utensils fs-3 mb-2 text-brand-purple d-block"></i><h6 class="fw-bold text-dark">Belum Ada Menu MPASI untuk Hari ${todayName}</h6><p class="fs-8 mb-0">Menu rotasi harian belum diisi oleh Admin/Owner.</p></div>`; return; } grid.innerHTML = todayProds.slice(0, 3).map(p => ` <div class="col-md-4 mb-3"><div class="card-custom h-100 p-0 overflow-hidden d-flex flex-column justify-content-between border rounded-3 shadow-sm bg-white">${productImageHtml(p)}<div class="p-3 d-flex flex-column justify-content-between flex-grow-1"><div><span class="badge bg-warning text-dark fs-8 fw-bold mb-2">${p.age}</span><h6 class="fw-bold mb-1 text-dark fs-6" style="line-height:1.3;">${p.name}</h6><div class="text-muted fs-8 mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.ingredients}</div></div><div><div class="fw-bold text-brand-purple fs-5 mb-2">Rp ${p.price.toLocaleString('id-ID')}</div><button class="btn btn-brand-yellow btn-sm w-100 fw-bold text-dark py-2" onclick="addToCart('${p.id}')"><i class="fa-solid fa-cart-plus me-1"></i> + Tambah Ke Keranjang</button></div></div></div></div>`).join(''); }
         function renderCatalogProducts() { const grid = document.getElementById('full-products-grid'); if (!grid) return; const todayProds = getTodayProducts(); const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const todayName = days[new Date().getDay()]; if (todayProds.length === 0) { grid.innerHTML = `<div class="col-12 text-center py-5 bg-purple-light rounded-3 text-muted"><i class="fa-solid fa-calendar-xmark fs-1 mb-3 text-brand-purple d-block"></i><h5 class="fw-bold text-dark">Belum Ada Menu MPASI untuk Hari ${todayName}</h5><p class="fs-7 mb-0">Owner / Admin belum menambahkan varian menu rotasi harian untuk hari ${todayName}.</p></div>`; return; } grid.innerHTML = todayProds.map(p => ` <div class="col-md-4 mb-3"><div class="card-custom h-100 p-0 overflow-hidden d-flex flex-column justify-content-between border rounded-3 shadow-sm bg-white">${productImageHtml(p)}<div class="p-3 d-flex flex-column justify-content-between flex-grow-1"><div><span class="badge bg-warning text-dark fs-8 fw-bold mb-2">${p.age}</span><h6 class="fw-bold mb-1 text-dark fs-6" style="line-height:1.3;">${p.name}</h6><div class="text-muted fs-8 mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.ingredients}</div></div><div><div class="fw-bold text-brand-purple fs-5 mb-2">Rp ${p.price.toLocaleString('id-ID')}</div><button class="btn btn-brand-yellow btn-sm w-100 fw-bold text-dark py-2" onclick="addToCart('${p.id}')"><i class="fa-solid fa-cart-plus me-1"></i> + Tambah Ke Keranjang</button></div></div></div></div>`).join(''); }
@@ -1845,7 +1917,282 @@
                 }
             });
         }
-        function requestResetPasswordModal() { Swal.fire({ title: 'Permohonan Reset Password', text: 'Kirimkan tiket permohonan reset kata sandi ke Owner?', showCancelButton: true, confirmButtonText: 'Kirim Tiket' }).then(res => { if (res.isConfirmed) { state.resetTickets.push({ id: 'RST-' + Math.floor(100 + Math.random() * 900), name: 'Bunda Pemesan', wa: '081298765432', time: '11:00 WIB', isResolved: false }); renderOwnerResetPasswordTable(); renderOwnerDashboard(); Swal.fire({ icon: 'success', title: 'Tiket Terkirim', text: 'Owner akan memproses reset kata sandi Anda.' }); } }); }
+        function saveExpensesToStorage() {
+            try {
+                localStorage.setItem('mpasi_owner_expenses', JSON.stringify(state.expenses));
+            } catch(e){}
+        }
+
+        function renderOwnerExpenses() {
+            const tbody = document.getElementById('owner-expenses-tbody');
+            if (!tbody) return;
+            const filterSelect = document.getElementById('exp-outlet-filter');
+            const filterOutlet = filterSelect?.value || 'ALL';
+
+            if (filterSelect && filterSelect.options.length <= 1) {
+                filterSelect.innerHTML = '<option value="ALL">SEMUA OUTLET</option>' +
+                    '<option value="Semua Outlet">Semua Outlet (Nasional)</option>' +
+                    state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
+            }
+
+            const todayStr = getTodayDateString();
+            const currentMonthStr = todayStr.substring(0, 7);
+
+            const filteredExpenses = filterOutlet === 'ALL'
+                ? state.expenses
+                : state.expenses.filter(e => e.outlet === filterOutlet || e.outlet === 'Semua Outlet');
+
+            let totalToday = 0;
+            let totalMonth = 0;
+
+            filteredExpenses.forEach(e => {
+                const amt = Number(e.amount || 0);
+                if (e.date === todayStr) totalToday += amt;
+                if (e.date && e.date.substring(0, 7) === currentMonthStr) totalMonth += amt;
+            });
+
+            const expTodayEl = document.getElementById('exp-total-today');
+            if (expTodayEl) expTodayEl.innerText = 'Rp ' + totalToday.toLocaleString('id-ID');
+
+            const expMonthEl = document.getElementById('exp-total-month');
+            if (expMonthEl) expMonthEl.innerText = 'Rp ' + totalMonth.toLocaleString('id-ID');
+
+            const expItemsEl = document.getElementById('exp-total-items');
+            if (expItemsEl) expItemsEl.innerText = filteredExpenses.length + ' Item';
+
+            if (filteredExpenses.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-receipt me-2 text-secondary"></i>Belum ada catatan pengeluaran operasional. Klik "+ Tambah Pengeluaran Baru" untuk mencatat.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filteredExpenses.map(e => `
+                <tr>
+                    <td class="fw-bold text-muted fs-8">${e.date || '-'}</td>
+                    <td class="fw-bold text-dark fs-7">${e.name}</td>
+                    <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${e.category || 'Operasional'}</span></td>
+                    <td><span class="badge bg-light text-dark border fs-8">${e.outlet || 'Semua Outlet'}</span></td>
+                    <td class="fw-bold text-danger fs-7">Rp ${Number(e.amount || 0).toLocaleString('id-ID')}</td>
+                    <td class="text-muted fs-8">${e.note || '-'}</td>
+                    <td class="text-center text-nowrap">
+                        <button class="btn btn-sm btn-outline-secondary py-1 px-2 fs-8 fw-bold" onclick="editExpenseModal('${e.id}')"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
+                        <button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8 fw-bold ms-1" onclick="deleteExpense('${e.id}')"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showAddExpenseModal() {
+            const todayStr = getTodayDateString();
+            const outletOptions = '<option value="Semua Outlet">Semua Outlet (Nasional)</option>' +
+                state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
+
+            Swal.fire({
+                title: '<i class="fa-solid fa-plus-circle text-brand-purple me-2"></i> Tambah Pengeluaran Baru',
+                html: `
+                    <div class="text-start fs-8 text-muted mb-2">Isi detail barang yang dibeli dan biaya pengeluaran operasional outlet:</div>
+                    <div class="mb-2 text-start">
+                        <label class="form-label fs-8 fw-bold mb-1">Nama Barang yang Dibeli *</label>
+                        <input id="swal-exp-name" class="swal2-input m-0 w-100" placeholder="Contoh: Gas LPG 3kg / Cup Kemasan 100ml / Stiker Label">
+                    </div>
+                    <div class="mb-2 text-start">
+                        <label class="form-label fs-8 fw-bold mb-1">Biaya / Nominal Pengeluaran (Rp) *</label>
+                        <input id="swal-exp-amount" type="number" class="swal2-input m-0 w-100" placeholder="Contoh: 50000">
+                    </div>
+                    <div class="row g-2 mb-2 text-start">
+                        <div class="col-6">
+                            <label class="form-label fs-8 fw-bold mb-1">Kategori Barang</label>
+                            <select id="swal-exp-category" class="swal2-select m-0 w-100 fs-8">
+                                <option value="Bahan Baku & Dapur">Bahan Baku & Dapur</option>
+                                <option value="Peralatan & Stiker">Peralatan & Kemasan</option>
+                                <option value="Transportasi & Bensin">Transportasi & Bensin</option>
+                                <option value="Listrik & Air">Listrik, Air & Internet</option>
+                                <option value="Gaji & Bonus Staff">Gaji & Bonus Staff</option>
+                                <option value="Operasional Lainnya">Operasional Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fs-8 fw-bold mb-1">Cabang Outlet</label>
+                            <select id="swal-exp-outlet" class="swal2-select m-0 w-100 fs-8">
+                                ${outletOptions}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2 text-start">
+                        <div class="col-6">
+                            <label class="form-label fs-8 fw-bold mb-1">Tanggal Transaksi</label>
+                            <input id="swal-exp-date" type="date" class="swal2-input m-0 w-100 fs-8" value="${todayStr}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fs-8 fw-bold mb-1">Catatan / Keterangan</label>
+                            <input id="swal-exp-note" class="swal2-input m-0 w-100 fs-8" placeholder="Catatan tambahan (opsional)">
+                        </div>
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan Pengeluaran',
+                confirmButtonColor: '#6A1B9A',
+                preConfirm: () => {
+                    const name = document.getElementById('swal-exp-name').value.trim();
+                    const amount = parseInt(document.getElementById('swal-exp-amount').value) || 0;
+                    const category = document.getElementById('swal-exp-category').value;
+                    const outlet = document.getElementById('swal-exp-outlet').value;
+                    const date = document.getElementById('swal-exp-date').value || todayStr;
+                    const note = document.getElementById('swal-exp-note').value.trim();
+
+                    if (!name || amount <= 0) {
+                        Swal.showValidationMessage('Harap isi Nama Barang yang Dibeli dan Nominal Biaya dengan benar!');
+                        return false;
+                    }
+                    return { name, amount, category, outlet, date, note };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    const newExp = {
+                        id: 'EXP-' + Math.floor(100 + Math.random() * 900),
+                        name: result.value.name,
+                        amount: result.value.amount,
+                        category: result.value.category,
+                        outlet: result.value.outlet,
+                        date: result.value.date,
+                        note: result.value.note
+                    };
+                    state.expenses.unshift(newExp);
+                    saveExpensesToStorage();
+                    renderAllUI();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pengeluaran Disimpan!',
+                        text: `Catatan "${newExp.name}" senilai Rp ${newExp.amount.toLocaleString('id-ID')} berhasil ditambahkan!`,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
+
+        function editExpenseModal(expId) {
+            const exp = state.expenses.find(e => e.id == expId);
+            if (!exp) return;
+            const todayStr = getTodayDateString();
+
+            const categories = [
+                'Bahan Baku & Dapur',
+                'Peralatan & Stiker',
+                'Transportasi & Bensin',
+                'Listrik & Air',
+                'Gaji & Bonus Staff',
+                'Operasional Lainnya'
+            ];
+
+            const categoryOptions = categories.map(c => `<option value="${c}" ${exp.category === c ? 'selected' : ''}>${c}</option>`).join('');
+            const outletOptions = `<option value="Semua Outlet" ${exp.outlet === 'Semua Outlet' ? 'selected' : ''}>Semua Outlet (Nasional)</option>` +
+                state.outlets.map(o => `<option value="${escAttr(o)}" ${exp.outlet === o ? 'selected' : ''}>${o}</option>`).join('');
+
+            Swal.fire({
+                title: '<i class="fa-solid fa-pen-to-square text-brand-purple me-2"></i> Edit Pengeluaran',
+                html: `
+                    <div class="text-start fs-8 text-muted mb-2">Ubah nama barang yang dibeli, nominal, atau rincian pengeluaran:</div>
+                    <div class="mb-2 text-start">
+                        <label class="form-label fs-8 fw-bold mb-1">Nama Barang yang Dibeli *</label>
+                        <input id="swal-eexp-name" class="swal2-input m-0 w-100" value="${escAttr(exp.name)}" placeholder="Nama Barang yang Dibeli">
+                    </div>
+                    <div class="mb-2 text-start">
+                        <label class="form-label fs-8 fw-bold mb-1">Biaya / Nominal Pengeluaran (Rp) *</label>
+                        <input id="swal-eexp-amount" type="number" class="swal2-input m-0 w-100" value="${exp.amount}" placeholder="Biaya / Nominal">
+                    </div>
+                    <div class="row g-2 mb-2 text-start">
+                        <div class="col-6">
+                            <label class="form-label fs-8 fw-bold mb-1">Kategori Barang</label>
+                            <select id="swal-eexp-category" class="swal2-select m-0 w-100 fs-8">
+                                ${categoryOptions}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fs-8 fw-bold mb-1">Cabang Outlet</label>
+                            <select id="swal-eexp-outlet" class="swal2-select m-0 w-100 fs-8">
+                                ${outletOptions}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2 text-start">
+                        <div class="col-6">
+                            <label class="form-label fs-8 fw-bold mb-1">Tanggal Transaksi</label>
+                            <input id="swal-eexp-date" type="date" class="swal2-input m-0 w-100 fs-8" value="${exp.date || todayStr}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fs-8 fw-bold mb-1">Catatan / Keterangan</label>
+                            <input id="swal-eexp-note" class="swal2-input m-0 w-100 fs-8" value="${escAttr(exp.note || '')}" placeholder="Catatan tambahan">
+                        </div>
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan Perubahan',
+                confirmButtonColor: '#6A1B9A',
+                preConfirm: () => {
+                    const name = document.getElementById('swal-eexp-name').value.trim();
+                    const amount = parseInt(document.getElementById('swal-eexp-amount').value) || 0;
+                    const category = document.getElementById('swal-eexp-category').value;
+                    const outlet = document.getElementById('swal-eexp-outlet').value;
+                    const date = document.getElementById('swal-eexp-date').value || todayStr;
+                    const note = document.getElementById('swal-eexp-note').value.trim();
+
+                    if (!name || amount <= 0) {
+                        Swal.showValidationMessage('Harap isi Nama Barang yang Dibeli dan Nominal Biaya dengan benar!');
+                        return false;
+                    }
+                    return { name, amount, category, outlet, date, note };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    exp.name = result.value.name;
+                    exp.amount = result.value.amount;
+                    exp.category = result.value.category;
+                    exp.outlet = result.value.outlet;
+                    exp.date = result.value.date;
+                    exp.note = result.value.note;
+
+                    saveExpensesToStorage();
+                    renderAllUI();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pengeluaran Diperbarui!',
+                        text: `Data pengeluaran "${exp.name}" berhasil diperbarui.`,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
+
+        function deleteExpense(expId) {
+            const expIndex = state.expenses.findIndex(e => e.id == expId);
+            if (expIndex === -1) return;
+            const exp = state.expenses[expIndex];
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Hapus Catatan Pengeluaran?',
+                text: `Catatan pengeluaran "${exp.name}" senilai Rp ${(exp.amount || 0).toLocaleString('id-ID')} akan dihapus.`,
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Hapus',
+                confirmButtonColor: '#dc3545'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    state.expenses.splice(expIndex, 1);
+                    saveExpensesToStorage();
+                    renderAllUI();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pengeluaran Dihapus!',
+                        timer: 1200,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
+
         function renderOwnerDashboard() { const outletsList = state.outlets; let totalOmsetHariIni = 0; let totalPorsiHariIni = 0; let totalLabaHariIni = 0; const perOutletRows = []; outletsList.forEach(outletName => { const salesRec = state.outletSalesRecords[outletName] || {}; let omset = 0, porsi = 0, loss = 0; state.products.forEach(p => { const sold = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const leftover = Math.max(0, allocated - sold); omset += sold * p.price; porsi += sold; loss += leftover * p.price; }); const profit = Math.round((omset * 0.4) - loss); totalOmsetHariIni += omset; totalPorsiHariIni += porsi; totalLabaHariIni += profit; perOutletRows.push({ name: outletName, omset, porsi, profit }); }); const pendingTickets = state.resetTickets.filter(t => !t.isResolved); const pendingPreOrders = state.preOrders.filter(p => !p.isTaken).length; const cardsEl = document.getElementById('owner-dashboard-cards'); if (cardsEl) { cardsEl.innerHTML = `<div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET SEMUA OUTLET (HARI INI)</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmsetHariIni.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsiHariIni} Cup</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-success"><div class="text-muted fs-8 fw-bold">ESTIMASI LABA BERSIH HARI INI</div><div class="fs-5 fw-bold text-success">Rp ${totalLabaHariIni.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-warning"><div class="text-muted fs-8 fw-bold">PRE-ORDER MENUNGGU DIAMBIL</div><div class="fs-5 fw-bold text-warning">${pendingPreOrders} Pesanan</div></div></div>`; } const outletTbody = document.getElementById('owner-dashboard-outlet-tbody'); if (outletTbody) { outletTbody.innerHTML = perOutletRows.map(o => `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${o.omset.toLocaleString('id-ID')}</td><td>${o.porsi} Cup</td><td class="text-success fw-bold">Rp ${o.profit.toLocaleString('id-ID')}</td></tr>`).join(''); } const resetListEl = document.getElementById('owner-dashboard-resetpass-list'); if (resetListEl) { resetListEl.innerHTML = pendingTickets.length > 0 ? pendingTickets.map(t => `<div class="d-flex justify-content-between align-items-center border rounded-3 p-2 bg-light"><div><div class="fw-bold">${t.name}</div><div class="text-muted fs-8">${t.wa} • ${t.time}</div></div><button class="btn btn-sm btn-brand-purple fs-8 fw-bold" onclick="resolveResetTicket('${t.id}')"><i class="fa-solid fa-key me-1"></i> Reset</button></div>`).join('') : '<div class="text-muted fs-8 fst-italic">Tidak ada tiket menunggu diproses 🎉</div>'; } const badgeEl = document.getElementById('owner-resetpass-badge'); if (badgeEl) { badgeEl.innerText = pendingTickets.length; badgeEl.style.display = pendingTickets.length > 0 ? 'inline-block' : 'none'; } }
         function renderOwnerResetPasswordTable() { const tbody = document.getElementById('own-resetpass-tbody'); if (!tbody) return; if (state.resetTickets.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-8 fst-italic py-3">Belum ada permintaan reset password.</td></tr>`; } else { tbody.innerHTML = state.resetTickets.map(t => `<tr class="${t.isResolved ? 'bg-light opacity-75' : ''}"><td class="fw-bold text-brand-purple">${t.id}</td><td class="fw-bold text-dark">${t.name}</td><td><a href="https://wa.me/${t.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${t.wa}</a></td><td>${t.time}</td><td><span class="badge ${t.isResolved ? 'bg-success' : 'bg-warning text-dark'} fs-8">${t.isResolved ? 'Selesai Direset ✅' : 'Menunggu Diproses'}</span></td><td class="text-center">${t.isResolved ? '<span class="text-muted fs-8 fst-italic">-</span>' : `<button class="btn btn-sm btn-brand-purple fs-8 fw-bold" onclick="resolveResetTicket('${t.id}')"><i class="fa-solid fa-key me-1"></i> Reset Sekarang</button>`}</td></tr>`).join(''); } const pendingCount = state.resetTickets.filter(t => !t.isResolved).length; const badgeEl = document.getElementById('owner-resetpass-badge'); if (badgeEl) { badgeEl.innerText = pendingCount; badgeEl.style.display = pendingCount > 0 ? 'inline-block' : 'none'; } }
         function resolveResetTicket(ticketId) { const t = state.resetTickets.find(x => x.id == ticketId); if (!t) return; Swal.fire({ title: 'Reset Password Pelanggan', html: `<div class="text-start fs-7 mb-2">Pelanggan: <b>${t.name}</b> (${t.wa})</div><input id="swal-newpass" class="swal2-input" placeholder="Password Baru Sementara" value="mpasi${Math.floor(1000 + Math.random() * 9000)}">`, showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-key me-1"></i> Kirim Password Baru', confirmButtonColor: '#6A1B9A', preConfirm: () => { const val = document.getElementById('swal-newpass').value.trim(); if (!val) { Swal.showValidationMessage('Password baru wajib diisi!'); return false; } return val; } }).then(result => { if (result.isConfirmed) { t.isResolved = true; renderOwnerResetPasswordTable(); renderOwnerDashboard(); Swal.fire({ icon: 'success', title: 'Password Berhasil Direset', text: `Password baru "${result.value}" telah dikirim ke WhatsApp ${t.wa}.`, timer: 1800, showConfirmButton: false }); } }); }
