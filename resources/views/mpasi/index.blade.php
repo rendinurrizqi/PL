@@ -2297,8 +2297,8 @@
             const tbody = document.getElementById('adm-outlet-stock-tbody');
             if (!tbody) return;
 
-            if (state.products.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada produk.</td></tr>`;
+            if (!state.products || state.products.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada produk terdaftar di Master Produk.</td></tr>`;
                 return;
             }
 
@@ -2311,10 +2311,7 @@
             filteredDays.forEach(dayName => {
                 const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
                 const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
-                let dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
-                if (dayProducts.length === 0) {
-                    dayProducts = state.products;
-                }
+                const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
 
                 if (dayProducts.length > 0) {
                     rowsHtml += `<tr class="table-primary border-top border-purple-200"><td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2"><i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (${dayProducts.length} Varian Produk)</td></tr>`;
@@ -2336,29 +2333,24 @@
                 }
             });
 
-            if (selectedDayFilter === 'ALL') {
-                const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
-                if (remainingProducts.length > 0) {
-                    rowsHtml += `<tr class="table-light border-top"><td colspan="5" class="fw-extrabold text-secondary fs-7 py-2"><i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya (${remainingProducts.length} Varian)</td></tr>`;
-                    remainingProducts.forEach(p => {
-                        const curStock = getOutletStock(selectedOutlet, p);
-                        rowsHtml += `<tr>
-                            <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-secondary fs-8"></i>${p.name}</td>
-                            <td><span class="badge bg-light text-dark border fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
-                            <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
-                            <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-other-${p.id}" value="${curStock}"></td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-other-${p.id}')">
-                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok Cabang
-                                </button>
-                            </td>
-                        </tr>`;
-                    });
-                }
-            }
-
-            if (!rowsHtml) {
-                rowsHtml = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-calendar-xmark fs-4 d-block mb-1 text-secondary"></i>Belum ada produk yang didaftarkan pada menu rotasi hari ${selectedDayFilter}.</td></tr>`;
+            const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
+            if (remainingProducts.length > 0) {
+                const sectionTitle = processedProdIds.size > 0 ? 'Master Produk Lainnya' : 'Daftar Seluruh Varian Produk';
+                rowsHtml += `<tr class="table-light border-top"><td colspan="5" class="fw-extrabold text-secondary fs-7 py-2"><i class="fa-solid fa-boxes-stacked me-2"></i> ${sectionTitle} (${remainingProducts.length} Varian)</td></tr>`;
+                remainingProducts.forEach(p => {
+                    const curStock = getOutletStock(selectedOutlet, p);
+                    rowsHtml += `<tr>
+                        <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-secondary fs-8"></i>${p.name}</td>
+                        <td><span class="badge bg-light text-dark border fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
+                        <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
+                        <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-other-${p.id}" value="${curStock}"></td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-other-${p.id}')">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok Cabang
+                            </button>
+                        </td>
+                    </tr>`;
+                });
             }
 
             tbody.innerHTML = rowsHtml;
