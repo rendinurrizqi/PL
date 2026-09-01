@@ -406,7 +406,7 @@
                                 <div class="text-muted fs-8">Terhitung otomatis bersih dari stok alokasi dikurangi penjualan POS kasir.</div>
                             </div>
                             <button class="btn btn-danger fw-bold rounded-pill px-3" onclick="submitAllKasirLeftovers()">
-                                <i class="fa-solid fa-paper-plane me-1"></i> Kirim Rekap Sisa Hari Ini
+                                <i class="fa-solid fa-paper-plane me-1"></i> Kirim Rekap Laporan Hari Ini
                             </button>
                         </div>
                         <div class="card-custom p-3 border-danger border-opacity-50">
@@ -420,6 +420,7 @@
                                             <th>Stok Hari Ini</th>
                                             <th>Terjual POS (Cup)</th>
                                             <th>Sisa Tidak Laku (Cup)</th>
+                                            <th>Total Keuntungan</th>
                                         </tr>
                                     </thead>
                                     <tbody id="kasir-leftover-tbody"></tbody>
@@ -2040,13 +2041,17 @@
             const todayProds = getTodayProducts();
             const targetProducts = todayProds.length > 0 ? todayProds : state.products;
             const outletSales = state.outletSalesRecords[state.kasirActiveOutlet] || {};
-            tbody.innerHTML = targetProducts.map(p => {
+            let grandTotalProfit = 0;
+            const rowsHtml = targetProducts.map(p => {
                 const prodId = p.id;
                 const price = p.price;
                 const allocatedQty = getOutletStock(state.kasirActiveOutlet, p);
                 const preorderQty = getOutletPreorderQty(state.kasirActiveOutlet, p);
                 const soldQty = outletSales[prodId] ? outletSales[prodId].sold : 0;
                 const leftoverQty = Math.max(0, allocatedQty - soldQty);
+                const totalSold = soldQty + preorderQty;
+                const profit = totalSold * price;
+                grandTotalProfit += profit;
                 return `<tr>
                     <td class="fw-bold text-dark">${p.name}</td>
                     <td>Rp ${price.toLocaleString('id-ID')}</td>
@@ -2054,10 +2059,16 @@
                     <td class="fw-bold text-primary">${allocatedQty} Cup</td>
                     <td class="fw-bold text-success">${soldQty} Cup Terjual</td>
                     <td class="fw-bold text-danger">${leftoverQty} Cup Sisa</td>
+                    <td class="fw-bold text-success">Rp ${profit.toLocaleString('id-ID')}</td>
                 </tr>`;
             }).join('');
+            const summaryFooter = `<tr class="table-light fw-bold">
+                <td colspan="6" class="text-end text-dark">TOTAL KEUNTUNGAN HARI INI (${state.kasirActiveOutlet}):</td>
+                <td class="text-success fs-7">Rp ${grandTotalProfit.toLocaleString('id-ID')}</td>
+            </tr>`;
+            tbody.innerHTML = rowsHtml + summaryFooter;
         }
-        function submitAllKasirLeftovers() { renderAdminOutletReports(); Swal.fire({ icon: 'success', title: 'Rekap Sisa Dikirim!', text: 'Laporan sisa seluruh produk untuk ' + state.kasirActiveOutlet + ' telah diteruskan ke Admin & Owner secara real-time!', confirmButtonColor: '#6A1B9A' }); }
+        function submitAllKasirLeftovers() { renderAdminOutletReports(); renderOwnerOutletReports(); Swal.fire({ icon: 'success', title: 'Rekap Laporan Dikirim!', text: 'Laporan rekapan penjualan, sisa produk, dan keuntungan untuk ' + state.kasirActiveOutlet + ' telah diteruskan ke Admin & Owner secara real-time!', confirmButtonColor: '#6A1B9A' }); }
         function renderAdminOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'adm-report-period-filter', outletSelectId: 'adm-report-outlet-filter', cardsId: 'adm-outlet-metric-cards', summaryTbodyId: 'adm-outlet-report-tbody', leftoverTbodyId: 'adm-leftover-report-tbody', isAdmin: true }); }
         function renderOwnerOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'own-report-period-filter', outletSelectId: 'own-report-outlet-filter', cardsId: 'own-outlet-metric-cards', summaryTbodyId: 'own-outlet-report-tbody', leftoverTbodyId: 'own-leftover-report-tbody', isAdmin: false }); }
         function renderOutletReportsGeneric(cfg) {
