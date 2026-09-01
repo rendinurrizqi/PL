@@ -416,7 +416,7 @@
                                         <tr>
                                             <th>Varian Produk Mamam Yuk</th>
                                             <th>Harga / Cup</th>
-                                            <th>Stok Alokasi Hari Ini</th>
+                                            <th>Stok Hari Ini</th>
                                             <th>Terjual (Cup)</th>
                                             <th>Sisa Tidak Laku (Cup)</th>
                                         </tr>
