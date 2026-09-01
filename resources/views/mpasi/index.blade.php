@@ -1997,13 +1997,12 @@
             }
         }
         function getOutletPreorderQty(outletName, product) {
-            const todayStr = getTodayDateString();
             const yesterdayStr = getYesterdayDateString();
             const pIdStr = String(product.id);
             const pNameLower = (product.name || '').toLowerCase();
             const activeOrders = (state.preOrders || []).filter(o =>
                 o.outlet === outletName &&
-                (o.date === todayStr || o.date === yesterdayStr) &&
+                o.date === yesterdayStr &&
                 o.cancelStatus !== 'approved'
             );
             let totalQty = 0;
