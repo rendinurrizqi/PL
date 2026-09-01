@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'MPASI - MPASI Harian Untuk Si Kecil')
+@section('title', 'Mamam Yuk - MPASI Harian Untuk Si Kecil')
 
 @section('content')
     @include('mpasi.partials.data-json')
 
     <div id="loading-overlay">
         <div class="spinner-border text-warning" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
-        <div class="mt-3 fw-bold text-brand-purple">Memuat MPASI - MPASI Harian Si Kecil...</div>
+        <div class="mt-3 fw-bold text-brand-purple">Memuat Mamam Yuk - MPASI Harian Si Kecil...</div>
     </div>
 
     <div id="app">
@@ -18,7 +18,7 @@
                     <a class="navbar-brand d-flex align-items-center gap-2 text-brand-purple" href="#" onclick="switchCustView('beranda')">
                         <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-baby"></i></div>
                         <div>
-                            <span class="fs-5 fw-bold text-brand-purple">MPASI</span>
+                            <span class="fs-5 fw-bold text-brand-purple">Mamam Yuk</span>
                             <div class="text-muted fs-8 fw-semibold" style="margin-top:-4px;">MPASI Harian Untuk Si Kecil</div>
                         </div>
                     </a>
@@ -196,7 +196,7 @@
                                             <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
                                                 <input type="radio" name="paymethod" value="Transfer" checked>
                                                 <i class="fa-solid fa-building-columns fs-5 text-primary"></i>
-                                                <div><div class="fw-bold fs-7">Transfer BCA / QRIS (Lunas Langsung)</div><div class="text-muted fs-8">No. Rek BCA: 8830192831 a/n MPASI Si Kecil</div></div>
+                                                <div><div class="fw-bold fs-7">Transfer BCA / QRIS (Lunas Langsung)</div><div class="text-muted fs-8">No. Rek BCA: 8830192831 a/n Mamam Yuk</div></div>
                                             </label>
                                             <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
                                                 <input type="radio" name="paymethod" value="COD">
@@ -242,7 +242,7 @@
                     <div class="card-custom p-4 max-w-500 mx-auto shadow-lg">
                         <div class="text-center mb-4">
                             <div class="bg-brand-yellow text-dark d-inline-flex p-3 rounded-circle mb-2 fs-2"><i class="fa-solid fa-baby"></i></div>
-                            <h4 class="fw-bold text-brand-purple mb-0">Member MPASI Si Kecil</h4>
+                            <h4 class="fw-bold text-brand-purple mb-0">Member Mamam Yuk</h4>
                             <p class="text-muted fs-7">Masuk Member (+Poin) atau Belanja Tanpa Akun</p>
                         </div>
                         <form onsubmit="handleLogin(event)">
@@ -1692,7 +1692,7 @@
                 </head>
                 <body onload="window.print(); setTimeout(() => window.close(), 600);">
                     <div class="text-center">
-                        <h3 style="margin: 0 0 2px 0; font-size: 16px; font-weight: bold;">MPASI SI KECIL</h3>
+                        <h3 style="margin: 0 0 2px 0; font-size: 16px; font-weight: bold;">MAMAM YUK</h3>
                         <div style="font-size: 11px; font-weight: bold;">${outletName || 'Outlet Kasir'}</div>
                         <div style="font-size: 10px; color: #333; margin-top: 2px;">Waktu: ${dateTimeStr}</div>
                         <div style="font-size: 10px; color: #333;">No. Trx: <b>${trxId}</b></div>
@@ -2578,7 +2578,7 @@
                 <body onload="window.print(); setTimeout(() => window.close(), 600);">
                     <div class="header">
                         <h2>🍳 REKAPITULASI DAPUR MASAK ESOK HARI</h2>
-                        <p><b>MPASI SI KECIL</b> — Laporan Produksi Dapur Masak Hari Ini</p>
+                        <p><b>MAMAM YUK</b> — Laporan Produksi Dapur Masak Hari Ini</p>
                     </div>
 
                     <div class="meta-info">
