@@ -715,7 +715,7 @@ class MpasiController extends Controller
     {
         session()->forget(['staff_role', 'staff_user_id', 'staff_name']);
 
-        return redirect()->route($role . '.login');
+        return redirect()->route('portal.login')->with('message', 'Anda telah berhasil keluar dari portal.');
     }
 
     protected function staffRoleLabel(string $role): string

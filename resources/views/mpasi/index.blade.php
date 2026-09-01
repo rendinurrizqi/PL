@@ -297,6 +297,15 @@
                         <a class="nav-link" href="#" onclick="switchKasirTab('pos')"><i class="fa-solid fa-store"></i> Kasir POS Walk-In</a>
                         <a class="nav-link" href="#" onclick="switchKasirTab('leftover')"><i class="fa-solid fa-clipboard-list"></i> Lapor Sisa Produk</a>
                     </nav>
+
+                    <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                        <form method="POST" action="{{ route('kasir.logout') }}">
+                            @csrf
+                            <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
+                                <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="flex-grow-1 p-4 overflow-auto">
@@ -441,6 +450,15 @@
                         <a class="nav-link" href="#" onclick="switchAdminTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> Persediaan Bahan Baku</a>
                         <a class="nav-link" href="#" onclick="switchAdminTab('laporan-outlet')"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Per Outlet</a>
                     </nav>
+
+                    <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                        <form method="POST" action="{{ route('admin.logout') }}">
+                            @csrf
+                            <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
+                                <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="flex-grow-1 p-4 overflow-auto">
@@ -659,6 +677,15 @@
                             <span id="owner-resetpass-badge" class="badge bg-danger fs-8 ms-auto" style="display:none;">0</span>
                         </a>
                     </nav>
+
+                    <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                        <form method="POST" action="{{ route('owner.logout') }}">
+                            @csrf
+                            <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
+                                <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="flex-grow-1 p-4 overflow-auto">
