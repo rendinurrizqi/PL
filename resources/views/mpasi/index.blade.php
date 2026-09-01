@@ -163,11 +163,24 @@
                             <div class="card-custom p-3 border-purple-200">
                                 <h6 class="fw-bold text-brand-purple border-bottom pb-2 mb-3">Ringkasan Belanja</h6>
                                 <div id="checkout-items-list" class="d-flex flex-column gap-2 mb-3 fs-7"></div>
-                                <div class="d-flex justify-content-between fw-bold fs-5 border-top pt-2">
-                                    <span>Total Tagihan:</span>
-                                    <span id="checkout-total-amount" class="text-brand-purple">Rp 0</span>
+                                <div id="checkout-summary-container">
+                                    <div class="d-flex justify-content-between fw-bold fs-5 border-top pt-2">
+                                        <span>Total Tagihan:</span>
+                                        <span id="checkout-total-amount" class="text-brand-purple">Rp 0</span>
+                                    </div>
                                 </div>
                                 <div id="checkout-points-preview" class="fs-8 text-success fw-bold mt-2"></div>
+
+                                <div class="mt-3 pt-3 border-top">
+                                    <label class="form-label fs-8 fw-bold text-dark mb-1">
+                                        <i class="fa-solid fa-ticket text-warning me-1"></i> Punya Kode Voucher / Poin?
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" id="co-voucher-code" class="form-control form-control-sm fw-bold text-uppercase border-purple-200" placeholder="Contoh: RDM-1234">
+                                        <button type="button" class="btn btn-brand-purple fw-bold fs-8" onclick="applyCheckoutVoucher()">Gunakan</button>
+                                    </div>
+                                    <div id="co-voucher-status" class="fs-8 mt-1"></div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-7">
@@ -1858,8 +1871,112 @@
             return totalPoints;
         }
 
+        let appliedCheckoutVoucher = null;
+
+        function applyCheckoutVoucher() {
+            const input = document.getElementById('co-voucher-code');
+            const statusEl = document.getElementById('co-voucher-status');
+            const code = (input ? input.value : '').trim().toUpperCase();
+            if (!code) {
+                if (statusEl) statusEl.innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-circle-xmark me-1"></i> Masukkan kode voucher terlebih dahulu!</span>';
+                return;
+            }
+
+            if (!state.currentUser) {
+                if (statusEl) statusEl.innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-lock me-1"></i> Silakan masuk sebagai member untuk pakai voucher poin!</span>';
+                return;
+            }
+
+            const member = state.currentUser;
+            const historyItem = (member.pointsHistory || []).find(h =>
+                h.type === 'redeem' &&
+                (h.code === code || (h.label && h.label.toUpperCase().includes(code)))
+            );
+
+            if (!historyItem) {
+                if (statusEl) statusEl.innerHTML = `<span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> Kode ${code} tidak ditemukan / bukan milik akun Anda.</span>`;
+                return;
+            }
+
+            if (historyItem.isUsed) {
+                if (statusEl) statusEl.innerHTML = `<span class="text-danger fw-bold"><i class="fa-solid fa-ban me-1"></i> Kode ${code} sudah pernah digunakan.</span>`;
+                return;
+            }
+
+            let discountVal = 0;
+            const label = historyItem.rewardName || historyItem.label || '';
+            if (label.includes('5.000')) discountVal = 5000;
+            else if (label.includes('10.000')) discountVal = 10000;
+            else if (label.includes('25.000')) discountVal = 25000;
+            else if (label.includes('Gratis 1 Cup') || label.includes('Puding')) discountVal = 10000;
+            else discountVal = 5000;
+
+            appliedCheckoutVoucher = {
+                code: code,
+                discount: discountVal,
+                historyItem: historyItem
+            };
+
+            if (statusEl) statusEl.innerHTML = `<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Voucher ${code} Aktif! Diskon Rp ${discountVal.toLocaleString('id-ID')}</span>`;
+            
+            prefillCheckoutForm();
+        }
+
         function proceedToCheckoutPage() { if (state.cart.length === 0) { Swal.fire({ icon: 'warning', title: 'Keranjang Kosong', text: 'Pilih produk terlebih dahulu.' }); return; } switchCustView('checkout'); }
-        function prefillCheckoutForm() { const list = document.getElementById('checkout-items-list'); if (list) { list.innerHTML = state.cart.map(c => `<div class="d-flex justify-content-between"><span>${c.name} (x${c.qty})</span><span class="fw-bold text-brand-purple">Rp ${(c.price * c.qty).toLocaleString('id-ID')}</span></div>`).join(''); } const totalAmt = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); const totalAmtEl = document.getElementById('checkout-total-amount'); if (totalAmtEl) totalAmtEl.innerText = 'Rp ' + totalAmt.toLocaleString('id-ID'); const nameInput = document.getElementById('co-name'); const waInput = document.getElementById('co-wa'); if (state.currentUser) { if (nameInput && !nameInput.value) nameInput.value = state.currentUser.name; if (waInput && !waInput.value) waInput.value = state.currentUser.wa; } const pointsPreviewEl = document.getElementById('checkout-points-preview'); if (pointsPreviewEl) { if (state.currentUser) { const estPoints = computeEarnedPoints(state.cart.map(c => ({ productId: c.productId, qty: c.qty }))); pointsPreviewEl.innerHTML = `<i class="fa-solid fa-coins me-1"></i> Anda akan mendapat <b>${estPoints} Poin</b> dari pesanan ini`; } else { pointsPreviewEl.innerHTML = '<i class="fa-solid fa-circle-info me-1"></i> Masuk sebagai member untuk dapat poin dari belanja ini'; } } }
+        
+        function prefillCheckoutForm() {
+            const list = document.getElementById('checkout-items-list');
+            if (list) {
+                list.innerHTML = state.cart.map(c => `<div class="d-flex justify-content-between"><span>${c.name} (x${c.qty})</span><span class="fw-bold text-brand-purple">Rp ${(c.price * c.qty).toLocaleString('id-ID')}</span></div>`).join('');
+            }
+            const subtotalAmt = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+            let finalAmt = subtotalAmt;
+            let discountHtml = '';
+
+            if (appliedCheckoutVoucher && appliedCheckoutVoucher.discount > 0) {
+                const disc = Math.min(subtotalAmt, appliedCheckoutVoucher.discount);
+                finalAmt = Math.max(0, subtotalAmt - disc);
+                discountHtml = `<div class="d-flex justify-content-between text-success fs-7 fw-bold border-top pt-2">
+                    <span>Diskon Voucher (${appliedCheckoutVoucher.code}):</span>
+                    <span>-Rp ${disc.toLocaleString('id-ID')}</span>
+                </div>`;
+            }
+
+            const summaryContainer = document.getElementById('checkout-summary-container');
+            if (summaryContainer) {
+                summaryContainer.innerHTML = `
+                    <div class="d-flex justify-content-between text-dark fs-7 mb-1">
+                        <span>Subtotal Belanja:</span>
+                        <span class="fw-bold">Rp ${subtotalAmt.toLocaleString('id-ID')}</span>
+                    </div>
+                    ${discountHtml}
+                    <div class="d-flex justify-content-between fw-bold fs-5 border-top pt-2">
+                        <span>Total Bayar:</span>
+                        <span id="checkout-total-amount" class="text-brand-purple">Rp ${finalAmt.toLocaleString('id-ID')}</span>
+                    </div>
+                `;
+            } else {
+                const totalAmtEl = document.getElementById('checkout-total-amount');
+                if (totalAmtEl) totalAmtEl.innerText = 'Rp ' + finalAmt.toLocaleString('id-ID');
+            }
+
+            const nameInput = document.getElementById('co-name');
+            const waInput = document.getElementById('co-wa');
+            if (state.currentUser) {
+                if (nameInput && !nameInput.value) nameInput.value = state.currentUser.name;
+                if (waInput && !waInput.value) waInput.value = state.currentUser.wa;
+            }
+            const pointsPreviewEl = document.getElementById('checkout-points-preview');
+            if (pointsPreviewEl) {
+                if (state.currentUser) {
+                    const estPoints = computeEarnedPoints(state.cart.map(c => ({ productId: c.productId, qty: c.qty })));
+                    pointsPreviewEl.innerHTML = `<i class="fa-solid fa-coins me-1"></i> Anda akan mendapat <b>${estPoints} Poin</b> dari pesanan ini`;
+                } else {
+                    pointsPreviewEl.innerHTML = '<i class="fa-solid fa-circle-info me-1"></i> Masuk sebagai member untuk dapat poin dari belanja ini';
+                }
+            }
+        }
+
         function handleProcessCheckout(e) {
             e.preventDefault();
             if (!state.isStoreOpen) {
@@ -1871,7 +1988,21 @@
             const wa = document.getElementById('co-wa').value;
             const outlet = document.getElementById('co-outlet').value;
             const payMethod = document.querySelector('input[name="paymethod"]:checked').value;
-            const totalAmt = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+            const subtotalAmt = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+            let finalAmt = subtotalAmt;
+            let appliedDiscVal = 0;
+            let appliedCode = null;
+
+            if (appliedCheckoutVoucher && appliedCheckoutVoucher.discount > 0) {
+                appliedDiscVal = Math.min(subtotalAmt, appliedCheckoutVoucher.discount);
+                finalAmt = Math.max(0, subtotalAmt - appliedDiscVal);
+                appliedCode = appliedCheckoutVoucher.code;
+                if (appliedCheckoutVoucher.historyItem) {
+                    appliedCheckoutVoucher.historyItem.isUsed = true;
+                    appliedCheckoutVoucher.historyItem.usedDate = new Date().toLocaleString('id-ID');
+                }
+            }
+
             const itemsDetail = state.cart.map(c => ({ productId: c.productId, qty: c.qty }));
             let pointsEarned = 0;
             let memberIdentifier = null;
@@ -1884,9 +2015,12 @@
                 customerName: name,
                 wa: wa,
                 outlet: outlet,
-                items: state.cart.map(c => c.name + ' x' + c.qty).join(', '),
+                items: state.cart.map(c => c.name + ' x' + c.qty).join(', ') + (appliedCode ? ` [Voucher ${appliedCode}: -Rp ${appliedDiscVal.toLocaleString('id-ID')}]` : ''),
                 itemsDetail: itemsDetail,
-                totalAmount: totalAmt,
+                totalAmount: finalAmt,
+                subtotalAmount: subtotalAmt,
+                voucherCode: appliedCode,
+                voucherDiscount: appliedDiscVal,
                 isPaid: payMethod === 'Transfer',
                 payMethod: payMethod,
                 isTaken: false,
@@ -1934,6 +2068,8 @@
                 }
                 saveMembersToStorage();
             }
+
+            appliedCheckoutVoucher = null;
 
             setTimeout(() => {
                 state.cart = [];
@@ -3582,7 +3718,63 @@
         function renderCustomerPointsPage() { const container = document.getElementById('poin-page-content'); if (!container) return; if (!state.currentUser) { container.innerHTML = `<div class="card-custom p-4 text-center max-w-500 mx-auto"><div class="bg-purple-light text-brand-purple d-inline-flex p-3 rounded-circle mb-3 fs-2 mx-auto"><i class="fa-solid fa-lock"></i></div><h5 class="fw-bold text-dark mb-2">Masuk Dulu Yuk, Bunda!</h5><p class="text-muted fs-7 mb-3">Poin hanya berlaku untuk pelanggan yang login sebagai member. Belanja tanpa login (tamu) tidak mendapat poin. Silakan masuk atau daftar gratis untuk mulai mengumpulkan poin dari setiap belanja.</p><button class="btn btn-brand-purple fw-bold px-4" onclick="switchCustView('login')"><i class="fa-solid fa-right-to-bracket me-1"></i> Masuk / Daftar Member</button></div>`; return; } const member = state.currentUser; const rewardsHtml = state.pointRewards.map(r => { const canRedeem = member.points >= r.pointsCost; return `<div class="col-md-6 col-lg-3"><div class="card-custom p-3 h-100 d-flex flex-column justify-content-between ${canRedeem ? '' : 'opacity-75'}"><div><div class="bg-purple-light text-brand-purple rounded-3 p-3 text-center mb-2 fs-3"><i class="fa-solid fa-gift"></i></div><h6 class="fw-bold text-dark mb-1">${r.name}</h6><p class="text-muted fs-8 mb-2">${r.description}</p></div><div><div class="fw-bold text-brand-purple fs-6 mb-2"><i class="fa-solid fa-coins me-1 text-warning"></i> ${r.pointsCost} Poin</div><button class="btn btn-sm w-100 fw-bold ${canRedeem ? 'btn-brand-yellow text-dark' : 'btn-secondary'}" ${canRedeem ? '' : 'disabled'} onclick="redeemReward('${r.id}')">${canRedeem ? '<i class="fa-solid fa-right-left me-1"></i> Tukar Sekarang' : 'Poin Belum Cukup'}</button></div></div></div>`; }).join(''); const historyRows = member.pointsHistory.length > 0 ? member.pointsHistory.map(h => `<tr><td class="fs-8 text-muted">${h.date}</td><td class="fw-bold text-dark fs-7">${h.label}</td><td class="text-end fw-bold fs-7 ${h.points >= 0 ? 'text-success' : 'text-danger'}">${h.points >= 0 ? '+' : ''}${h.points} Poin</td></tr>`).join('') : `<tr><td colspan="3" class="text-center text-muted fs-8 fst-italic py-3">Belum ada riwayat poin.</td></tr>`; container.innerHTML = `<div class="hero-banner mb-4 p-4 rounded-4 shadow-sm text-white"><div class="row align-items-center g-3"><div class="col-md-7"><div class="fs-8 text-white opacity-75 fw-bold text-uppercase mb-1"><i class="fa-solid fa-star text-warning me-1"></i> Saldo Poin Belanja Member</div><div class="display-6 fw-extrabold text-white mb-2"><i class="fa-solid fa-coins text-warning me-2"></i>${member.points} Poin</div><div class="fs-7 text-white opacity-90"><i class="fa-solid fa-user-circle me-1"></i> Member: <b>${member.name}</b> (${member.wa})</div></div><div class="col-md-5"><div class="text-white fs-8 bg-white bg-opacity-15 rounded-3 p-3 border border-white border-opacity-20"><div class="fw-bold mb-1"><i class="fa-solid fa-circle-info me-1 text-warning"></i> Info Perhitungan Poin:</div>Setiap belanja online kelipatan Rp ${state.pointsEarnRate.toLocaleString('id-ID')} = 1 Poin (kecuali produk dengan Poin Kustom). Poin otomatis masuk setelah checkout berhasil.</div></div></div></div><div class="mb-4"><div class="d-flex align-items-center justify-content-between mb-3"><h5 class="fw-bold text-brand-purple mb-0"><i class="fa-solid fa-gift me-2 text-warning"></i> Tukar Poin dengan Reward</h5><span class="badge bg-purple-light text-brand-purple fs-8 border border-purple-200">${state.pointRewards.length} Reward Tersedia</span></div><div class="row g-3">${rewardsHtml}</div></div><div class="mb-3"><h5 class="fw-bold text-brand-purple mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i> Riwayat Poin</h5><div class="card-custom p-3"><div class="table-responsive"><table class="table align-middle fs-7 mb-0"><thead class="bg-light"><tr><th>Waktu</th><th>Keterangan</th><th class="text-end">Poin</th></tr></thead><tbody>${historyRows}</tbody></table></div></div></div>`; }
         function renderCustomerProfilePage() { const container = document.getElementById('akun-page-content'); if (!container) return; if (!state.currentUser) { switchCustView('login'); return; } const member = state.currentUser; container.innerHTML = `<div class="max-w-600 mx-auto"><div class="card-custom p-4 bg-purple-light border border-purple-200 mb-4 shadow-sm"><div class="text-center mb-3"><div class="bg-brand-purple text-white d-inline-flex p-3 rounded-circle mb-2 fs-2 shadow-sm"><i class="fa-solid fa-circle-user"></i></div><h4 class="fw-bold text-brand-purple mb-0">${member.name}</h4><span class="badge bg-brand-yellow text-dark fs-8 fw-bold mt-1 px-3 py-1.5 rounded-pill"><i class="fa-solid fa-coins me-1"></i> ${member.points} Poin Belanja</span></div><hr class="border-purple-200"><div class="fs-7 text-dark space-y-2 mb-4"><div class="d-flex justify-content-between align-items-center py-2 border-bottom"><span class="text-muted"><i class="fa-solid fa-whatsapp text-success me-1"></i> No. WhatsApp:</span><span class="fw-bold text-dark">${member.wa}</span></div><div class="d-flex justify-content-between align-items-center py-2 border-bottom"><span class="text-muted"><i class="fa-solid fa-shop text-brand-purple me-1"></i> Outlet Favorit:</span><span class="fw-bold text-brand-purple">${member.favoriteOutlet || 'Belum Diatur'}</span></div><div class="d-flex justify-content-between align-items-center py-2"><span class="text-muted"><i class="fa-solid fa-shield-check text-primary me-1"></i> Status Akun:</span><span class="badge bg-success fs-8">Member Aktif</span></div></div><div class="d-flex flex-column gap-2 pt-2 border-top"><button class="btn btn-brand-purple w-100 fw-bold py-2.5 rounded-pill shadow-sm fs-7" onclick="showEditCustomerProfileModal()"><i class="fa-solid fa-user-pen me-2 text-warning"></i> Edit Profil Saya</button><button class="btn btn-outline-danger w-100 fw-bold py-2 rounded-pill fs-7" onclick="logoutCustomer()"><i class="fa-solid fa-right-from-bracket me-1"></i> Keluar dari Akun</button></div></div></div>`; }
         function handleSaveCustomerProfile(e) { e.preventDefault(); if (!state.currentUser) return; const member = state.currentUser; const oldIdentifier = member.identifier || member.wa; const newName = document.getElementById('prof-name').value.trim(); const newWa = document.getElementById('prof-wa').value.trim(); const newOutlet = document.getElementById('prof-outlet').value; if (!newName || !newWa) { Swal.fire({ icon: 'warning', title: 'Data Belum Lengkap', text: 'Nama dan Nomor WhatsApp wajib diisi!' }); return; } if (newWa !== oldIdentifier && state.members[oldIdentifier]) { delete state.members[oldIdentifier]; member.identifier = newWa; } member.name = newName; member.wa = newWa; if (newOutlet) member.favoriteOutlet = newOutlet; state.members[member.identifier || newWa] = member; state.currentUser = member; try { localStorage.setItem('mpasi_current_user', JSON.stringify(member)); } catch(err){} fetch('/member/profile', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ identifier: oldIdentifier, name: newName, whatsapp: newWa, favorite_outlet: newOutlet }) }).catch(() => {}); const coName = document.getElementById('co-name'); const coWa = document.getElementById('co-wa'); const coOutlet = document.getElementById('co-outlet'); if (coName) coName.value = newName; if (coWa) coWa.value = newWa; if (coOutlet && newOutlet) coOutlet.value = newOutlet; renderAllUI(); Swal.fire({ icon: 'success', title: 'Profil Diperbarui! 🎉', text: `Terima kasih, data profil Bunda ${newName} berhasil disimpan.`, timer: 1600, showConfirmButton: false }); }
-        function redeemReward(rewardId) { if (!state.currentUser) return; const reward = state.pointRewards.find(r => r.id == rewardId); if (!reward) return; const member = state.currentUser; if (member.points < reward.pointsCost) { Swal.fire({ icon: 'warning', title: 'Poin Tidak Cukup', text: `Anda butuh ${reward.pointsCost} poin, saat ini baru punya ${member.points} poin.` }); return; } Swal.fire({ title: 'Tukar Poin Sekarang?', html: `Tukar <b>${reward.pointsCost} Poin</b> dengan <b>${reward.name}</b>?<br><span class="fs-8 text-muted">Sisa poin setelah ditukar: ${member.points - reward.pointsCost}</span>`, showCancelButton: true, confirmButtonText: 'Ya, Tukar Sekarang', cancelButtonText: 'Batal', confirmButtonColor: '#6A1B9A' }).then(res => { if (res.isConfirmed) { member.points -= reward.pointsCost; const redemptionCode = 'RDM-' + Math.floor(1000 + Math.random() * 9000); member.pointsHistory.unshift({ type: 'redeem', label: `Tukar reward: ${reward.name} (Kode: ${redemptionCode})`, points: -reward.pointsCost, date: new Date().toLocaleString('id-ID') }); renderAllUI(); switchCustView('poin'); Swal.fire({ icon: 'success', title: 'Penukaran Berhasil! 🎉', html: `Reward: <b>${reward.name}</b><br>Kode Penukaran: <b class="text-brand-purple fs-5">${redemptionCode}</b><br><span class="fs-8 text-muted">Tunjukkan kode ini ke Kasir saat mengambil pesanan di outlet.</span>` }); } }); }
+        function redeemReward(rewardId) {
+            if (!state.currentUser) return;
+            const reward = state.pointRewards.find(r => r.id == rewardId);
+            if (!reward) return;
+            const member = state.currentUser;
+            if (member.points < reward.pointsCost) {
+                Swal.fire({ icon: 'warning', title: 'Poin Tidak Cukup', text: `Anda butuh ${reward.pointsCost} poin, saat ini baru punya ${member.points} poin.` });
+                return;
+            }
+            Swal.fire({
+                title: 'Tukar Poin Sekarang?',
+                html: `Tukar <b>${reward.pointsCost} Poin</b> dengan <b>${reward.name}</b>?<br><span class="fs-8 text-muted">Sisa poin setelah ditukar: ${member.points - reward.pointsCost}</span>`,
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Tukar Sekarang',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#6A1B9A'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    member.points -= reward.pointsCost;
+                    const redemptionCode = 'RDM-' + Math.floor(1000 + Math.random() * 9000);
+                    if (!Array.isArray(member.pointsHistory)) member.pointsHistory = [];
+                    member.pointsHistory.unshift({
+                        type: 'redeem',
+                        rewardId: reward.id,
+                        rewardName: reward.name,
+                        code: redemptionCode,
+                        isUsed: false,
+                        label: `Tukar reward: ${reward.name} (Kode: ${redemptionCode})`,
+                        points: -reward.pointsCost,
+                        date: new Date().toLocaleString('id-ID')
+                    });
+                    saveMembersToStorage();
+                    renderAllUI();
+                    switchCustView('poin');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Penukaran Berhasil! 🎉',
+                        html: `
+                            <div class="mb-2 text-start fs-7">Hadiah: <b>${reward.name}</b></div>
+                            <div class="bg-purple-light text-brand-purple p-3 rounded-3 border border-purple-200 mb-3 text-center">
+                                <div class="fs-8 text-muted fw-bold">KODE VOUCHER ANDA:</div>
+                                <div class="fs-3 fw-extrabold text-brand-purple">${redemptionCode}</div>
+                            </div>
+                            <div class="text-start fs-8 text-dark bg-light p-3 rounded-3 border">
+                                <b><i class="fa-solid fa-lightbulb text-warning me-1"></i> CARA MENGGUNAKAN KODE VOUCHER:</b>
+                                <ol class="mb-0 ps-3 mt-1 space-y-1">
+                                    <li><b>Belanja Online:</b> Masukkan kode <b class="text-brand-purple">${redemptionCode}</b> di kolom <i>"Punya Kode Voucher / Poin?"</i> pada halaman Checkout. Total belanja Anda akan otomatis terpotong!</li>
+                                    <li><b>Ambil di Outlet:</b> Tunjukkan kode <b class="text-brand-purple">${redemptionCode}</b> ini kepada Kasir saat pengambilan produk.</li>
+                                </ol>
+                            </div>
+                        `,
+                        confirmButtonText: 'Tutup & Belanja Now',
+                        confirmButtonColor: '#6A1B9A'
+                    });
+                }
+            });
+        }
         function printDapurMasakReport(filterSelectId) {
             const filterEl = document.getElementById(filterSelectId || 'adm-dapur-outlet-filter');
             const selectedOutlet = filterEl ? filterEl.value : 'ALL';
