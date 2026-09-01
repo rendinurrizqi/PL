@@ -2058,28 +2058,17 @@
                     });
                 }
             }
-            let rowsHtml = '';
-            state.products.forEach(p => {
-                const curStock = getOutletStock(selectedOutlet, p);
-                rowsHtml += `<tr>
-                    <td class="fw-bold text-dark ps-4">${p.name}</td>
-                    <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
-                    <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
-                    <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-${p.id}" value="${curStock}"></td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}')">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> Simpan
-                        </button>
-                    </td>
-                </tr>`;
-            });
+
+            if (!rowsHtml) {
+                rowsHtml = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-calendar-xmark fs-4 d-block mb-1 text-secondary"></i>Belum ada produk yang didaftarkan pada menu rotasi hari ${selectedDayFilter}.</td></tr>`;
+            }
 
             tbody.innerHTML = rowsHtml;
         }
-        function saveAdminOutletStock(outletName, prodId) {
+        function saveAdminOutletStock(outletName, prodId, inputId) {
             const p = state.products.find(x => x.id == prodId || String(x.id) === String(prodId));
             if (!p) return;
-            const input = document.getElementById('ostock-' + prodId);
+            const input = document.getElementById(inputId || ('ostock-' + prodId));
             const val = parseInt(input ? input.value : 0);
             const newStock = isNaN(val) ? 0 : Math.max(0, val);
             setOutletStock(outletName, p, newStock);
