@@ -79,40 +79,78 @@ class MpasiController extends Controller
         ));
     }
 
+    public function portalLoginPage()
+    {
+        return view('portal.login', [
+            'portalTitle' => 'Mamam Yuk',
+        ]);
+    }
+
+    public function portalLoginSubmit(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::query()
+            ->where('email', $validated['email'])
+            ->first();
+
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
+            return back()->withInput()->withErrors([
+                'email' => 'Email atau password yang Anda masukkan salah.',
+            ]);
+        }
+
+        session([
+            'staff_role' => $user->role,
+            'staff_user_id' => $user->id,
+            'staff_name' => $user->name,
+        ]);
+
+        return match ($user->role) {
+            'admin' => redirect()->route('admin.dashboard'),
+            'owner' => redirect()->route('owner.dashboard'),
+            'kasir' => redirect()->route('kasir.dashboard'),
+            default => redirect()->route('mpasi.index'),
+        };
+    }
+
     public function kasirLoginPage()
     {
-        return $this->staffLoginPage('kasir');
+        return $this->portalLoginPage();
     }
 
     public function adminLoginPage()
     {
-        return $this->staffLoginPage('admin');
+        return $this->portalLoginPage();
     }
 
     public function ownerLoginPage()
     {
-        return $this->staffLoginPage('owner');
+        return $this->portalLoginPage();
     }
 
     public function kasirLogin(Request $request)
     {
-        return $this->handleStaffLogin($request, 'kasir');
+        return $this->portalLoginSubmit($request);
     }
 
     public function adminLogin(Request $request)
     {
-        return $this->handleStaffLogin($request, 'admin');
+        return $this->portalLoginSubmit($request);
     }
 
     public function ownerLogin(Request $request)
     {
-        return $this->handleStaffLogin($request, 'owner');
+        return $this->portalLoginSubmit($request);
     }
 
     public function kasirDashboard()
     {
         if (session('staff_role') !== 'kasir') {
-            return redirect()->route('kasir.login');
+            return redirect()->route('portal.login');
         }
 
         return $this->renderFullPortal('kasir');
@@ -121,7 +159,7 @@ class MpasiController extends Controller
     public function adminDashboard()
     {
         if (session('staff_role') !== 'admin') {
-            return redirect()->route('admin.login');
+            return redirect()->route('portal.login');
         }
 
         return $this->renderFullPortal('admin');
@@ -130,7 +168,7 @@ class MpasiController extends Controller
     public function ownerDashboard()
     {
         if (session('staff_role') !== 'owner') {
-            return redirect()->route('owner.login');
+            return redirect()->route('portal.login');
         }
 
         return $this->renderFullPortal('owner');
@@ -158,7 +196,7 @@ class MpasiController extends Controller
     public function ownerOutletsPage()
     {
         if (session('staff_role') !== 'owner') {
-            return redirect()->route('owner.login');
+            return redirect()->route('portal.login');
         }
 
         return $this->renderFullPortal('owner');
@@ -167,7 +205,7 @@ class MpasiController extends Controller
     public function ownerRewardsPage()
     {
         if (session('staff_role') !== 'owner') {
-            return redirect()->route('owner.login');
+            return redirect()->route('portal.login');
         }
 
         return $this->renderFullPortal('owner');

@@ -11,11 +11,23 @@ class StaffPortalAuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_portal_mamam_yuk_login_page_is_available(): void
+    {
+        $response = $this->get('/portal/login');
+        $response->assertStatus(200);
+        $response->assertSee('Portal Mamam Yuk');
+
+        $responseLogin = $this->get('/login');
+        $responseLogin->assertStatus(200);
+        $responseLogin->assertSee('Portal Mamam Yuk');
+    }
+
     public function test_kasir_login_page_is_available(): void
     {
         $response = $this->get('/kasir/login');
 
         $response->assertStatus(200);
+        $response->assertSee('Portal Mamam Yuk');
     }
 
     public function test_admin_login_page_is_available(): void
@@ -23,6 +35,7 @@ class StaffPortalAuthTest extends TestCase
         $response = $this->get('/admin/login');
 
         $response->assertStatus(200);
+        $response->assertSee('Portal Mamam Yuk');
     }
 
     public function test_owner_login_page_is_available(): void
@@ -30,25 +43,55 @@ class StaffPortalAuthTest extends TestCase
         $response = $this->get('/owner/login');
 
         $response->assertStatus(200);
+        $response->assertSee('Portal Mamam Yuk');
     }
 
-    public function test_staff_user_can_login_to_role_portal(): void
+    public function test_staff_user_can_login_via_portal_mamam_yuk(): void
     {
-        $user = User::query()->create([
+        $kasir = User::query()->create([
             'name' => 'Kasir Satu',
             'email' => 'kasir@example.com',
             'role' => 'kasir',
             'password' => Hash::make('secret123'),
         ]);
 
-        $response = $this->post('/kasir/login', [
+        $admin = User::query()->create([
+            'name' => 'Admin Satu',
+            'email' => 'admin@example.com',
+            'role' => 'admin',
+            'password' => Hash::make('secret123'),
+        ]);
+
+        $owner = User::query()->create([
+            'name' => 'Owner Satu',
+            'email' => 'owner@example.com',
+            'role' => 'owner',
+            'password' => Hash::make('secret123'),
+        ]);
+
+        // Kasir login via /portal/login
+        $resKasir = $this->post('/portal/login', [
             'email' => 'kasir@example.com',
             'password' => 'secret123',
         ]);
-
-        $response->assertRedirect('/kasir');
+        $resKasir->assertRedirect('/kasir');
         $this->assertEquals('kasir', session('staff_role'));
-        $this->assertEquals($user->id, session('staff_user_id'));
+
+        // Admin login via /portal/login
+        $resAdmin = $this->post('/portal/login', [
+            'email' => 'admin@example.com',
+            'password' => 'secret123',
+        ]);
+        $resAdmin->assertRedirect('/admin');
+        $this->assertEquals('admin', session('staff_role'));
+
+        // Owner login via /portal/login
+        $resOwner = $this->post('/portal/login', [
+            'email' => 'owner@example.com',
+            'password' => 'secret123',
+        ]);
+        $resOwner->assertRedirect('/owner');
+        $this->assertEquals('owner', session('staff_role'));
     }
 
     public function test_admin_product_page_is_available(): void

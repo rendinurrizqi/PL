@@ -28,9 +28,14 @@ Route::post('/member/profile', [MpasiController::class, 'updateMemberProfile'])-
 Route::post('/member/redeem-reward', [MpasiController::class, 'redeemReward'])->name('mpasi.member.redeem');
 Route::post('/points/rate', [MpasiController::class, 'updatePointsRate'])->name('mpasi.points.rate');
 
+Route::get('/portal/login', [MpasiController::class, 'portalLoginPage'])->name('portal.login');
+Route::post('/portal/login', [MpasiController::class, 'portalLoginSubmit'])->name('portal.login.submit');
+Route::get('/login', [MpasiController::class, 'portalLoginPage'])->name('login');
+Route::post('/login', [MpasiController::class, 'portalLoginSubmit']);
+
 Route::prefix('kasir')->group(function () {
-    Route::get('/login', [MpasiController::class, 'kasirLoginPage'])->name('kasir.login');
-    Route::post('/login', [MpasiController::class, 'kasirLogin'])->name('kasir.login.submit');
+    Route::get('/login', [MpasiController::class, 'portalLoginPage'])->name('kasir.login');
+    Route::post('/login', [MpasiController::class, 'portalLoginSubmit'])->name('kasir.login.submit');
     Route::get('/', [MpasiController::class, 'kasirDashboard'])->name('kasir.dashboard');
     Route::get('/pos', [MpasiController::class, 'kasirPosPage'])->name('kasir.pos');
     Route::post('/pos', [MpasiController::class, 'kasirPosSubmit'])->name('kasir.pos.submit');
@@ -38,8 +43,8 @@ Route::prefix('kasir')->group(function () {
 });
 
 Route::prefix('admin')->group(function () {
-    Route::get('/login', [MpasiController::class, 'adminLoginPage'])->name('admin.login');
-    Route::post('/login', [MpasiController::class, 'adminLogin'])->name('admin.login.submit');
+    Route::get('/login', [MpasiController::class, 'portalLoginPage'])->name('admin.login');
+    Route::post('/login', [MpasiController::class, 'portalLoginSubmit'])->name('admin.login.submit');
     Route::get('/', [MpasiController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/products', [MpasiController::class, 'adminProductsPage'])->name('admin.products');
     Route::post('/products', [MpasiController::class, 'adminStoreProduct'])->name('admin.products.store');
@@ -49,8 +54,8 @@ Route::prefix('admin')->group(function () {
 });
 
 Route::prefix('owner')->group(function () {
-    Route::get('/login', [MpasiController::class, 'ownerLoginPage'])->name('owner.login');
-    Route::post('/login', [MpasiController::class, 'ownerLogin'])->name('owner.login.submit');
+    Route::get('/login', [MpasiController::class, 'portalLoginPage'])->name('owner.login');
+    Route::post('/login', [MpasiController::class, 'portalLoginSubmit'])->name('owner.login.submit');
     Route::get('/', [MpasiController::class, 'ownerDashboard'])->name('owner.dashboard');
     Route::get('/outlets', [MpasiController::class, 'ownerOutletsPage'])->name('owner.outlets');
     Route::get('/rewards', [MpasiController::class, 'ownerRewardsPage'])->name('owner.rewards');

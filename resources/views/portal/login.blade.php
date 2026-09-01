@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $portalTitle . ' Portal Login')
+@section('title', 'Portal Mamam Yuk - Login')
 
 @section('content')
     <div class="container py-5">
@@ -11,8 +11,8 @@
                         <div class="bg-brand-yellow text-dark p-3 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:64px;height:64px;">
                             <i class="fa-solid fa-user-shield fa-xl"></i>
                         </div>
-                        <h3 class="fw-bold text-brand-purple mb-1">Portal {{ $portalTitle }}</h3>
-                        <p class="text-muted mb-0">Masuk ke area kerja {{ strtolower($portalTitle) }}.</p>
+                        <h3 class="fw-bold text-brand-purple mb-1">Portal Mamam Yuk</h3>
+                        <p class="text-muted mb-0">Masuk ke area kerja Mamam Yuk.</p>
                     </div>
 
                     @if ($errors->any())
@@ -25,17 +25,17 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route($role . '.login.submit') }}">
+                    <form method="POST" action="{{ route('portal.login.submit') }}">
                         @csrf
                         <div class="mb-3">
                             <label for="email" class="form-label fw-semibold">Email</label>
-                            <input id="email" name="email" type="email" value="{{ old('email') }}" class="form-control" placeholder="nama@mpasi.com" required>
+                            <input id="email" name="email" type="email" value="{{ old('email') }}" class="form-control" placeholder="nama@mpasi.com" required autofocus>
                         </div>
                         <div class="mb-3">
                             <label for="password" class="form-label fw-semibold">Password</label>
                             <input id="password" name="password" type="password" class="form-control" placeholder="Masukkan password" required>
                         </div>
-                        <button type="submit" class="btn btn-brand-purple w-100 fw-bold py-2">Masuk ke Portal {{ $portalTitle }}</button>
+                        <button type="submit" class="btn btn-brand-purple w-100 fw-bold py-2">Masuk ke Portal Mamam Yuk</button>
                     </form>
 
                     <div class="mt-4 text-center small text-muted">
