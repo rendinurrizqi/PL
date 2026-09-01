@@ -493,6 +493,9 @@
                                 <p class="text-muted fs-7 mb-0">Pantau siapa memesan apa di cabang mana. Pesanan otomatis di-reset setiap pergantian hari.</p>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-brand-yellow btn-sm fw-bold px-3 py-1.5 fs-8" onclick="showAddManualOrderModal()">
+                                    <i class="fa-solid fa-plus-circle me-1"></i> Tambah Pesanan Manual
+                                </button>
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printAdminPesananReport()">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Pesanan
                                 </button>
@@ -585,6 +588,9 @@
                                 <p class="text-muted fs-7 mb-0">Terintegrasi dengan data Pesanan Per Outlet: Total Porsi Masak dihitung murni dari pre-order online yang masih berlaku (tanpa buffer walk-in).</p>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-brand-yellow btn-sm fw-bold px-3 py-1.5 fs-8" onclick="showAddManualOrderModal()">
+                                    <i class="fa-solid fa-plus-circle me-1"></i> Tambah Pesanan Manual
+                                </button>
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('adm-dapur-outlet-filter')">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
                                 </button>
@@ -594,9 +600,7 @@
                             </div>
                         </div>
 
-                        <div class="row g-3 mb-4 mt-1" id="adm-dapur-outlet-cards"></div>
-
-                        <div class="card-custom p-3">
+                        <div class="card-custom p-3 mt-3">
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
                                     <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Total Porsi Masak</th></tr></thead>
@@ -805,7 +809,12 @@
                                 <h4 class="fw-bold text-dark mb-1"><i class="fa-solid fa-clipboard-check text-brand-purple me-2"></i> Monitor Pre-Order Seluruh Cabang</h4>
                                 <p class="text-muted fs-7 mb-0">Owner bisa melihat dan mengubah status pembayaran/ambil, serta menyetujui/menolak pembatalan (otomatis reset per hari).</p>
                             </div>
-                            <button class="btn btn-sm btn-outline-danger fs-8 fw-bold" onclick="confirmResetAllOrders()"><i class="fa-solid fa-trash-can me-1"></i> Bersihkan Pesanan Hari Ini</button>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-brand-yellow btn-sm fw-bold px-3 py-1.5 fs-8" onclick="showAddManualOrderModal()">
+                                    <i class="fa-solid fa-plus-circle me-1"></i> Tambah Pesanan Manual
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger fs-8 fw-bold" onclick="confirmResetAllOrders()"><i class="fa-solid fa-trash-can me-1"></i> Bersihkan Pesanan Hari Ini</button>
+                            </div>
                         </div>
                         <div class="card-custom p-3 border-purple-200">
                             <div class="table-responsive">
@@ -845,6 +854,9 @@
                                 <p class="text-muted fs-7 mb-0">Terintegrasi dengan data Pesanan Per Outlet: Total Porsi Masak dihitung murni dari pre-order online yang masih berlaku (tanpa buffer walk-in).</p>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-brand-yellow btn-sm fw-bold px-3 py-1.5 fs-8" onclick="showAddManualOrderModal()">
+                                    <i class="fa-solid fa-plus-circle me-1"></i> Tambah Pesanan Manual
+                                </button>
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('own-dapur-outlet-filter')">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
                                 </button>
@@ -854,9 +866,7 @@
                             </div>
                         </div>
 
-                        <div class="row g-3 mb-4 mt-1" id="own-dapur-outlet-cards"></div>
-
-                        <div class="card-custom p-3">
+                        <div class="card-custom p-3 mt-3">
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
                                     <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Total Porsi Masak</th></tr></thead>
@@ -1600,7 +1610,30 @@
             }, 0);
             return { onlinePreorder, total: onlinePreorder };
         }
-        function renderProductionGeneric(cfg) { const outletFilter = document.getElementById(cfg.filterSelectId)?.value || 'ALL'; const cardsEl = document.getElementById(cfg.cardsId); if (cardsEl) { cardsEl.innerHTML = state.outlets.map(outletName => { const totalForOutlet = state.products.reduce((sum, p) => sum + computeProductionNumbers(p.id, outletName).total, 0); const isActiveFilter = outletFilter === outletName; return ` <div class="col-md-4"><div class="card-custom p-3 h-100 border-start border-4 ${isActiveFilter ? 'border-warning bg-purple-light' : 'border-primary'}"><div class="fw-bold text-brand-purple fs-7 mb-1"><i class="fa-solid fa-shop me-1"></i> ${outletName}</div><div class="fs-5 fw-bold text-primary">${totalForOutlet} Cup</div><div class="text-muted fs-8">Total porsi harus dimasak untuk cabang ini</div></div></div>`; }).join(''); } const tbody = document.getElementById(cfg.tbodyId); if (!tbody) return; let totalOnline = 0, totalAll = 0; let rows = ''; let count = 0; state.products.forEach(p => { const { onlinePreorder, total } = computeProductionNumbers(p.id, outletFilter); if (total > 0) { count++; totalOnline += onlinePreorder; totalAll += total; rows += ` <tr><td class="fw-bold text-dark">${p.name}</td><td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td><td class="fw-bold text-brand-purple">${total} Cup</td></tr>`; } }); if (count === 0) { tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}.</td></tr>`; } else { tbody.innerHTML = rows + `<tr class="table-light"><td class="fw-bold">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td><td class="fw-bold">${totalOnline} Cup</td><td class="fw-bold text-brand-purple">${totalAll} Cup</td></tr>`; } }
+        function renderProductionGeneric(cfg) {
+            const outletFilter = document.getElementById(cfg.filterSelectId)?.value || 'ALL';
+            const cardsEl = document.getElementById(cfg.cardsId);
+            if (cardsEl) cardsEl.innerHTML = '';
+            const tbody = document.getElementById(cfg.tbodyId);
+            if (!tbody) return;
+            let totalOnline = 0, totalAll = 0;
+            let rows = '';
+            let count = 0;
+            state.products.forEach(p => {
+                const { onlinePreorder, total } = computeProductionNumbers(p.id, outletFilter);
+                if (total > 0) {
+                    count++;
+                    totalOnline += onlinePreorder;
+                    totalAll += total;
+                    rows += ` <tr><td class="fw-bold text-dark">${p.name}</td><td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td><td class="fw-bold text-brand-purple">${total} Cup</td></tr>`;
+                }
+            });
+            if (count === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}.</td></tr>`;
+            } else {
+                tbody.innerHTML = rows + `<tr class="table-light"><td class="fw-bold">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td><td class="fw-bold">${totalOnline} Cup</td><td class="fw-bold text-brand-purple">${totalAll} Cup</td></tr>`;
+            }
+        }
         function renderAdminProduction() { renderProductionGeneric({ filterSelectId: 'adm-dapur-outlet-filter', cardsId: 'adm-dapur-outlet-cards', tbodyId: 'adm-production-tbody' }); }
         function renderOwnerProduction() { renderProductionGeneric({ filterSelectId: 'own-dapur-outlet-filter', cardsId: 'own-dapur-outlet-cards', tbodyId: 'own-production-tbody' }); }
         function renderAdminInventory(targetTbodyId, isOwnerView) { const tbody = document.getElementById(targetTbodyId || 'adm-inventory-tbody'); if (!tbody) return; tbody.innerHTML = state.inventory.map((i, idx) => ` <tr><td class="fw-bold text-dark">${i.name}</td><td>${i.stock}</td><td>${i.min}</td><td>Kg</td><td><span class="badge ${i.status === 'Aman' ? 'bg-success' : 'bg-danger'}">${i.status}</span></td>${isOwnerView ? `<td class="text-center"><button class="btn btn-sm btn-outline-primary py-1 px-2 fs-8 fw-bold" onclick="editInventoryModal(${idx})"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button><button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8 fw-bold ms-1" onclick="deleteInventoryItem(${idx})"><i class="fa-solid fa-trash"></i></button></td>` : ''}</tr>`).join(''); }
@@ -1936,6 +1969,163 @@
                 text: `Stok ready ${p.name} untuk ${outletName} berhasil diatur menjadi ${newStock} cup!`,
                 timer: 1500,
                 showConfirmButton: false
+            });
+        }
+        function showAddManualOrderModal() {
+            if (!state.products || state.products.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Belum Ada Produk', text: 'Master data produk masih kosong.' });
+                return;
+            }
+
+            const outletsOptions = (state.outlets && state.outlets.length > 0)
+                ? state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('')
+                : '<option value="Outlet Utama">Outlet Utama</option>';
+
+            const productsInputsHtml = state.products.map(p => `
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <div class="text-start pe-2" style="flex: 1;">
+                        <div class="fw-bold fs-8 text-dark">${p.name}</div>
+                        <div class="text-brand-purple fs-8 fw-bold">Rp ${p.price.toLocaleString('id-ID')} / cup</div>
+                    </div>
+                    <div style="width: 100px;">
+                        <input type="number" min="0" value="0" id="swal-mqty-${p.id}" class="form-control form-control-sm text-center fw-bold border-purple-200">
+                    </div>
+                </div>
+            `).join('');
+
+            Swal.fire({
+                title: '<i class="fa-solid fa-plus-circle text-brand-purple me-2"></i>Tambah Pesanan Manual (Offline / WA)',
+                width: '580px',
+                html: `
+                    <div class="text-start fs-8 text-muted mb-3">Input pesanan untuk pelanggan yang memesan secara langsung via WhatsApp, Telepon, atau Offline Walk-in.</div>
+                    <div class="text-start mb-2">
+                        <label class="form-label fs-8 fw-bold mb-1 text-dark">Nama Bunda / Pelanggan *</label>
+                        <input id="swal-mname" class="form-control form-control-sm border-purple-200" placeholder="Contoh: Bunda Rina (Offline / WA)">
+                    </div>
+                    <div class="row g-2 mb-2 text-start">
+                        <div class="col-md-6">
+                            <label class="form-label fs-8 fw-bold mb-1 text-dark">No. WhatsApp *</label>
+                            <input id="swal-mwa" class="form-control form-control-sm border-purple-200" placeholder="Contoh: 08123456789">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fs-8 fw-bold mb-1 text-dark">Cabang Outlet *</label>
+                            <select id="swal-moutlet" class="form-select form-select-sm border-purple-200 text-brand-purple fw-bold">
+                                ${outletsOptions}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-start mb-3">
+                        <label class="form-label fs-8 fw-bold mb-1 text-dark">Status Pembayaran *</label>
+                        <select id="swal-mpay" class="form-select form-select-sm border-purple-200">
+                            <option value="Transfer">Lunas (Transfer / Tunai)</option>
+                            <option value="COD" selected>Belum Bayar (COD / Bayar Saat Ambil)</option>
+                        </select>
+                    </div>
+                    <div class="text-start mb-1">
+                        <label class="form-label fs-8 fw-bold mb-1 text-dark"><i class="fa-solid fa-utensils me-1 text-brand-purple"></i> Pilih Varian & Jumlah Cup *</label>
+                    </div>
+                    <div style="max-height: 200px; overflow-y: auto;" class="border rounded p-2 bg-light">
+                        ${productsInputsHtml}
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-floppy-disk me-1"></i> Simpan Pesanan Manual',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#6A1B9A',
+                preConfirm: () => {
+                    const name = document.getElementById('swal-mname')?.value.trim();
+                    const wa = document.getElementById('swal-mwa')?.value.trim();
+                    const outlet = document.getElementById('swal-moutlet')?.value;
+                    const payMethod = document.getElementById('swal-mpay')?.value;
+
+                    if (!name) {
+                        Swal.showValidationMessage('Nama Bunda / Pelanggan wajib diisi!');
+                        return false;
+                    }
+                    if (!wa) {
+                        Swal.showValidationMessage('Nomor WhatsApp wajib diisi!');
+                        return false;
+                    }
+
+                    const itemsDetail = [];
+                    const itemsParts = [];
+                    let totalAmount = 0;
+
+                    state.products.forEach(p => {
+                        const qtyInput = document.getElementById('swal-mqty-' + p.id);
+                        const qty = parseInt(qtyInput ? qtyInput.value : 0);
+                        if (!isNaN(qty) && qty > 0) {
+                            itemsDetail.push({ productId: p.id, qty: qty });
+                            itemsParts.push(`${p.name} x${qty}`);
+                            totalAmount += p.price * qty;
+                        }
+                    });
+
+                    if (itemsDetail.length === 0) {
+                        Swal.showValidationMessage('Pilih minimal 1 varian produk dengan jumlah > 0!');
+                        return false;
+                    }
+
+                    return {
+                        name,
+                        wa,
+                        outlet,
+                        payMethod,
+                        itemsDetail,
+                        itemsStr: itemsParts.join(', '),
+                        totalAmount
+                    };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    const res = result.value;
+                    const newOrder = {
+                        id: 'ORD-M-' + Math.floor(100 + Math.random() * 900),
+                        customerName: res.name + ' (Manual)',
+                        wa: res.wa,
+                        outlet: res.outlet,
+                        items: res.itemsStr,
+                        itemsDetail: res.itemsDetail,
+                        totalAmount: res.totalAmount,
+                        isPaid: res.payMethod === 'Transfer',
+                        payMethod: res.payMethod === 'Transfer' ? 'Transfer' : 'COD',
+                        isTaken: false,
+                        cancelStatus: null,
+                        cancelReason: null,
+                        memberIdentifier: null,
+                        pointsAwarded: 0,
+                        date: getTodayDateString()
+                    };
+
+                    state.preOrders.unshift(newOrder);
+                    savePreOrdersToStorage();
+
+                    fetch('/checkout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            customer_name: res.name + ' (Manual)',
+                            whatsapp: res.wa,
+                            outlet_id: res.outlet,
+                            pay_method: res.payMethod === 'Transfer' ? 'Transfer' : 'COD',
+                            items: res.itemsDetail.map(it => ({ product_id: it.productId, qty: it.qty }))
+                        })
+                    }).catch(err => console.error("Database sync error:", err));
+
+                    renderAllUI();
+
+                    const totalCups = res.itemsDetail.reduce((a, b) => a + b.qty, 0);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pesanan Manual Berhasil!',
+                        html: `Pesanan manual a.n <b>${res.name}</b> (${res.outlet}) sebanyak <b>${totalCups} Cup</b> berhasil dicatat & masuk ke rekap dapur!`,
+                        confirmButtonColor: '#6A1B9A'
+                    });
+                }
             });
         }
         function openKasirSwitchOutletModal() {
