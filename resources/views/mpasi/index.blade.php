@@ -2008,7 +2008,7 @@
             if (state.outletStock[outletName][pId] !== undefined) {
                 return state.outletStock[outletName][pId];
             }
-            return Number(product.stock ?? product.initialStock ?? 20);
+            return 0;
         }
         function setOutletStock(outletName, product, newStock) {
             if (!state.outletStock) state.outletStock = {};
