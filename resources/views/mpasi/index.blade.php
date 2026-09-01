@@ -2044,7 +2044,9 @@
             if (leftoverTbody) {
                 let allLeftoverRows = [];
                 const outletsToProcess = selectedOutlet === 'ALL' ? outletsList : [selectedOutlet];
-                const daysOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+                const dayNamesMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const todayDayName = dayNamesMap[new Date().getDay()] || 'Senin';
+                const daysOrder = [todayDayName];
 
                 outletsToProcess.forEach(outName => {
                     const salesRec = state.outletSalesRecords[outName] || {};
@@ -2052,17 +2054,16 @@
                     let outletTotalSold = 0;
                     let outletTotalLeftover = 0;
                     let outletContentRows = [];
-                    let processedProdIds = new Set();
 
                     daysOrder.forEach(dayName => {
                         const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
                         const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
-                        const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
+                        let dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
+                        if (dayProducts.length === 0) dayProducts = state.products;
 
                         if (dayProducts.length > 0) {
                             let dayRows = '';
                             dayProducts.forEach(p => {
-                                processedProdIds.add(String(p.id));
                                 const sold = salesRec[p.id] ? salesRec[p.id].sold : 0;
                                 const allocated = getOutletStock(outName, p);
                                 const leftover = Math.max(0, allocated - sold);
@@ -2083,44 +2084,13 @@
                                 outletContentRows.push(`
                                     <tr class="table-light border-top">
                                         <td colspan="5" class="fw-bold text-brand-purple fs-8 py-1.5 ps-3">
-                                            <i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()}
+                                            <i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (HARI INI)
                                         </td>
                                     </tr>
                                 ` + dayRows);
                             }
                         }
                     });
-
-                    const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
-                    if (remainingProducts.length > 0) {
-                        let otherRows = '';
-                        remainingProducts.forEach(p => {
-                            const sold = salesRec[p.id] ? salesRec[p.id].sold : 0;
-                            const allocated = getOutletStock(outName, p);
-                            const leftover = Math.max(0, allocated - sold);
-                            outletTotalAllocated += allocated;
-                            outletTotalSold += sold;
-                            outletTotalLeftover += leftover;
-
-                            otherRows += `<tr>
-                                <td class="fw-bold text-brand-purple ps-4"><i class="fa-solid fa-angle-right me-2 fs-8 text-secondary"></i>${outName}</td>
-                                <td class="fw-bold text-dark">${p.name}</td>
-                                <td>${allocated} Cup</td>
-                                <td class="text-success fw-bold">${sold} Cup Terjual</td>
-                                <td class="text-danger fw-bold">${leftover} Cup Sisa</td>
-                            </tr>`;
-                        });
-
-                        if (otherRows) {
-                            outletContentRows.push(`
-                                <tr class="table-light border-top">
-                                    <td colspan="5" class="fw-bold text-secondary fs-8 py-1.5 ps-3">
-                                        <i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya
-                                    </td>
-                                </tr>
-                            ` + otherRows);
-                        }
-                    }
 
                     if (outletContentRows.length > 0) {
                         allLeftoverRows.push(`
@@ -2133,7 +2103,7 @@
                     }
                 });
 
-                leftoverTbody.innerHTML = allLeftoverRows.join('') || `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada data sisa produk.</td></tr>`;
+                leftoverTbody.innerHTML = allLeftoverRows.join('') || `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada data sisa produk untuk hari ini.</td></tr>`;
             }
         }
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); renderAdminOutletStockTable(); }
