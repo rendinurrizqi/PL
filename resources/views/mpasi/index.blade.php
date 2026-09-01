@@ -295,7 +295,7 @@
                     <nav class="nav flex-column fs-7" id="kasir-sidebar-nav">
                         <a class="nav-link active" href="#" onclick="switchKasirTab('preorder')"><i class="fa-solid fa-clipboard-check"></i> Daftar Pre-Order</a>
                         <a class="nav-link" href="#" onclick="switchKasirTab('pos')"><i class="fa-solid fa-store"></i> Kasir POS Walk-In</a>
-                        <a class="nav-link" href="#" onclick="switchKasirTab('leftover')"><i class="fa-solid fa-clipboard-list"></i> Lapor Sisa Produk</a>
+                        <a class="nav-link" href="#" onclick="switchKasirTab('leftover')"><i class="fa-solid fa-clipboard-list"></i> Rekapan Penjualan Hari Ini</a>
                     </nav>
 
                     <div class="mt-4 pt-3 border-top border-purple-200 px-1">
@@ -316,7 +316,7 @@
                         </div>
                         <h4 class="fw-bold text-brand-purple mb-2">Kasir Belum Login Cabang</h4>
                         <p class="text-muted fs-7 mb-4 mx-auto" style="max-width: 520px;">
-                            Silakan pilih cabang bertugas dan masukkan <b>PIN Akses Kasir</b> terlebih dahulu untuk membuka menu Daftar Pre-Order, Kasir POS Walk-In, dan Lapor Sisa Produk.
+                            Silakan pilih cabang bertugas dan masukkan <b>PIN Akses Kasir</b> terlebih dahulu untuk membuka menu Daftar Pre-Order, Kasir POS Walk-In, dan Rekapan Penjualan Hari Ini.
                         </p>
                         <div>
                             <button type="button" class="btn btn-brand-purple btn-lg px-4 py-2.5 fw-bold fs-7 shadow-sm" onclick="openKasirSwitchOutletModal()">
@@ -402,7 +402,7 @@
                     <div id="kasir-tab-leftover" class="kasir-tab-content" style="display:none;">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <h4 class="fw-bold text-danger mb-0"><i class="fa-solid fa-clipboard-list me-2"></i> Laporan Sisa Produk Tidak Laku Hari Ini</h4>
+                                <h4 class="fw-bold text-danger mb-0"><i class="fa-solid fa-clipboard-list me-2"></i> Rekapan Penjualan Hari Ini</h4>
                                 <div class="text-muted fs-8">Terhitung otomatis bersih dari stok alokasi dikurangi penjualan POS kasir.</div>
                             </div>
                             <button class="btn btn-danger fw-bold rounded-pill px-3" onclick="submitAllKasirLeftovers()">
@@ -2131,8 +2131,14 @@
             if (selEl.options.length === 0 && state.outlets && state.outlets.length > 0) {
                 selEl.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
             }
-            const selectedOutlet = selEl.value || (state.outlets && state.outlets[0] ? state.outlets[0] : '');
-            const selectedDayFilter = document.getElementById('adm-stock-day-select')?.value || 'ALL';
+            const daySelectEl = document.getElementById('adm-stock-day-select');
+            if (daySelectEl && !daySelectEl.dataset.autoInitialized) {
+                const dayNamesMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const todayDayName = dayNamesMap[new Date().getDay()] || 'Senin';
+                daySelectEl.value = todayDayName;
+                daySelectEl.dataset.autoInitialized = 'true';
+            }
+            const selectedDayFilter = daySelectEl?.value || 'ALL';
             const tbody = document.getElementById('adm-outlet-stock-tbody');
             if (!tbody) return;
 
