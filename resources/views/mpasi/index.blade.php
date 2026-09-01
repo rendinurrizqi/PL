@@ -536,14 +536,29 @@
                             <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-2 mb-3 gap-2">
                                 <div>
                                     <h6 class="fw-bold text-brand-purple mb-0">
-                                        <i class="fa-solid fa-boxes-packing me-2"></i> Atur Stok Produk Per Cabang Outlet / Kasir
+                                        <i class="fa-solid fa-boxes-packing me-2"></i> Atur Stok Produk Per Cabang Outlet / Kasir (Dikelompokkan Sesuai Hari)
                                     </h6>
-                                    <div class="text-muted fs-8">Atur ketersediaan stok ready produk secara independen untuk masing-masing cabang outlet / kasir.</div>
+                                    <div class="text-muted fs-8">Atur ketersediaan stok ready produk secara independen untuk masing-masing cabang outlet/kasir dikelompokkan berdasarkan jadwal hari.</div>
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="form-label fs-8 fw-bold mb-0 text-dark">Pilih Cabang Outlet:</label>
-                                    <select id="adm-stock-outlet-select" class="form-select form-select-sm fs-8 w-auto fw-bold text-brand-purple border-purple-200" onchange="renderAdminOutletStockTable()">
-                                    </select>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <div class="d-flex align-items-center gap-1">
+                                        <label class="form-label fs-8 fw-bold mb-0 text-dark">Filter Hari:</label>
+                                        <select id="adm-stock-day-select" class="form-select form-select-sm fs-8 w-auto fw-bold text-brand-purple border-purple-200" onchange="renderAdminOutletStockTable()">
+                                            <option value="ALL">Semua Hari (Kelompokan)</option>
+                                            <option value="Senin">Hari Senin</option>
+                                            <option value="Selasa">Hari Selasa</option>
+                                            <option value="Rabu">Hari Rabu</option>
+                                            <option value="Kamis">Hari Kamis</option>
+                                            <option value="Jumat">Hari Jumat</option>
+                                            <option value="Sabtu">Hari Sabtu</option>
+                                            <option value="Minggu">Hari Minggu</option>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <label class="form-label fs-8 fw-bold mb-0 text-dark">Pilih Cabang Outlet:</label>
+                                        <select id="adm-stock-outlet-select" class="form-select form-select-sm fs-8 w-auto fw-bold text-brand-purple border-purple-200" onchange="renderAdminOutletStockTable()">
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <div class="table-responsive">
@@ -1840,31 +1855,77 @@
                 selEl.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
             }
             const selectedOutlet = selEl.value || (state.outlets && state.outlets[0] ? state.outlets[0] : '');
+            const selectedDayFilter = document.getElementById('adm-stock-day-select')?.value || 'ALL';
             const tbody = document.getElementById('adm-outlet-stock-tbody');
             if (!tbody) return;
+
             if (state.products.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada produk.</td></tr>`;
                 return;
             }
-            tbody.innerHTML = state.products.map(p => {
-                const curStock = getOutletStock(selectedOutlet, p);
-                return `<tr>
-                    <td class="fw-bold text-dark">${p.name}</td>
-                    <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
-                    <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
-                    <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-${p.id}" value="${curStock}"></td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}')">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok Cabang
-                        </button>
-                    </td>
-                </tr>`;
-            }).join('');
+
+            const daysOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+            const filteredDays = selectedDayFilter === 'ALL' ? daysOrder : [selectedDayFilter];
+
+            let rowsHtml = '';
+            let processedProdIds = new Set();
+
+            filteredDays.forEach(dayName => {
+                const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
+                const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
+                const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
+
+                if (dayProducts.length > 0) {
+                    rowsHtml += `<tr class="table-primary border-top border-purple-200"><td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2"><i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (${dayProducts.length} Varian Produk)</td></tr>`;
+                    dayProducts.forEach(p => {
+                        processedProdIds.add(String(p.id));
+                        const curStock = getOutletStock(selectedOutlet, p);
+                        rowsHtml += `<tr>
+                            <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-brand-purple fs-8"></i>${p.name}</td>
+                            <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
+                            <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
+                            <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-${dayName}-${p.id}" value="${curStock}"></td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-${dayName}-${p.id}')">
+                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok ${dayName}
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+            });
+
+            if (selectedDayFilter === 'ALL') {
+                const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
+                if (remainingProducts.length > 0) {
+                    rowsHtml += `<tr class="table-light border-top"><td colspan="5" class="fw-extrabold text-secondary fs-7 py-2"><i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya (${remainingProducts.length} Varian)</td></tr>`;
+                    remainingProducts.forEach(p => {
+                        const curStock = getOutletStock(selectedOutlet, p);
+                        rowsHtml += `<tr>
+                            <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-secondary fs-8"></i>${p.name}</td>
+                            <td><span class="badge bg-light text-dark border fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
+                            <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
+                            <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-other-${p.id}" value="${curStock}"></td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-other-${p.id}')">
+                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok Cabang
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+            }
+
+            if (!rowsHtml) {
+                rowsHtml = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-calendar-xmark fs-4 d-block mb-1 text-secondary"></i>Belum ada produk yang didaftarkan pada menu rotasi hari ${selectedDayFilter}.</td></tr>`;
+            }
+
+            tbody.innerHTML = rowsHtml;
         }
-        function saveAdminOutletStock(outletName, prodId) {
+        function saveAdminOutletStock(outletName, prodId, inputId) {
             const p = state.products.find(x => x.id == prodId || String(x.id) === String(prodId));
             if (!p) return;
-            const input = document.getElementById('ostock-' + prodId);
+            const input = document.getElementById(inputId || ('ostock-' + prodId));
             const val = parseInt(input ? input.value : 0);
             const newStock = isNaN(val) ? 0 : Math.max(0, val);
             setOutletStock(outletName, p, newStock);
