@@ -2044,38 +2044,92 @@
             if (leftoverTbody) {
                 let allLeftoverRows = [];
                 const outletsToProcess = selectedOutlet === 'ALL' ? outletsList : [selectedOutlet];
+                const daysOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
                 outletsToProcess.forEach(outName => {
                     const salesRec = state.outletSalesRecords[outName] || {};
                     let outletTotalAllocated = 0;
                     let outletTotalSold = 0;
                     let outletTotalLeftover = 0;
-                    let outletProductRows = [];
+                    let outletContentRows = [];
+                    let processedProdIds = new Set();
 
-                    state.products.forEach(p => {
-                        const sold = salesRec[p.id] ? salesRec[p.id].sold : 0;
-                        const allocated = getOutletStock(outName, p);
-                        const leftover = Math.max(0, allocated - sold);
-                        outletTotalAllocated += allocated;
-                        outletTotalSold += sold;
-                        outletTotalLeftover += leftover;
+                    daysOrder.forEach(dayName => {
+                        const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
+                        const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
+                        const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
 
-                        outletProductRows.push(`<tr>
-                            <td class="fw-bold text-brand-purple ps-4"><i class="fa-solid fa-angle-right me-2 fs-8 text-secondary"></i>${outName}</td>
-                            <td class="fw-bold text-dark">${p.name}</td>
-                            <td>${allocated} Cup</td>
-                            <td class="text-success fw-bold">${sold} Cup Terjual</td>
-                            <td class="text-danger fw-bold">${leftover} Cup Sisa</td>
-                        </tr>`);
+                        if (dayProducts.length > 0) {
+                            let dayRows = '';
+                            dayProducts.forEach(p => {
+                                processedProdIds.add(String(p.id));
+                                const sold = salesRec[p.id] ? salesRec[p.id].sold : 0;
+                                const allocated = getOutletStock(outName, p);
+                                const leftover = Math.max(0, allocated - sold);
+                                outletTotalAllocated += allocated;
+                                outletTotalSold += sold;
+                                outletTotalLeftover += leftover;
+
+                                dayRows += `<tr>
+                                    <td class="fw-bold text-brand-purple ps-4"><i class="fa-solid fa-angle-right me-2 fs-8 text-secondary"></i>${outName}</td>
+                                    <td class="fw-bold text-dark">${p.name}</td>
+                                    <td>${allocated} Cup</td>
+                                    <td class="text-success fw-bold">${sold} Cup Terjual</td>
+                                    <td class="text-danger fw-bold">${leftover} Cup Sisa</td>
+                                </tr>`;
+                            });
+
+                            if (dayRows) {
+                                outletContentRows.push(`
+                                    <tr class="table-light border-top">
+                                        <td colspan="5" class="fw-bold text-brand-purple fs-8 py-1.5 ps-3">
+                                            <i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()}
+                                        </td>
+                                    </tr>
+                                ` + dayRows);
+                            }
+                        }
                     });
 
-                    if (outletProductRows.length > 0) {
+                    const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
+                    if (remainingProducts.length > 0) {
+                        let otherRows = '';
+                        remainingProducts.forEach(p => {
+                            const sold = salesRec[p.id] ? salesRec[p.id].sold : 0;
+                            const allocated = getOutletStock(outName, p);
+                            const leftover = Math.max(0, allocated - sold);
+                            outletTotalAllocated += allocated;
+                            outletTotalSold += sold;
+                            outletTotalLeftover += leftover;
+
+                            otherRows += `<tr>
+                                <td class="fw-bold text-brand-purple ps-4"><i class="fa-solid fa-angle-right me-2 fs-8 text-secondary"></i>${outName}</td>
+                                <td class="fw-bold text-dark">${p.name}</td>
+                                <td>${allocated} Cup</td>
+                                <td class="text-success fw-bold">${sold} Cup Terjual</td>
+                                <td class="text-danger fw-bold">${leftover} Cup Sisa</td>
+                            </tr>`;
+                        });
+
+                        if (otherRows) {
+                            outletContentRows.push(`
+                                <tr class="table-light border-top">
+                                    <td colspan="5" class="fw-bold text-secondary fs-8 py-1.5 ps-3">
+                                        <i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya
+                                    </td>
+                                </tr>
+                            ` + otherRows);
+                        }
+                    }
+
+                    if (outletContentRows.length > 0) {
                         allLeftoverRows.push(`
                             <tr class="table-primary border-top border-purple-200">
                                 <td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2">
                                     <i class="fa-solid fa-store me-2"></i> Cabang Outlet: ${outName} (Total Alokasi: ${outletTotalAllocated} Cup | Terjual: ${outletTotalSold} Cup | Total Sisa: ${outletTotalLeftover} Cup)
                                 </td>
                             </tr>
-                        ` + outletProductRows.join(''));
+                        ` + outletContentRows.join(''));
                     }
                 });
 
