@@ -562,9 +562,6 @@
                                         <select id="adm-stock-outlet-select" class="form-select form-select-sm fs-8 w-auto fw-bold text-brand-purple border-purple-200" onchange="renderAdminOutletStockTable()">
                                         </select>
                                     </div>
-                                    <button class="btn btn-sm btn-brand-yellow font-bold py-1.5 px-2.5 fs-8" onclick="autoFillStockFromOrders()" title="Samakan stok ready cabang ini dengan total porsi yang dipesan pelanggan">
-                                        <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Samakan dgn Total Dipesan
-                                    </button>
                                 </div>
                             </div>
                             <div class="table-responsive">
@@ -574,7 +571,6 @@
                                             <th>Varian Produk Mamam Yuk</th>
                                             <th>Kategori & Usia</th>
                                             <th>Harga / Cup</th>
-                                            <th>Total Dipesan (Pesanan Per Outlet)</th>
                                             <th>Stok Ready Cabang (Cup)</th>
                                             <th class="text-center">Aksi / Atur Stok</th>
                                         </tr>
@@ -598,6 +594,16 @@
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('adm-dapur-outlet-filter')">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
                                 </button>
+                                <select id="adm-dapur-day-filter" class="form-select form-select-sm fs-8 w-auto fw-bold text-brand-purple border-purple-200" onchange="renderAdminProduction()">
+                                    <option value="ALL">Semua Hari (Kelompokan)</option>
+                                    <option value="Senin">Hari Senin</option>
+                                    <option value="Selasa">Hari Selasa</option>
+                                    <option value="Rabu">Hari Rabu</option>
+                                    <option value="Kamis">Hari Kamis</option>
+                                    <option value="Jumat">Hari Jumat</option>
+                                    <option value="Sabtu">Hari Sabtu</option>
+                                    <option value="Minggu">Hari Minggu</option>
+                                </select>
                                 <select id="adm-dapur-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderAdminProduction()">
                                     <option value="ALL">SEMUA OUTLET (KONSOLIDASI)</option>
                                 </select>
@@ -864,6 +870,16 @@
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('own-dapur-outlet-filter')">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
                                 </button>
+                                <select id="own-dapur-day-filter" class="form-select form-select-sm fs-8 w-auto fw-bold text-brand-purple border-purple-200" onchange="renderOwnerProduction()">
+                                    <option value="ALL">Semua Hari (Kelompokan)</option>
+                                    <option value="Senin">Hari Senin</option>
+                                    <option value="Selasa">Hari Selasa</option>
+                                    <option value="Rabu">Hari Rabu</option>
+                                    <option value="Kamis">Hari Kamis</option>
+                                    <option value="Jumat">Hari Jumat</option>
+                                    <option value="Sabtu">Hari Sabtu</option>
+                                    <option value="Minggu">Hari Minggu</option>
+                                </select>
                                 <select id="own-dapur-outlet-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderOwnerProduction()">
                                     <option value="ALL">SEMUA OUTLET (KONSOLIDASI)</option>
                                 </select>
@@ -1627,36 +1643,104 @@
         }
         function renderProductionGeneric(cfg) {
             const outletFilter = document.getElementById(cfg.filterSelectId)?.value || 'ALL';
+            const daySelectId = cfg.filterSelectId === 'adm-dapur-outlet-filter' ? 'adm-dapur-day-filter' : 'own-dapur-day-filter';
+            const dayFilter = document.getElementById(daySelectId)?.value || 'ALL';
             const cardsEl = document.getElementById(cfg.cardsId);
             if (cardsEl) cardsEl.innerHTML = '';
             const tbody = document.getElementById(cfg.tbodyId);
             if (!tbody) return;
-            let totalOnline = 0, totalManual = 0, totalAll = 0;
-            let rows = '';
-            let count = 0;
-            state.products.forEach(p => {
-                const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
-                if (total > 0) {
-                    count++;
-                    totalOnline += onlinePreorder;
-                    totalManual += manualPreorder;
-                    totalAll += total;
-                    rows += ` <tr>
-                        <td class="fw-bold text-dark">${p.name}</td>
-                        <td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td>
-                        <td><span class="badge bg-warning text-dark fs-8">${manualPreorder} Cup</span></td>
-                        <td class="fw-bold text-brand-purple">${total} Cup</td>
-                    </tr>`;
+
+            if (state.products.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted fs-8 fst-italic py-4">Belum ada varian produk.</td></tr>`;
+                return;
+            }
+
+            const daysOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+            const filteredDays = dayFilter === 'ALL' ? daysOrder : [dayFilter];
+
+            let rowsHtml = '';
+            let totalOnlineAll = 0, totalManualAll = 0, grandTotalAll = 0;
+            let processedProdIds = new Set();
+            let totalItemCount = 0;
+
+            filteredDays.forEach(dayName => {
+                const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
+                const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
+                const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
+
+                let dayRows = '';
+                let dayOnline = 0, dayManual = 0, dayTotal = 0;
+
+                dayProducts.forEach(p => {
+                    processedProdIds.add(String(p.id));
+                    const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
+                    if (total > 0) {
+                        totalItemCount++;
+                        dayOnline += onlinePreorder;
+                        dayManual += manualPreorder;
+                        dayTotal += total;
+                        dayRows += `<tr>
+                            <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-brand-purple fs-8"></i>${p.name}</td>
+                            <td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td>
+                            <td><span class="badge bg-warning text-dark fs-8">${manualPreorder} Cup</span></td>
+                            <td class="fw-bold text-brand-purple">${total} Cup</td>
+                        </tr>`;
+                    }
+                });
+
+                if (dayRows) {
+                    totalOnlineAll += dayOnline;
+                    totalManualAll += dayManual;
+                    grandTotalAll += dayTotal;
+                    rowsHtml += `<tr class="table-primary border-top border-purple-200">
+                        <td colspan="4" class="fw-extrabold text-brand-purple fs-7 py-2">
+                            <i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (Total Masak: ${dayTotal} Cup)
+                        </td>
+                    </tr>` + dayRows;
                 }
             });
-            if (count === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}.</td></tr>`;
+
+            if (dayFilter === 'ALL') {
+                const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
+                let otherRows = '';
+                let otherOnline = 0, otherManual = 0, otherTotal = 0;
+
+                remainingProducts.forEach(p => {
+                    const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
+                    if (total > 0) {
+                        totalItemCount++;
+                        otherOnline += onlinePreorder;
+                        otherManual += manualPreorder;
+                        otherTotal += total;
+                        otherRows += `<tr>
+                            <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-secondary fs-8"></i>${p.name}</td>
+                            <td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td>
+                            <td><span class="badge bg-warning text-dark fs-8">${manualPreorder} Cup</span></td>
+                            <td class="fw-bold text-brand-purple">${total} Cup</td>
+                        </tr>`;
+                    }
+                });
+
+                if (otherRows) {
+                    totalOnlineAll += otherOnline;
+                    totalManualAll += otherManual;
+                    grandTotalAll += otherTotal;
+                    rowsHtml += `<tr class="table-light border-top">
+                        <td colspan="4" class="fw-extrabold text-secondary fs-7 py-2">
+                            <i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya (Total Masak: ${otherTotal} Cup)
+                        </td>
+                    </tr>` + otherRows;
+                }
+            }
+
+            if (totalItemCount === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}${dayFilter !== 'ALL' ? ` pada hari ${dayFilter}` : ''}.</td></tr>`;
             } else {
-                tbody.innerHTML = rows + `<tr class="table-light">
-                    <td class="fw-bold">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td>
-                    <td class="fw-bold text-primary">${totalOnline} Cup</td>
-                    <td class="fw-bold text-warning text-dark">${totalManual} Cup</td>
-                    <td class="fw-bold text-brand-purple fs-7">${totalAll} Cup</td>
+                tbody.innerHTML = rowsHtml + `<tr class="table-light border-top border-purple-200">
+                    <td class="fw-bold fs-7 text-dark">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td>
+                    <td class="fw-bold text-primary fs-7">${totalOnlineAll} Cup</td>
+                    <td class="fw-bold text-warning text-dark fs-7">${totalManualAll} Cup</td>
+                    <td class="fw-bold text-brand-purple fs-6">${grandTotalAll} Cup</td>
                 </tr>`;
             }
         }
@@ -1919,7 +2003,7 @@
             if (!tbody) return;
 
             if (state.products.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-8 fst-italic py-3">Belum ada produk.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada produk.</td></tr>`;
                 return;
             }
 
@@ -1935,23 +2019,18 @@
                 const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
 
                 if (dayProducts.length > 0) {
-                    rowsHtml += `<tr class="table-primary border-top border-purple-200"><td colspan="6" class="fw-extrabold text-brand-purple fs-7 py-2"><i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (${dayProducts.length} Varian Produk)</td></tr>`;
+                    rowsHtml += `<tr class="table-primary border-top border-purple-200"><td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2"><i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (${dayProducts.length} Varian Produk)</td></tr>`;
                     dayProducts.forEach(p => {
                         processedProdIds.add(String(p.id));
                         const curStock = getOutletStock(selectedOutlet, p);
-                        const orderedQty = computeProductionNumbers(p.id, selectedOutlet).total;
                         rowsHtml += `<tr>
                             <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-brand-purple fs-8"></i>${p.name}</td>
                             <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
                             <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
-                            <td><span class="badge ${orderedQty > 0 ? 'bg-primary' : 'bg-light text-muted border'} fs-8 fw-bold">${orderedQty} Cup Dipesan</span></td>
                             <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-${dayName}-${p.id}" value="${curStock}"></td>
                             <td class="text-center">
                                 <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-${dayName}-${p.id}')">
-                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan
-                                </button>
-                                <button class="btn btn-sm btn-outline-primary py-1 px-2 fs-8 fw-bold ms-1" onclick="useOrderedQtyAsStock('${escAttr(selectedOutlet)}', '${p.id}', ${orderedQty}, 'ostock-${dayName}-${p.id}')" title="Isi input dengan ${orderedQty} Cup dipesan">
-                                    <i class="fa-solid fa-sync me-1"></i> Pakai ${orderedQty} Cup
+                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok ${dayName}
                                 </button>
                             </td>
                         </tr>`;
@@ -1962,39 +2041,45 @@
             if (selectedDayFilter === 'ALL') {
                 const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
                 if (remainingProducts.length > 0) {
-                    rowsHtml += `<tr class="table-light border-top"><td colspan="6" class="fw-extrabold text-secondary fs-7 py-2"><i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya (${remainingProducts.length} Varian)</td></tr>`;
+                    rowsHtml += `<tr class="table-light border-top"><td colspan="5" class="fw-extrabold text-secondary fs-7 py-2"><i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya (${remainingProducts.length} Varian)</td></tr>`;
                     remainingProducts.forEach(p => {
                         const curStock = getOutletStock(selectedOutlet, p);
-                        const orderedQty = computeProductionNumbers(p.id, selectedOutlet).total;
                         rowsHtml += `<tr>
                             <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-secondary fs-8"></i>${p.name}</td>
                             <td><span class="badge bg-light text-dark border fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
                             <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
-                            <td><span class="badge ${orderedQty > 0 ? 'bg-primary' : 'bg-light text-muted border'} fs-8 fw-bold">${orderedQty} Cup Dipesan</span></td>
                             <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-other-${p.id}" value="${curStock}"></td>
                             <td class="text-center">
                                 <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-other-${p.id}')">
-                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Cabang
-                                </button>
-                                <button class="btn btn-sm btn-outline-primary py-1 px-2 fs-8 fw-bold ms-1" onclick="useOrderedQtyAsStock('${escAttr(selectedOutlet)}', '${p.id}', ${orderedQty}, 'ostock-other-${p.id}')" title="Isi input dengan ${orderedQty} Cup dipesan">
-                                    <i class="fa-solid fa-sync me-1"></i> Pakai ${orderedQty} Cup
+                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok Cabang
                                 </button>
                             </td>
                         </tr>`;
                     });
                 }
             }
-
-            if (!rowsHtml) {
-                rowsHtml = `<tr><td colspan="6" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-calendar-xmark fs-4 d-block mb-1 text-secondary"></i>Belum ada produk yang didaftarkan pada menu rotasi hari ${selectedDayFilter}.</td></tr>`;
-            }
+            let rowsHtml = '';
+            state.products.forEach(p => {
+                const curStock = getOutletStock(selectedOutlet, p);
+                rowsHtml += `<tr>
+                    <td class="fw-bold text-dark ps-4">${p.name}</td>
+                    <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
+                    <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
+                    <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-${p.id}" value="${curStock}"></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}')">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Simpan
+                        </button>
+                    </td>
+                </tr>`;
+            });
 
             tbody.innerHTML = rowsHtml;
         }
-        function saveAdminOutletStock(outletName, prodId, inputId) {
+        function saveAdminOutletStock(outletName, prodId) {
             const p = state.products.find(x => x.id == prodId || String(x.id) === String(prodId));
             if (!p) return;
-            const input = document.getElementById(inputId || ('ostock-' + prodId));
+            const input = document.getElementById('ostock-' + prodId);
             const val = parseInt(input ? input.value : 0);
             const newStock = isNaN(val) ? 0 : Math.max(0, val);
             setOutletStock(outletName, p, newStock);
@@ -2205,37 +2290,103 @@
         }
         function printDapurMasakReport(filterSelectId) {
             const outletFilter = document.getElementById(filterSelectId)?.value || 'ALL';
+            const daySelectId = filterSelectId === 'adm-dapur-outlet-filter' ? 'adm-dapur-day-filter' : 'own-dapur-day-filter';
+            const dayFilter = document.getElementById(daySelectId)?.value || 'ALL';
             const d = new Date();
             const dateTimeStr = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-            let totalOnline = 0, totalManual = 0, totalAll = 0;
-            let rowsHtml = '';
-            let count = 0;
+            const daysOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+            const filteredDays = dayFilter === 'ALL' ? daysOrder : [dayFilter];
 
-            state.products.forEach(p => {
-                const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
-                if (total > 0) {
-                    count++;
-                    totalOnline += onlinePreorder;
-                    totalManual += manualPreorder;
-                    totalAll += total;
+            let rowsHtml = '';
+            let totalOnlineAll = 0, totalManualAll = 0, grandTotalAll = 0;
+            let processedProdIds = new Set();
+            let totalItemCount = 0;
+
+            filteredDays.forEach(dayName => {
+                const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
+                const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
+                const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
+
+                let dayRows = '';
+                let dayOnline = 0, dayManual = 0, dayTotal = 0;
+
+                dayProducts.forEach(p => {
+                    processedProdIds.add(String(p.id));
+                    const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
+                    if (total > 0) {
+                        totalItemCount++;
+                        dayOnline += onlinePreorder;
+                        dayManual += manualPreorder;
+                        dayTotal += total;
+                        dayRows += `
+                            <tr>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; font-weight: bold;">${p.name}</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${onlinePreorder} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${manualPreorder} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A;">${total} Cup</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                if (dayRows) {
+                    totalOnlineAll += dayOnline;
+                    totalManualAll += dayManual;
+                    grandTotalAll += dayTotal;
                     rowsHtml += `
-                        <tr>
-                            <td style="padding: 6px 8px; border: 1px solid #ddd; font-weight: bold;">${p.name}</td>
-                            <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${onlinePreorder} Cup</td>
-                            <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${manualPreorder} Cup</td>
-                            <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A;">${total} Cup</td>
+                        <tr style="background-color: #f3e5f5; font-weight: bold;">
+                            <td colspan="4" style="padding: 6px 8px; border: 1px solid #ddd; color: #6A1B9A;">
+                                📅 Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (Total Masak: ${dayTotal} Cup)
+                            </td>
                         </tr>
-                    `;
+                    ` + dayRows;
                 }
             });
 
-            const summaryRowHtml = count > 0 ? `
+            if (dayFilter === 'ALL') {
+                const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
+                let otherRows = '';
+                let otherOnline = 0, otherManual = 0, otherTotal = 0;
+
+                remainingProducts.forEach(p => {
+                    const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
+                    if (total > 0) {
+                        totalItemCount++;
+                        otherOnline += onlinePreorder;
+                        otherManual += manualPreorder;
+                        otherTotal += total;
+                        otherRows += `
+                            <tr>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; font-weight: bold;">${p.name}</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${onlinePreorder} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${manualPreorder} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A;">${total} Cup</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                if (otherRows) {
+                    totalOnlineAll += otherOnline;
+                    totalManualAll += otherManual;
+                    grandTotalAll += otherTotal;
+                    rowsHtml += `
+                        <tr style="background-color: #e9ecef; font-weight: bold;">
+                            <td colspan="4" style="padding: 6px 8px; border: 1px solid #ddd; color: #495057;">
+                                📦 Master Produk Lainnya (Total Masak: ${otherTotal} Cup)
+                            </td>
+                        </tr>
+                    ` + otherRows;
+                }
+            }
+
+            const summaryRowHtml = totalItemCount > 0 ? `
                 <tr style="background-color: #f8f9fa; font-weight: bold;">
-                    <td style="padding: 8px; border: 1px solid #ddd;">TOTAL SELURUH VARIAN (${outletFilter !== 'ALL' ? outletFilter : 'Semua Outlet'})</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #0d6efd;">${totalOnline} Cup</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #d97706;">${totalManual} Cup</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #6A1B9A; font-size: 14px;">${totalAll} Cup</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">TOTAL SELURUH VARIAN (${outletFilter !== 'ALL' ? outletFilter : 'Semua Outlet'}${dayFilter !== 'ALL' ? ` - ${dayFilter}` : ''})</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #0d6efd;">${totalOnlineAll} Cup</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #d97706;">${totalManualAll} Cup</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #6A1B9A; font-size: 14px;">${grandTotalAll} Cup</td>
                 </tr>
             ` : `<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">Belum ada pesanan untuk ${outletFilter}.</td></tr>`;
 
@@ -2254,7 +2405,7 @@
                 </head>
                 <body onload="window.print(); setTimeout(() => window.close(), 600);">
                     <h2>MAMAM YUK - Rekapitulasi Dapur Masak Esok Hari</h2>
-                    <div class="meta">Outlet: <b>${outletFilter === 'ALL' ? 'Semua Outlet (Konsolidasi)' : outletFilter}</b> | Waktu Cetak: ${dateTimeStr}</div>
+                    <div class="meta">Outlet: <b>${outletFilter === 'ALL' ? 'Semua Outlet (Konsolidasi)' : outletFilter}</b> | Filter Hari: <b>${dayFilter}</b> | Waktu Cetak: ${dateTimeStr}</div>
                     <table>
                         <thead>
                             <tr>
