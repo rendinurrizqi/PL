@@ -370,8 +370,28 @@
                                     <h6 class="fw-bold border-bottom pb-2 mb-3">Keranjang Transaksi POS</h6>
                                     <div id="pos-cart-list" class="d-flex flex-column gap-2 mb-3 fs-7"></div>
                                     <div class="border-top pt-2">
-                                        <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
-                                            <span>Total:</span>
+                                        <div class="d-flex justify-content-between text-muted fs-8 mb-1">
+                                            <span>Subtotal:</span>
+                                            <span id="pos-subtotal-display" class="fw-bold text-dark">Rp 0</span>
+                                        </div>
+
+                                        <!-- Input Diskon Belanja -->
+                                        <div class="mb-3 p-2 bg-light rounded border">
+                                            <label class="form-label fs-8 fw-bold text-brand-purple mb-1 d-block">
+                                                <i class="fa-solid fa-tags me-1"></i> Diskon Belanja (Opsional)
+                                            </label>
+                                            <div class="input-group input-group-sm">
+                                                <select id="pos-discount-type" class="form-select fs-8 fw-bold text-brand-purple" style="max-width: 85px;" onchange="updatePosDiscount()">
+                                                    <option value="rp">Rp</option>
+                                                    <option value="percent">%</option>
+                                                </select>
+                                                <input type="number" id="pos-discount-value" class="form-control fs-8 fw-bold text-dark" placeholder="Masukkan diskon..." min="0" oninput="updatePosDiscount()">
+                                            </div>
+                                            <div id="pos-discount-amount-display" class="fs-8 text-danger fw-bold mt-1 text-end" style="display:none;"></div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-center fw-bold fs-5 mb-3">
+                                            <span>Total Bayar:</span>
                                             <span id="pos-total-display" class="text-brand-purple">Rp 0</span>
                                         </div>
 
@@ -1845,14 +1865,41 @@
             }
             renderPosCartList();
         }
+        function updatePosDiscount() {
+            renderPosCartList();
+        }
+
+        function calculatePosTotals() {
+            const subtotal = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0);
+            const discType = document.getElementById('pos-discount-type')?.value || 'rp';
+            const discValInput = parseFloat(document.getElementById('pos-discount-value')?.value) || 0;
+
+            let discountAmount = 0;
+            if (discType === 'percent') {
+                discountAmount = Math.min(subtotal, Math.round(subtotal * (Math.max(0, discValInput) / 100)));
+            } else {
+                discountAmount = Math.min(subtotal, Math.max(0, discValInput));
+            }
+
+            const finalTotal = Math.max(0, subtotal - discountAmount);
+            return { subtotal, discType, discValInput, discountAmount, finalTotal };
+        }
+
         function renderPosCartList() {
             const list = document.getElementById('pos-cart-list');
             if (!list) return;
+
             if (state.posCart.length === 0) {
                 list.innerHTML = `<div class="text-center text-muted fs-8 py-3 fst-italic"><i class="fa-solid fa-basket-shopping fs-4 d-block mb-1 text-secondary opacity-50"></i>Keranjang POS masih kosong.<br>Klik produk di sebelah kiri untuk memilih.</div>`;
-                document.getElementById('pos-total-display').innerText = 'Rp 0';
+                const subEl = document.getElementById('pos-subtotal-display');
+                if (subEl) subEl.innerText = 'Rp 0';
+                const totEl = document.getElementById('pos-total-display');
+                if (totEl) totEl.innerText = 'Rp 0';
+                const discDisp = document.getElementById('pos-discount-amount-display');
+                if (discDisp) discDisp.style.display = 'none';
                 return;
             }
+
             list.innerHTML = state.posCart.map(c => `
                 <div class="d-flex justify-content-between align-items-center p-2 border rounded bg-white shadow-sm mb-1">
                     <div style="flex: 1; min-width: 0;" class="pe-2 text-start">
@@ -1867,10 +1914,27 @@
                     </div>
                 </div>
             `).join('');
-            const total = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0);
-            document.getElementById('pos-total-display').innerText = 'Rp ' + total.toLocaleString('id-ID');
+
+            const { subtotal, discType, discValInput, discountAmount, finalTotal } = calculatePosTotals();
+
+            const subEl = document.getElementById('pos-subtotal-display');
+            if (subEl) subEl.innerText = 'Rp ' + subtotal.toLocaleString('id-ID');
+
+            const totEl = document.getElementById('pos-total-display');
+            if (totEl) totEl.innerText = 'Rp ' + finalTotal.toLocaleString('id-ID');
+
+            const discDisp = document.getElementById('pos-discount-amount-display');
+            if (discDisp) {
+                if (discountAmount > 0) {
+                    discDisp.style.display = 'block';
+                    discDisp.innerText = `Potongan Diskon (${discType === 'percent' ? discValInput + '%' : 'Rp'}): -Rp ${discountAmount.toLocaleString('id-ID')}`;
+                } else {
+                    discDisp.style.display = 'none';
+                }
+            }
         }
-        function printPosReceipt(items, totalAmount, outletName, trxId) {
+
+        function printPosReceipt(items, subtotal, discountAmount, finalTotal, outletName, trxId) {
             const d = new Date();
             const dateTimeStr = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
@@ -1885,6 +1949,20 @@
                     </td>
                 </tr>
             `).join('');
+
+            let discountRowHtml = '';
+            if (discountAmount > 0) {
+                discountRowHtml = `
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>Subtotal:</span>
+                        <span>Rp ${subtotal.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #dc3545; margin-bottom: 4px;">
+                        <span>Diskon:</span>
+                        <span>-Rp ${discountAmount.toLocaleString('id-ID')}</span>
+                    </div>
+                `;
+            }
 
             const receiptHtml = `
                 <!DOCTYPE html>
@@ -1914,9 +1992,10 @@
                         </tbody>
                     </table>
                     <div class="border-dashed"></div>
+                    ${discountRowHtml}
                     <div style="display: flex; justify-content: space-between; font-size: 13px;" class="fw-bold">
-                        <span>TOTAL BELANJA:</span>
-                        <span>Rp ${totalAmount.toLocaleString('id-ID')}</span>
+                        <span>TOTAL BAYAR:</span>
+                        <span>Rp ${finalTotal.toLocaleString('id-ID')}</span>
                     </div>
                     <div class="border-dashed"></div>
                     <div class="text-center" style="font-size: 10px; margin-top: 8px; line-height: 1.4;">
@@ -1941,7 +2020,7 @@
             }
 
             const printOption = document.querySelector('input[name="posPrintReceipt"]:checked')?.value || 'yes';
-            const totalPosAmount = state.posCart.reduce((a, b) => a + (b.price * b.qty), 0);
+            const { subtotal, discountAmount, finalTotal } = calculatePosTotals();
             const totalPosQty = state.posCart.reduce((a, b) => a + b.qty, 0);
             const trxId = 'POS-' + Math.floor(1000 + Math.random() * 9000);
             const activeOutlet = state.kasirActiveOutlet || 'Outlet Kasir';
@@ -1966,6 +2045,9 @@
             });
 
             state.posCart = [];
+            const discValEl = document.getElementById('pos-discount-value');
+            if (discValEl) discValEl.value = '';
+
             renderPosCartList();
             renderPosProductsGrid();
             renderKasirLeftoverTable();
@@ -1978,11 +2060,11 @@
             renderOwnerProduction();
 
             if (printOption === 'yes') {
-                printPosReceipt(purchasedItems, totalPosAmount, activeOutlet, trxId);
+                printPosReceipt(purchasedItems, subtotal, discountAmount, finalTotal, activeOutlet, trxId);
                 Swal.fire({
                     icon: 'success',
                     title: 'Transaksi POS Berhasil! 🧾',
-                    text: 'Penjualan tercatat, stok dipotong, dan struk belanja telah dicetak!',
+                    text: discountAmount > 0 ? `Penjualan tercatat (Diskon Rp ${discountAmount.toLocaleString('id-ID')}), stok dipotong, dan struk belanja dicetak!` : 'Penjualan tercatat, stok dipotong, dan struk belanja dicetak!',
                     timer: 1800,
                     showConfirmButton: false
                 });
@@ -1990,7 +2072,7 @@
                 Swal.fire({
                     icon: 'success',
                     title: 'Transaksi POS Berhasil!',
-                    text: 'Penjualan tercatat dan stok dipotong (tanpa cetak struk).',
+                    text: discountAmount > 0 ? `Penjualan tercatat (Diskon Rp ${discountAmount.toLocaleString('id-ID')}) dan stok dipotong.` : 'Penjualan tercatat dan stok dipotong (tanpa cetak struk).',
                     timer: 1800,
                     showConfirmButton: false
                 });
