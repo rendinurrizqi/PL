@@ -1998,7 +1998,90 @@
         function submitAllKasirLeftovers() { renderAdminOutletReports(); Swal.fire({ icon: 'success', title: 'Rekap Sisa Dikirim!', text: 'Laporan sisa seluruh produk untuk ' + state.kasirActiveOutlet + ' telah diteruskan ke Admin & Owner secara real-time!', confirmButtonColor: '#6A1B9A' }); }
         function renderAdminOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'adm-report-period-filter', outletSelectId: 'adm-report-outlet-filter', cardsId: 'adm-outlet-metric-cards', summaryTbodyId: 'adm-outlet-report-tbody', leftoverTbodyId: 'adm-leftover-report-tbody', isAdmin: true }); }
         function renderOwnerOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'own-report-period-filter', outletSelectId: 'own-report-outlet-filter', cardsId: 'own-outlet-metric-cards', summaryTbodyId: 'own-outlet-report-tbody', leftoverTbodyId: 'own-leftover-report-tbody', isAdmin: false }); }
-        function renderOutletReportsGeneric(cfg) { const selectedOutlet = document.getElementById(cfg.outletSelectId)?.value || 'ALL'; const selectedPeriod = document.getElementById(cfg.periodSelectId)?.value || 'HARIAN'; const outletsList = state.outlets; const isHarian = selectedPeriod === 'HARIAN'; const outletData = outletsList.map(outletName => { const salesRec = state.outletSalesRecords[outletName] || {}; let omset = 0; let porsi = 0; let loss = 0; state.products.forEach(p => { const prodSales = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = getOutletStock(outletName, p); const leftover = Math.max(0, allocated - prodSales); omset += prodSales * p.price; porsi += prodSales; loss += leftover * p.price; }); return { name: outletName, harianOmset: omset, bulananOmset: omset * 30, porsi: porsi, loss: loss }; }); const filteredList = selectedOutlet === 'ALL' ? outletData : outletData.filter(o => o.name === selectedOutlet); let totalOmset = 0; let totalLoss = 0; let totalPorsi = 0; filteredList.forEach(o => { const omset = isHarian ? o.harianOmset : o.bulananOmset; totalOmset += omset; totalLoss += (isHarian ? o.loss : o.loss * 30); totalPorsi += (isHarian ? o.porsi : o.porsi * 30); }); const totalProfit = Math.round((totalOmset * 0.4) - totalLoss); const cardContainer = document.getElementById(cfg.cardsId); if (cardContainer) { cardContainer.innerHTML = `<div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET (${selectedPeriod})</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmset.toLocaleString('id-ID')}</div></div></div><div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsi} Cup</div></div></div>`; } const tbody = document.getElementById(cfg.summaryTbodyId); if (tbody) { tbody.innerHTML = filteredList.map(o => { const omset = isHarian ? o.harianOmset : o.bulananOmset; const porsi = isHarian ? o.porsi : o.porsi * 30; return `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${omset.toLocaleString('id-ID')}</td><td>${porsi} Cup</td><td class="text-center"><button class="btn btn-sm btn-brand-purple fs-8 font-bold py-1 px-2.5" onclick="Swal.fire('${o.name}', 'Laporan ${selectedPeriod} untuk ${o.name}:<br>Omset: Rp ${omset.toLocaleString('id-ID')}<br>Porsi Terjual: ${porsi} Cup', 'info')"><i class="fa-solid fa-eye me-1"></i> Rincian</button></td></tr>`; }).join(''); } const leftoverTbody = document.getElementById(cfg.leftoverTbodyId); if (leftoverTbody) { let allLeftoverRows = []; const outletsToProcess = selectedOutlet === 'ALL' ? outletsList : [selectedOutlet]; outletsToProcess.forEach(outName => { const salesRec = state.outletSalesRecords[outName] || {}; state.products.forEach(p => { const sold = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = getOutletStock(outName, p); const leftover = Math.max(0, allocated - sold); allLeftoverRows.push(`<tr><td class="fw-bold text-brand-purple">${outName}</td><td class="fw-bold text-dark">${p.name}</td><td>${allocated} Cup</td><td class="text-success fw-bold">${sold} Cup Terjual</td><td class="text-danger fw-bold">${leftover} Cup Sisa</td></tr>`); }); }); leftoverTbody.innerHTML = allLeftoverRows.join(''); } }
+        function renderOutletReportsGeneric(cfg) {
+            const selectedOutlet = document.getElementById(cfg.outletSelectId)?.value || 'ALL';
+            const selectedPeriod = document.getElementById(cfg.periodSelectId)?.value || 'HARIAN';
+            const outletsList = state.outlets;
+            const isHarian = selectedPeriod === 'HARIAN';
+            const outletData = outletsList.map(outletName => {
+                const salesRec = state.outletSalesRecords[outletName] || {};
+                let omset = 0;
+                let porsi = 0;
+                let loss = 0;
+                state.products.forEach(p => {
+                    const prodSales = salesRec[p.id] ? salesRec[p.id].sold : 0;
+                    const allocated = getOutletStock(outletName, p);
+                    const leftover = Math.max(0, allocated - prodSales);
+                    omset += prodSales * p.price;
+                    porsi += prodSales;
+                    loss += leftover * p.price;
+                });
+                return { name: outletName, harianOmset: omset, bulananOmset: omset * 30, porsi: porsi, loss: loss };
+            });
+            const filteredList = selectedOutlet === 'ALL' ? outletData : outletData.filter(o => o.name === selectedOutlet);
+            let totalOmset = 0;
+            let totalLoss = 0;
+            let totalPorsi = 0;
+            filteredList.forEach(o => {
+                const omset = isHarian ? o.harianOmset : o.bulananOmset;
+                totalOmset += omset;
+                totalLoss += (isHarian ? o.loss : o.loss * 30);
+                totalPorsi += (isHarian ? o.porsi : o.porsi * 30);
+            });
+            const cardContainer = document.getElementById(cfg.cardsId);
+            if (cardContainer) {
+                cardContainer.innerHTML = `<div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET (${selectedPeriod})</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmset.toLocaleString('id-ID')}</div></div></div><div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsi} Cup</div></div></div>`;
+            }
+            const tbody = document.getElementById(cfg.summaryTbodyId);
+            if (tbody) {
+                tbody.innerHTML = filteredList.map(o => {
+                    const omset = isHarian ? o.harianOmset : o.bulananOmset;
+                    const porsi = isHarian ? o.porsi : o.porsi * 30;
+                    return `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${omset.toLocaleString('id-ID')}</td><td>${porsi} Cup</td><td class="text-center"><button class="btn btn-sm btn-brand-purple fs-8 font-bold py-1 px-2.5" onclick="Swal.fire('${o.name}', 'Laporan ${selectedPeriod} untuk ${o.name}:<br>Omset: Rp ${omset.toLocaleString('id-ID')}<br>Porsi Terjual: ${porsi} Cup', 'info')"><i class="fa-solid fa-eye me-1"></i> Rincian</button></td></tr>`;
+                }).join('');
+            }
+            const leftoverTbody = document.getElementById(cfg.leftoverTbodyId);
+            if (leftoverTbody) {
+                let allLeftoverRows = [];
+                const outletsToProcess = selectedOutlet === 'ALL' ? outletsList : [selectedOutlet];
+                outletsToProcess.forEach(outName => {
+                    const salesRec = state.outletSalesRecords[outName] || {};
+                    let outletTotalAllocated = 0;
+                    let outletTotalSold = 0;
+                    let outletTotalLeftover = 0;
+                    let outletProductRows = [];
+
+                    state.products.forEach(p => {
+                        const sold = salesRec[p.id] ? salesRec[p.id].sold : 0;
+                        const allocated = getOutletStock(outName, p);
+                        const leftover = Math.max(0, allocated - sold);
+                        outletTotalAllocated += allocated;
+                        outletTotalSold += sold;
+                        outletTotalLeftover += leftover;
+
+                        outletProductRows.push(`<tr>
+                            <td class="fw-bold text-brand-purple ps-4"><i class="fa-solid fa-angle-right me-2 fs-8 text-secondary"></i>${outName}</td>
+                            <td class="fw-bold text-dark">${p.name}</td>
+                            <td>${allocated} Cup</td>
+                            <td class="text-success fw-bold">${sold} Cup Terjual</td>
+                            <td class="text-danger fw-bold">${leftover} Cup Sisa</td>
+                        </tr>`);
+                    });
+
+                    if (outletProductRows.length > 0) {
+                        allLeftoverRows.push(`
+                            <tr class="table-primary border-top border-purple-200">
+                                <td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2">
+                                    <i class="fa-solid fa-store me-2"></i> Cabang Outlet: ${outName} (Total Alokasi: ${outletTotalAllocated} Cup | Terjual: ${outletTotalSold} Cup | Total Sisa: ${outletTotalLeftover} Cup)
+                                </td>
+                            </tr>
+                        ` + outletProductRows.join(''));
+                    }
+                });
+
+                leftoverTbody.innerHTML = allLeftoverRows.join('') || `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada data sisa produk.</td></tr>`;
+            }
+        }
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); renderAdminOutletStockTable(); }
         function getOutletStock(outletName, product) {
             if (!state.outletStock) state.outletStock = {};
