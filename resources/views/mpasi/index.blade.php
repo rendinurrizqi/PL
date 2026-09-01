@@ -242,23 +242,28 @@
                     <div class="card-custom p-4 max-w-500 mx-auto shadow-lg">
                         <div class="text-center mb-4">
                             <div class="bg-brand-yellow text-dark d-inline-flex p-3 rounded-circle mb-2 fs-2"><i class="fa-solid fa-baby"></i></div>
-                            <h4 class="fw-bold text-brand-purple mb-0">Member Mamam Yuk</h4>
-                            <p class="text-muted fs-7">Masuk Member (+Poin) atau Belanja Tanpa Akun</p>
+                            <h4 class="fw-bold text-brand-purple mb-1">Member Mamam Yuk Si Kecil</h4>
+                            <div class="bg-warning bg-opacity-15 border border-warning rounded-3 p-3 mt-3 shadow-sm">
+                                <div class="fw-extrabold fs-6 text-dark d-flex align-items-center justify-content-center gap-2">
+                                    <i class="fa-solid fa-coins text-warning fs-4"></i>
+                                    <span>Daftarkan Menjadi Member Karena Akan Mendapatkan Point Setiap Pembelian</span>
+                                </div>
+                            </div>
                         </div>
                         <form onsubmit="handleLogin(event)">
-                            <div class="mb-3">
-                                <label class="form-label fs-7 fw-bold">Nama Panggilan Bunda</label>
-                                <input type="text" id="login-name" class="form-control" placeholder="Contoh: Bunda Siti">
+                            <div class="mb-3 text-start">
+                                <label class="form-label fs-7 fw-bold text-dark"><i class="fa-solid fa-user me-1 text-brand-purple"></i> Nama Panggilan Bunda</label>
+                                <input type="text" id="login-name" class="form-control fw-semibold" placeholder="Contoh: Bunda Siti">
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fs-7 fw-bold">Nomor WhatsApp / Email</label>
-                                <input type="text" id="login-identifier" class="form-control" placeholder="081298765432" required>
+                            <div class="mb-3 text-start">
+                                <label class="form-label fs-7 fw-bold text-dark"><i class="fa-solid fa-phone me-1 text-brand-purple"></i> Nomor WhatsApp / Email</label>
+                                <input type="text" id="login-identifier" class="form-control fw-semibold" placeholder="081298765432" required>
                             </div>
-                            <button type="submit" class="btn btn-brand-purple w-100 py-2.5 fw-bold mb-3"><i class="fa-solid fa-right-to-bracket me-1"></i> MASUK MEMBER (+Poin)</button>
+                            <button type="submit" class="btn btn-brand-purple w-100 py-2.5 fw-bold fs-6 mb-3 shadow-sm"><i class="fa-solid fa-right-to-bracket me-1"></i> MASUK MEMBER (+Poin)</button>
                         </form>
-                        <button class="btn btn-outline-secondary btn-sm w-100 fw-bold mb-3" onclick="continueAsGuest()"><i class="fa-solid fa-user-slash me-1"></i> Lanjut Belanja Tanpa Akun (Tamu)</button>
+                        <button class="btn btn-outline-secondary btn-sm w-100 fw-bold py-2 mb-3" onclick="continueAsGuest()"><i class="fa-solid fa-user-slash me-1"></i> Lanjut Belanja Tanpa Akun (Tamu)</button>
                         <div class="text-center border-top pt-3">
-                            <button class="btn btn-link text-danger fs-8 fw-bold" onclick="requestResetPasswordModal()">Lupa Kata Sandi? Minta Reset ke Owner</button>
+                            <button class="btn btn-link text-danger fs-8 fw-bold text-decoration-none" onclick="requestResetPasswordModal()"><i class="fa-solid fa-key me-1"></i> Lupa Kata Sandi? Minta Reset ke Owner</button>
                         </div>
                     </div>
                 </div>
