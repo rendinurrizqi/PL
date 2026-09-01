@@ -29,7 +29,7 @@
                         @csrf
                         <div class="mb-3">
                             <label for="email" class="form-label fw-semibold">Email</label>
-                            <input id="email" name="email" type="email" value="{{ old('email') }}" class="form-control" placeholder="nama@mpasi.com" required autofocus>
+                            <input id="email" name="email" type="email" value="{{ old('email') }}" class="form-control" placeholder="nama@mamamyuk.com" required autofocus>
                         </div>
                         <div class="mb-3">
                             <label for="password" class="form-label fw-semibold">Password</label>
