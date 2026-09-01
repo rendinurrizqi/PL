@@ -2285,6 +2285,7 @@
             if (selEl.options.length === 0 && state.outlets && state.outlets.length > 0) {
                 selEl.innerHTML = state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('');
             }
+            const selectedOutlet = selEl.value || (state.outlets && state.outlets[0]) || '';
             const daySelectEl = document.getElementById('adm-stock-day-select');
             if (daySelectEl && !daySelectEl.dataset.autoInitialized) {
                 const dayNamesMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -2310,7 +2311,10 @@
             filteredDays.forEach(dayName => {
                 const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
                 const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
-                const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
+                let dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
+                if (dayProducts.length === 0) {
+                    dayProducts = state.products;
+                }
 
                 if (dayProducts.length > 0) {
                     rowsHtml += `<tr class="table-primary border-top border-purple-200"><td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2"><i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (${dayProducts.length} Varian Produk)</td></tr>`;
