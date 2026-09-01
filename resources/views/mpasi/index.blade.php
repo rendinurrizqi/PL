@@ -613,7 +613,7 @@
                         <div class="card-custom p-3 mt-3">
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
-                                    <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Pre-Order Manual</th><th>Total Porsi Masak</th></tr></thead>
+                                    <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Pre-Order Manual</th><th>Stok Produk</th><th>Total Porsi Masak</th></tr></thead>
                                     <tbody id="adm-production-tbody"></tbody>
                                 </table>
                             </div>
@@ -889,7 +889,7 @@
                         <div class="card-custom p-3 mt-3">
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
-                                    <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Pre-Order Manual</th><th>Total Porsi Masak</th></tr></thead>
+                                    <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Pre-Order Manual</th><th>Stok Produk</th><th>Total Porsi Masak</th></tr></thead>
                                     <tbody id="own-production-tbody"></tbody>
                                 </table>
                             </div>
@@ -1651,7 +1651,7 @@
             if (!tbody) return;
 
             if (state.products.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted fs-8 fst-italic py-4">Belum ada varian produk.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-4">Belum ada varian produk.</td></tr>`;
                 return;
             }
 
@@ -1659,7 +1659,7 @@
             const filteredDays = dayFilter === 'ALL' ? daysOrder : [dayFilter];
 
             let rowsHtml = '';
-            let totalOnlineAll = 0, totalManualAll = 0, grandTotalAll = 0;
+            let totalOnlineAll = 0, totalManualAll = 0, totalStockAll = 0, grandTotalAll = 0;
             let processedProdIds = new Set();
             let totalItemCount = 0;
 
@@ -1669,21 +1669,33 @@
                 const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
 
                 let dayRows = '';
-                let dayOnline = 0, dayManual = 0, dayTotal = 0;
+                let dayOnline = 0, dayManual = 0, dayStock = 0, dayTotal = 0;
 
                 dayProducts.forEach(p => {
                     processedProdIds.add(String(p.id));
-                    const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
-                    if (total > 0) {
+                    const { onlinePreorder, manualPreorder } = computeProductionNumbers(p.id, outletFilter);
+                    let productStock = 0;
+                    if (outletFilter === 'ALL') {
+                        (state.outlets || []).forEach(outName => {
+                            productStock += getOutletStock(outName, p);
+                        });
+                    } else {
+                        productStock = getOutletStock(outletFilter, p);
+                    }
+                    const totalPorsiMasak = onlinePreorder + manualPreorder + productStock;
+
+                    if (totalPorsiMasak > 0 || dayFilter !== 'ALL') {
                         totalItemCount++;
                         dayOnline += onlinePreorder;
                         dayManual += manualPreorder;
-                        dayTotal += total;
+                        dayStock += productStock;
+                        dayTotal += totalPorsiMasak;
                         dayRows += `<tr>
                             <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-brand-purple fs-8"></i>${p.name}</td>
                             <td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td>
                             <td><span class="badge bg-warning text-dark fs-8">${manualPreorder} Cup</span></td>
-                            <td class="fw-bold text-brand-purple">${total} Cup</td>
+                            <td><span class="badge bg-info text-dark fs-8">${productStock} Cup</span></td>
+                            <td class="fw-bold text-brand-purple">${totalPorsiMasak} Cup</td>
                         </tr>`;
                     }
                 });
@@ -1691,9 +1703,10 @@
                 if (dayRows) {
                     totalOnlineAll += dayOnline;
                     totalManualAll += dayManual;
+                    totalStockAll += dayStock;
                     grandTotalAll += dayTotal;
                     rowsHtml += `<tr class="table-primary border-top border-purple-200">
-                        <td colspan="4" class="fw-extrabold text-brand-purple fs-7 py-2">
+                        <td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2">
                             <i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (Total Masak: ${dayTotal} Cup)
                         </td>
                     </tr>` + dayRows;
@@ -1703,20 +1716,32 @@
             if (dayFilter === 'ALL') {
                 const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
                 let otherRows = '';
-                let otherOnline = 0, otherManual = 0, otherTotal = 0;
+                let otherOnline = 0, otherManual = 0, otherStock = 0, otherTotal = 0;
 
                 remainingProducts.forEach(p => {
-                    const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
-                    if (total > 0) {
+                    const { onlinePreorder, manualPreorder } = computeProductionNumbers(p.id, outletFilter);
+                    let productStock = 0;
+                    if (outletFilter === 'ALL') {
+                        (state.outlets || []).forEach(outName => {
+                            productStock += getOutletStock(outName, p);
+                        });
+                    } else {
+                        productStock = getOutletStock(outletFilter, p);
+                    }
+                    const totalPorsiMasak = onlinePreorder + manualPreorder + productStock;
+
+                    if (totalPorsiMasak > 0) {
                         totalItemCount++;
                         otherOnline += onlinePreorder;
                         otherManual += manualPreorder;
-                        otherTotal += total;
+                        otherStock += productStock;
+                        otherTotal += totalPorsiMasak;
                         otherRows += `<tr>
                             <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-secondary fs-8"></i>${p.name}</td>
                             <td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td>
                             <td><span class="badge bg-warning text-dark fs-8">${manualPreorder} Cup</span></td>
-                            <td class="fw-bold text-brand-purple">${total} Cup</td>
+                            <td><span class="badge bg-info text-dark fs-8">${productStock} Cup</span></td>
+                            <td class="fw-bold text-brand-purple">${totalPorsiMasak} Cup</td>
                         </tr>`;
                     }
                 });
@@ -1724,9 +1749,10 @@
                 if (otherRows) {
                     totalOnlineAll += otherOnline;
                     totalManualAll += otherManual;
+                    totalStockAll += otherStock;
                     grandTotalAll += otherTotal;
                     rowsHtml += `<tr class="table-light border-top">
-                        <td colspan="4" class="fw-extrabold text-secondary fs-7 py-2">
+                        <td colspan="5" class="fw-extrabold text-secondary fs-7 py-2">
                             <i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya (Total Masak: ${otherTotal} Cup)
                         </td>
                     </tr>` + otherRows;
@@ -1734,12 +1760,13 @@
             }
 
             if (totalItemCount === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}${dayFilter !== 'ALL' ? ` pada hari ${dayFilter}` : ''}.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}${dayFilter !== 'ALL' ? ` pada hari ${dayFilter}` : ''}.</td></tr>`;
             } else {
                 tbody.innerHTML = rowsHtml + `<tr class="table-light border-top border-purple-200">
                     <td class="fw-bold fs-7 text-dark">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td>
                     <td class="fw-bold text-primary fs-7">${totalOnlineAll} Cup</td>
                     <td class="fw-bold text-warning text-dark fs-7">${totalManualAll} Cup</td>
+                    <td class="fw-bold text-info text-dark fs-7">${totalStockAll} Cup</td>
                     <td class="fw-bold text-brand-purple fs-6">${grandTotalAll} Cup</td>
                 </tr>`;
             }
@@ -2288,7 +2315,7 @@
             const filteredDays = dayFilter === 'ALL' ? daysOrder : [dayFilter];
 
             let rowsHtml = '';
-            let totalOnlineAll = 0, totalManualAll = 0, grandTotalAll = 0;
+            let totalOnlineAll = 0, totalManualAll = 0, totalStockAll = 0, grandTotalAll = 0;
             let processedProdIds = new Set();
             let totalItemCount = 0;
 
@@ -2298,22 +2325,34 @@
                 const dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
 
                 let dayRows = '';
-                let dayOnline = 0, dayManual = 0, dayTotal = 0;
+                let dayOnline = 0, dayManual = 0, dayStock = 0, dayTotal = 0;
 
                 dayProducts.forEach(p => {
                     processedProdIds.add(String(p.id));
-                    const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
-                    if (total > 0) {
+                    const { onlinePreorder, manualPreorder } = computeProductionNumbers(p.id, outletFilter);
+                    let productStock = 0;
+                    if (outletFilter === 'ALL') {
+                        (state.outlets || []).forEach(outName => {
+                            productStock += getOutletStock(outName, p);
+                        });
+                    } else {
+                        productStock = getOutletStock(outletFilter, p);
+                    }
+                    const totalPorsiMasak = onlinePreorder + manualPreorder + productStock;
+
+                    if (totalPorsiMasak > 0 || dayFilter !== 'ALL') {
                         totalItemCount++;
                         dayOnline += onlinePreorder;
                         dayManual += manualPreorder;
-                        dayTotal += total;
+                        dayStock += productStock;
+                        dayTotal += totalPorsiMasak;
                         dayRows += `
                             <tr>
                                 <td style="padding: 6px 8px; border: 1px solid #ddd; font-weight: bold;">${p.name}</td>
                                 <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${onlinePreorder} Cup</td>
                                 <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${manualPreorder} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A;">${total} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${productStock} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A;">${totalPorsiMasak} Cup</td>
                             </tr>
                         `;
                     }
@@ -2322,10 +2361,11 @@
                 if (dayRows) {
                     totalOnlineAll += dayOnline;
                     totalManualAll += dayManual;
+                    totalStockAll += dayStock;
                     grandTotalAll += dayTotal;
                     rowsHtml += `
                         <tr style="background-color: #f3e5f5; font-weight: bold;">
-                            <td colspan="4" style="padding: 6px 8px; border: 1px solid #ddd; color: #6A1B9A;">
+                            <td colspan="5" style="padding: 6px 8px; border: 1px solid #ddd; color: #6A1B9A;">
                                 📅 Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (Total Masak: ${dayTotal} Cup)
                             </td>
                         </tr>
@@ -2336,21 +2376,33 @@
             if (dayFilter === 'ALL') {
                 const remainingProducts = state.products.filter(p => !processedProdIds.has(String(p.id)));
                 let otherRows = '';
-                let otherOnline = 0, otherManual = 0, otherTotal = 0;
+                let otherOnline = 0, otherManual = 0, otherStock = 0, otherTotal = 0;
 
                 remainingProducts.forEach(p => {
-                    const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
-                    if (total > 0) {
+                    const { onlinePreorder, manualPreorder } = computeProductionNumbers(p.id, outletFilter);
+                    let productStock = 0;
+                    if (outletFilter === 'ALL') {
+                        (state.outlets || []).forEach(outName => {
+                            productStock += getOutletStock(outName, p);
+                        });
+                    } else {
+                        productStock = getOutletStock(outletFilter, p);
+                    }
+                    const totalPorsiMasak = onlinePreorder + manualPreorder + productStock;
+
+                    if (totalPorsiMasak > 0) {
                         totalItemCount++;
                         otherOnline += onlinePreorder;
                         otherManual += manualPreorder;
-                        otherTotal += total;
+                        otherStock += productStock;
+                        otherTotal += totalPorsiMasak;
                         otherRows += `
                             <tr>
                                 <td style="padding: 6px 8px; border: 1px solid #ddd; font-weight: bold;">${p.name}</td>
                                 <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${onlinePreorder} Cup</td>
                                 <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${manualPreorder} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A;">${total} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${productStock} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A;">${totalPorsiMasak} Cup</td>
                             </tr>
                         `;
                     }
@@ -2359,10 +2411,11 @@
                 if (otherRows) {
                     totalOnlineAll += otherOnline;
                     totalManualAll += otherManual;
+                    totalStockAll += otherStock;
                     grandTotalAll += otherTotal;
                     rowsHtml += `
                         <tr style="background-color: #e9ecef; font-weight: bold;">
-                            <td colspan="4" style="padding: 6px 8px; border: 1px solid #ddd; color: #495057;">
+                            <td colspan="5" style="padding: 6px 8px; border: 1px solid #ddd; color: #495057;">
                                 📦 Master Produk Lainnya (Total Masak: ${otherTotal} Cup)
                             </td>
                         </tr>
@@ -2375,9 +2428,10 @@
                     <td style="padding: 8px; border: 1px solid #ddd;">TOTAL SELURUH VARIAN (${outletFilter !== 'ALL' ? outletFilter : 'Semua Outlet'}${dayFilter !== 'ALL' ? ` - ${dayFilter}` : ''})</td>
                     <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #0d6efd;">${totalOnlineAll} Cup</td>
                     <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #d97706;">${totalManualAll} Cup</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #0dcaf0;">${totalStockAll} Cup</td>
                     <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #6A1B9A; font-size: 14px;">${grandTotalAll} Cup</td>
                 </tr>
-            ` : `<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">Belum ada pesanan untuk ${outletFilter}.</td></tr>`;
+            ` : `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">Belum ada pesanan untuk ${outletFilter}.</td></tr>`;
 
             const printHtml = `
                 <!DOCTYPE html>
@@ -2401,6 +2455,7 @@
                                 <th>Varian Mamam Yuk</th>
                                 <th style="text-align: center;">Pre-Order Online</th>
                                 <th style="text-align: center;">Pre-Order Manual</th>
+                                <th style="text-align: center;">Stok Produk</th>
                                 <th style="text-align: center;">Total Porsi Masak</th>
                             </tr>
                         </thead>
