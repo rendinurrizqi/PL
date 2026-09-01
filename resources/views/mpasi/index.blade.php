@@ -444,7 +444,7 @@
                     </div>
                     <nav class="nav flex-column fs-7" id="admin-sidebar-nav">
                         <a class="nav-link active" href="#" onclick="switchAdminTab('menu')"><i class="fa-solid fa-calendar-days"></i> Atur Menu Harian</a>
-                        <a class="nav-link" href="#" onclick="switchAdminTab('produk')"><i class="fa-solid fa-bowl-food"></i> Master Produk MPASI</a>
+                        <a class="nav-link" href="#" onclick="switchAdminTab('produk')"><i class="fa-solid fa-bowl-food"></i> Master Produk Mamam Yuk</a>
                         <a class="nav-link" href="#" onclick="switchAdminTab('pesanan')"><i class="fa-solid fa-cart-shopping"></i> Pesanan Per Outlet</a>
                         <a class="nav-link" href="#" onclick="switchAdminTab('dapur')"><i class="fa-solid fa-industry"></i> Rekap Dapur Masak</a>
                         <a class="nav-link" href="#" onclick="switchAdminTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> Persediaan Bahan Baku</a>
@@ -471,7 +471,7 @@
                     <div id="admin-tab-produk" class="admin-tab-content" style="display:none;">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-bowl-food text-brand-purple me-2"></i> Master Data Produk MPASI</h4>
+                                <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-bowl-food text-brand-purple me-2"></i> Master Data Produk Mamam Yuk</h4>
                                 <p class="text-muted fs-7 mb-0">Kelola varian produk, harga, dan ketersediaan stok ready di outlet.</p>
                             </div>
                             <button class="btn btn-brand-yellow fw-bold" onclick="showAddProductModal()"><i class="fa-solid fa-plus me-1"></i> Tambah Varian Baru</button>
@@ -480,7 +480,7 @@
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
                                     <thead class="bg-light">
-                                        <tr><th>Foto</th><th>ID</th><th>Varian MPASI</th><th>Harga / Cup</th><th>Kategori</th><th>Usia</th><th>Stok Ready</th><th>Status</th><th class="text-center">Aksi Admin</th></tr>
+                                        <tr><th>Foto</th><th>ID</th><th>Varian Mamam Yuk</th><th>Harga / Cup</th><th>Kategori</th><th>Usia</th><th>Stok Ready</th><th>Status</th><th class="text-center">Aksi Admin</th></tr>
                                     </thead>
                                     <tbody id="adm-products-tbody"></tbody>
                                 </table>
@@ -658,7 +658,7 @@
                         <a class="nav-link active" href="#" onclick="switchOwnerTab('dashboard')"><i class="fa-solid fa-gauge-high"></i> Dashboard Owner</a>
                         <a class="nav-link" href="#" onclick="switchOwnerTab('outlet')"><i class="fa-solid fa-shop"></i> Kelola Outlet</a>
                         <a class="nav-link" href="#" onclick="switchOwnerTab('menu')"><i class="fa-solid fa-calendar-days"></i> Atur Menu Harian</a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('produk')"><i class="fa-solid fa-bowl-food"></i> Master Produk MPASI</a>
+                        <a class="nav-link" href="#" onclick="switchOwnerTab('produk')"><i class="fa-solid fa-bowl-food"></i> Master Produk Mamam Yuk</a>
                         <a class="nav-link" href="#" onclick="switchOwnerTab('praorder')">
                             <i class="fa-solid fa-clipboard-check"></i> Pre-Order Semua Outlet
                             <span id="owner-cancel-badge" class="badge bg-danger fs-8 ms-auto" style="display:none;">0</span>
@@ -743,7 +743,7 @@
                     <div id="owner-tab-produk" class="owner-tab-content" style="display:none;">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-bowl-food text-brand-purple me-2"></i> Master Data Produk MPASI</h4>
+                                <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-bowl-food text-brand-purple me-2"></i> Master Data Produk Mamam Yuk</h4>
                                 <p class="text-muted fs-7 mb-0">Owner dapat menambah, mengedit, restok, mengubah status, maupun menghapus varian produk.</p>
                             </div>
                             <button class="btn btn-brand-yellow fw-bold" onclick="showAddProductModal()"><i class="fa-solid fa-plus me-1"></i> Tambah Varian Baru</button>
@@ -752,7 +752,7 @@
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
                                     <thead class="bg-light">
-                                        <tr><th>Foto</th><th>ID</th><th>Varian MPASI</th><th>Harga / Cup</th><th>Kategori</th><th>Usia</th><th>Stok Ready</th><th>Status</th><th class="text-center">Aksi Owner</th></tr>
+                                        <tr><th>Foto</th><th>ID</th><th>Varian Mamam Yuk</th><th>Harga / Cup</th><th>Kategori</th><th>Usia</th><th>Stok Ready</th><th>Status</th><th class="text-center">Aksi Owner</th></tr>
                                     </thead>
                                     <tbody id="own-products-tbody"></tbody>
                                 </table>

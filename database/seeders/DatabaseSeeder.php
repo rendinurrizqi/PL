@@ -100,7 +100,7 @@ class DatabaseSeeder extends Seeder
                 'status' => 'Aktif',
             ],
             [
-                'name' => 'Pudding MPASI Mangga Avocado',
+                'name' => 'Pudding Mamam Yuk Mangga Avocado',
                 'price' => 12000,
                 'category' => 'Snack Healthy',
                 'age_group' => '8+ Bulan',
@@ -111,7 +111,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Sup Macaroni Hati Ayam & Buncis',
                 'price' => 17000,
-                'category' => 'Sup MPASI',
+                'category' => 'Sup Mamam Yuk',
                 'age_group' => '10+ Bulan',
                 'ingredients' => 'Macaroni gandum, hati ayam segar, buncis, kaldu ayam',
                 'stock' => 22,
@@ -133,7 +133,7 @@ class DatabaseSeeder extends Seeder
         // 4. Point Rewards
         $rewards = [
             ['name' => 'Voucher Diskon Rp 5.000', 'points_cost' => 10, 'description' => 'Potongan harga Rp 5.000 untuk pembelian berikutnya', 'is_active' => true],
-            ['name' => 'Gratis Pudding MPASI Mangga', 'points_cost' => 20, 'description' => '1 Cup Pudding MPASI Mangga Avocado secara cuma-cuma', 'is_active' => true],
+            ['name' => 'Gratis Pudding Mamam Yuk Mangga', 'points_cost' => 20, 'description' => '1 Cup Pudding Mamam Yuk Mangga Avocado secara cuma-cuma', 'is_active' => true],
             ['name' => 'Gratis Puree Daging Sapi', 'points_cost' => 35, 'description' => '1 Cup Puree Daging Sapi & Wortel', 'is_active' => true],
             ['name' => 'Voucher Diskon Rp 25.000', 'points_cost' => 50, 'description' => 'Potongan harga Rp 25.000', 'is_active' => true],
         ];
