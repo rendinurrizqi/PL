@@ -416,8 +416,9 @@
                                         <tr>
                                             <th>Varian Produk Mamam Yuk</th>
                                             <th>Harga / Cup</th>
+                                            <th>Pre-Order (Cup)</th>
                                             <th>Stok Hari Ini</th>
-                                            <th>Terjual (Cup)</th>
+                                            <th>Terjual POS (Cup)</th>
                                             <th>Sisa Tidak Laku (Cup)</th>
                                         </tr>
                                     </thead>
@@ -1994,7 +1995,68 @@
                 });
             }
         }
-        function renderKasirLeftoverTable() { const tbody = document.getElementById('kasir-leftover-tbody'); if (!tbody) return; const todayProds = getTodayProducts(); const targetProducts = todayProds.length > 0 ? todayProds : state.products; const outletSales = state.outletSalesRecords[state.kasirActiveOutlet] || {}; tbody.innerHTML = targetProducts.map(p => { const prodId = p.id; const price = p.price; const allocatedQty = getOutletStock(state.kasirActiveOutlet, p); const soldQty = outletSales[prodId] ? outletSales[prodId].sold : 0; const leftoverQty = Math.max(0, allocatedQty - soldQty); return `<tr><td class="fw-bold text-dark">${p.name}</td><td>Rp ${price.toLocaleString('id-ID')}</td><td class="fw-bold text-primary">${allocatedQty} Cup</td><td class="fw-bold text-success">${soldQty} Cup Terjual</td><td class="fw-bold text-danger">${leftoverQty} Cup</td></tr>`; }).join(''); }
+        function getOutletPreorderQty(outletName, product) {
+            const todayStr = getTodayDateString();
+            const yesterdayStr = getYesterdayDateString();
+            const pIdStr = String(product.id);
+            const pNameLower = (product.name || '').toLowerCase();
+            const activeOrders = (state.preOrders || []).filter(o =>
+                o.outlet === outletName &&
+                (o.date === todayStr || o.date === yesterdayStr) &&
+                o.cancelStatus !== 'approved'
+            );
+            let totalQty = 0;
+            activeOrders.forEach(o => {
+                if (o.itemsDetail && o.itemsDetail.length > 0) {
+                    o.itemsDetail.forEach(it => {
+                        if (String(it.productId) === pIdStr) {
+                            totalQty += parseInt(it.qty) || 0;
+                        }
+                    });
+                } else if (o.items) {
+                    const parts = o.items.split(',');
+                    parts.forEach(part => {
+                        const match = part.trim().match(/^(.*?)\s*x(\d+)$/i);
+                        if (match) {
+                            const name = match[1].trim().toLowerCase();
+                            const qty = parseInt(match[2]) || 1;
+                            if (pNameLower && (name.includes(pNameLower) || pNameLower.includes(name))) {
+                                totalQty += qty;
+                            }
+                        } else if (part.trim()) {
+                            const name = part.trim().toLowerCase();
+                            if (pNameLower && (name.includes(pNameLower) || pNameLower.includes(name))) {
+                                totalQty += 1;
+                            }
+                        }
+                    });
+                }
+            });
+            return totalQty;
+        }
+        function renderKasirLeftoverTable() {
+            const tbody = document.getElementById('kasir-leftover-tbody');
+            if (!tbody) return;
+            const todayProds = getTodayProducts();
+            const targetProducts = todayProds.length > 0 ? todayProds : state.products;
+            const outletSales = state.outletSalesRecords[state.kasirActiveOutlet] || {};
+            tbody.innerHTML = targetProducts.map(p => {
+                const prodId = p.id;
+                const price = p.price;
+                const allocatedQty = getOutletStock(state.kasirActiveOutlet, p);
+                const preorderQty = getOutletPreorderQty(state.kasirActiveOutlet, p);
+                const soldQty = outletSales[prodId] ? outletSales[prodId].sold : 0;
+                const leftoverQty = Math.max(0, allocatedQty - soldQty);
+                return `<tr>
+                    <td class="fw-bold text-dark">${p.name}</td>
+                    <td>Rp ${price.toLocaleString('id-ID')}</td>
+                    <td class="fw-bold text-brand-purple">${preorderQty} Cup Dipesan</td>
+                    <td class="fw-bold text-primary">${allocatedQty} Cup</td>
+                    <td class="fw-bold text-success">${soldQty} Cup Terjual</td>
+                    <td class="fw-bold text-danger">${leftoverQty} Cup Sisa</td>
+                </tr>`;
+            }).join('');
+        }
         function submitAllKasirLeftovers() { renderAdminOutletReports(); Swal.fire({ icon: 'success', title: 'Rekap Sisa Dikirim!', text: 'Laporan sisa seluruh produk untuk ' + state.kasirActiveOutlet + ' telah diteruskan ke Admin & Owner secara real-time!', confirmButtonColor: '#6A1B9A' }); }
         function renderAdminOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'adm-report-period-filter', outletSelectId: 'adm-report-outlet-filter', cardsId: 'adm-outlet-metric-cards', summaryTbodyId: 'adm-outlet-report-tbody', leftoverTbodyId: 'adm-leftover-report-tbody', isAdmin: true }); }
         function renderOwnerOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'own-report-period-filter', outletSelectId: 'own-report-outlet-filter', cardsId: 'own-outlet-metric-cards', summaryTbodyId: 'own-outlet-report-tbody', leftoverTbodyId: 'own-leftover-report-tbody', isAdmin: false }); }
