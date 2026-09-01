@@ -603,7 +603,7 @@
                         <div class="card-custom p-3 mt-3">
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
-                                    <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Total Porsi Masak</th></tr></thead>
+                                    <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Pre-Order Manual</th><th>Total Porsi Masak</th></tr></thead>
                                     <tbody id="adm-production-tbody"></tbody>
                                 </table>
                             </div>
@@ -869,7 +869,7 @@
                         <div class="card-custom p-3 mt-3">
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
-                                    <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Total Porsi Masak</th></tr></thead>
+                                    <thead class="bg-light"><tr><th>Varian Mamam Yuk</th><th>Pre-Order Online</th><th>Pre-Order Manual</th><th>Total Porsi Masak</th></tr></thead>
                                     <tbody id="own-production-tbody"></tbody>
                                 </table>
                             </div>
@@ -1579,7 +1579,11 @@
             const prod = state.products.find(p => p.id == productId);
             const prodName = prod ? prod.name.toLowerCase() : '';
 
-            const onlinePreorder = relevantOrders.reduce((sum, o) => {
+            let onlinePreorder = 0;
+            let manualPreorder = 0;
+
+            relevantOrders.forEach(o => {
+                const isManual = o.isManual === true || (o.id && String(o.id).startsWith('ORD-M-')) || (o.customerName && String(o.customerName).includes('(Manual)'));
                 let orderQty = 0;
                 if (o.itemsDetail && Array.isArray(o.itemsDetail) && o.itemsDetail.length > 0) {
                     const item = o.itemsDetail.find(it => it.productId == productId || String(it.productId) === String(productId));
@@ -1606,9 +1610,16 @@
                         }
                     });
                 }
-                return sum + orderQty;
-            }, 0);
-            return { onlinePreorder, total: onlinePreorder };
+
+                if (isManual) {
+                    manualPreorder += orderQty;
+                } else {
+                    onlinePreorder += orderQty;
+                }
+            });
+
+            const total = onlinePreorder + manualPreorder;
+            return { onlinePreorder, manualPreorder, total };
         }
         function renderProductionGeneric(cfg) {
             const outletFilter = document.getElementById(cfg.filterSelectId)?.value || 'ALL';
@@ -1616,22 +1627,33 @@
             if (cardsEl) cardsEl.innerHTML = '';
             const tbody = document.getElementById(cfg.tbodyId);
             if (!tbody) return;
-            let totalOnline = 0, totalAll = 0;
+            let totalOnline = 0, totalManual = 0, totalAll = 0;
             let rows = '';
             let count = 0;
             state.products.forEach(p => {
-                const { onlinePreorder, total } = computeProductionNumbers(p.id, outletFilter);
+                const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
                 if (total > 0) {
                     count++;
                     totalOnline += onlinePreorder;
+                    totalManual += manualPreorder;
                     totalAll += total;
-                    rows += ` <tr><td class="fw-bold text-dark">${p.name}</td><td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td><td class="fw-bold text-brand-purple">${total} Cup</td></tr>`;
+                    rows += ` <tr>
+                        <td class="fw-bold text-dark">${p.name}</td>
+                        <td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td>
+                        <td><span class="badge bg-warning text-dark fs-8">${manualPreorder} Cup</span></td>
+                        <td class="fw-bold text-brand-purple">${total} Cup</td>
+                    </tr>`;
                 }
             });
             if (count === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}.</td></tr>`;
             } else {
-                tbody.innerHTML = rows + `<tr class="table-light"><td class="fw-bold">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td><td class="fw-bold">${totalOnline} Cup</td><td class="fw-bold text-brand-purple">${totalAll} Cup</td></tr>`;
+                tbody.innerHTML = rows + `<tr class="table-light">
+                    <td class="fw-bold">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td>
+                    <td class="fw-bold text-primary">${totalOnline} Cup</td>
+                    <td class="fw-bold text-warning text-dark">${totalManual} Cup</td>
+                    <td class="fw-bold text-brand-purple fs-7">${totalAll} Cup</td>
+                </tr>`;
             }
         }
         function renderAdminProduction() { renderProductionGeneric({ filterSelectId: 'adm-dapur-outlet-filter', cardsId: 'adm-dapur-outlet-cards', tbodyId: 'adm-production-tbody' }); }
@@ -2091,6 +2113,7 @@
                         isPaid: res.payMethod === 'Transfer',
                         payMethod: res.payMethod === 'Transfer' ? 'Transfer' : 'COD',
                         isTaken: false,
+                        isManual: true,
                         cancelStatus: null,
                         cancelReason: null,
                         memberIdentifier: null,
@@ -2127,6 +2150,82 @@
                     });
                 }
             });
+        }
+        function printDapurMasakReport(filterSelectId) {
+            const outletFilter = document.getElementById(filterSelectId)?.value || 'ALL';
+            const d = new Date();
+            const dateTimeStr = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+            let totalOnline = 0, totalManual = 0, totalAll = 0;
+            let rowsHtml = '';
+            let count = 0;
+
+            state.products.forEach(p => {
+                const { onlinePreorder, manualPreorder, total } = computeProductionNumbers(p.id, outletFilter);
+                if (total > 0) {
+                    count++;
+                    totalOnline += onlinePreorder;
+                    totalManual += manualPreorder;
+                    totalAll += total;
+                    rowsHtml += `
+                        <tr>
+                            <td style="padding: 6px 8px; border: 1px solid #ddd; font-weight: bold;">${p.name}</td>
+                            <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${onlinePreorder} Cup</td>
+                            <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${manualPreorder} Cup</td>
+                            <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #6A1B9A;">${total} Cup</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            const summaryRowHtml = count > 0 ? `
+                <tr style="background-color: #f8f9fa; font-weight: bold;">
+                    <td style="padding: 8px; border: 1px solid #ddd;">TOTAL SELURUH VARIAN (${outletFilter !== 'ALL' ? outletFilter : 'Semua Outlet'})</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #0d6efd;">${totalOnline} Cup</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #d97706;">${totalManual} Cup</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #6A1B9A; font-size: 14px;">${totalAll} Cup</td>
+                </tr>
+            ` : `<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">Belum ada pesanan untuk ${outletFilter}.</td></tr>`;
+
+            const printHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Rekapitulasi Dapur Masak - ${outletFilter}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; font-size: 13px; }
+                        h2 { margin-bottom: 5px; color: #333; }
+                        .meta { color: #666; font-size: 11px; margin-bottom: 15px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th { background-color: #6A1B9A; color: white; padding: 8px; border: 1px solid #6A1B9A; text-align: left; }
+                    </style>
+                </head>
+                <body onload="window.print(); setTimeout(() => window.close(), 600);">
+                    <h2>MAMAM YUK - Rekapitulasi Dapur Masak Esok Hari</h2>
+                    <div class="meta">Outlet: <b>${outletFilter === 'ALL' ? 'Semua Outlet (Konsolidasi)' : outletFilter}</b> | Waktu Cetak: ${dateTimeStr}</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Varian Mamam Yuk</th>
+                                <th style="text-align: center;">Pre-Order Online</th>
+                                <th style="text-align: center;">Pre-Order Manual</th>
+                                <th style="text-align: center;">Total Porsi Masak</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                            ${summaryRowHtml}
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write(printHtml);
+                printWindow.document.close();
+            }
         }
         function openKasirSwitchOutletModal() {
             const currentOutlet = state.kasirActiveOutlet || state.outlets[0];
