@@ -165,6 +165,37 @@
                 padding-bottom: 75px !important;
             }
         }
+
+        /* Background & Glassmorphism styling untuk Login */
+        .login-bg-container {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url('/images/bg-login.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            border-radius: 20px;
+            padding: 50px 20px;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            min-height: calc(100vh - 180px);
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .login-portal-bg {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55)), url('/images/bg-login.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+        }
+
+        .login-card-glass {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: 24px !important;
+            border: 1px solid rgba(255, 255, 255, 0.8) !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35) !important;
+        }
     </style>
 </head>
 <body>

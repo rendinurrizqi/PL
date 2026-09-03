@@ -251,12 +251,12 @@
                     <div id="akun-page-content"></div>
                 </div>
 
-                <div id="cust-view-login" class="cust-view" style="display:none;">
-                    <div class="card-custom p-4 max-w-500 mx-auto shadow-lg">
+                <div id="cust-view-login" class="cust-view login-bg-container" style="display:none;">
+                    <div class="card-custom p-4 max-w-500 mx-auto shadow-lg login-card-glass">
                         <div class="text-center mb-4">
-                            <div class="bg-brand-yellow text-dark d-inline-flex p-3 rounded-circle mb-2 fs-2"><i class="fa-solid fa-baby"></i></div>
+                            <div class="bg-brand-yellow text-dark d-inline-flex p-3 rounded-circle mb-2 fs-2 shadow-sm"><i class="fa-solid fa-baby"></i></div>
                             <h4 class="fw-bold text-brand-purple mb-1">Member Mamam Yuk Si Kecil</h4>
-                            <div class="bg-warning bg-opacity-15 border border-warning rounded-3 p-3 mt-3 shadow-sm">
+                            <div class="bg-warning bg-opacity-25 border border-warning rounded-3 p-3 mt-3 shadow-sm">
                                 <div class="fw-extrabold fs-6 text-dark d-flex align-items-center justify-content-center gap-2">
                                     <i class="fa-solid fa-coins text-warning fs-4"></i>
                                     <span>Daftarkan Menjadi Member Karena Akan Mendapatkan Point Setiap Pembelian</span>
