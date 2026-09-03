@@ -30,6 +30,7 @@
             font-family: 'Poppins', sans-serif;
             background-color: var(--bg-gray);
             color: #212121;
+            overflow-x: hidden;
         }
 
         .bg-brand-purple { background-color: var(--brand-purple) !important; color: #fff; }
@@ -166,35 +167,56 @@
             }
         }
 
-        /* Background & Glassmorphism styling untuk Login */
+        /* Background & Glassmorphism styling untuk Login Full Screen */
         .login-bg-container {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url('/images/bg-login.jpg');
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            border-radius: 20px;
-            padding: 50px 20px;
-            margin-top: 15px;
-            margin-bottom: 25px;
-            min-height: calc(100vh - 180px);
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            width: 100vw !important;
+            position: relative !important;
+            left: 50% !important;
+            right: 50% !important;
+            margin-left: -50vw !important;
+            margin-right: -50vw !important;
+            margin-top: -1.5rem !important;
+            margin-bottom: -2rem !important;
+            padding: 60px 15px !important;
+            min-height: calc(100vh - 64px) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.5)), url('/images/bg-login.jpg') !important;
+            background-size: cover !important;
+            background-position: center center !important;
+            background-repeat: no-repeat !important;
+            background-attachment: fixed !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
         }
 
         .login-portal-bg {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55)), url('/images/bg-login.jpg');
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.55)), url('/images/bg-login.jpg') !important;
+            background-size: cover !important;
+            background-position: center center !important;
+            background-repeat: no-repeat !important;
+            background-attachment: fixed !important;
+            width: 100%;
+            min-height: 100vh;
         }
 
         .login-card-glass {
             background: rgba(255, 255, 255, 0.95) !important;
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-radius: 24px !important;
             border: 1px solid rgba(255, 255, 255, 0.8) !important;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35) !important;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        @media (max-width: 767.98px) {
+            .login-bg-container {
+                margin-top: -1rem !important;
+                margin-bottom: -1rem !important;
+                min-height: calc(100vh - 60px) !important;
+                padding: 30px 12px !important;
+            }
         }
     </style>
 </head>
