@@ -40,7 +40,7 @@
                         </span>
                     </div>
 
-                    <button class="navbar-toggler d-none d-md-block" type="button" data-bs-toggle="collapse" data-bs-target="#custNavContent">
+                    <button class="navbar-toggler d-none" type="button" data-bs-toggle="collapse" data-bs-target="#custNavContent">
                         <span class="navbar-toggler-icon"></span>
                     </button>
 
