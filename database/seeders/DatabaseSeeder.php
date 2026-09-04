@@ -152,7 +152,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 6. Settings
-        Setting::query()->updateOrCreate(['key' => 'store_hours'], ['value' => 'BUKA (06.00 - 16.00)']);
+        Setting::query()->updateOrCreate(['key' => 'store_hours'], ['value' => 'BUKA (06.00 - 00.00)']);
         Setting::query()->updateOrCreate(['key' => 'points_earn_rate'], ['value' => '1000']);
     }
 }
