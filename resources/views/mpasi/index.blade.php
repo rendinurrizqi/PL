@@ -450,15 +450,14 @@
                         <div class="card-custom p-3 border-danger border-opacity-50">
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
-                                    <thead class="bg-light">
-                                        <tr>
-                                            <th>Varian Produk Mamam Yuk</th>
-                                            <th>Harga / Cup</th>
-                                            <th>Pre-Order (Cup)</th>
-                                            <th>Stok Hari Ini</th>
-                                            <th>Terjual POS (Cup)</th>
-                                            <th>Sisa Tidak Laku (Cup)</th>
-                                            <th>Total Keuntungan</th>
+                                    <thead>
+                                        <tr style="background-color: #F5EBFB; color: #212121; border-bottom: 2px solid #B57EDC;">
+                                            <th class="py-2 px-3 text-start">NAMA ITEM</th>
+                                            <th class="py-2 px-3 text-end">HARGA</th>
+                                            <th class="py-2 px-3 text-center">PESANAN</th>
+                                            <th class="py-2 px-3 text-center">JUALAN</th>
+                                            <th class="py-2 px-3 text-center">SISA</th>
+                                            <th class="py-2 px-3 text-end">TOTAL</th>
                                         </tr>
                                     </thead>
                                     <tbody id="kasir-leftover-tbody"></tbody>
@@ -714,18 +713,19 @@
 
                         <div class="card-custom p-3 border-danger border-opacity-25">
                             <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                                <h6 class="fw-bold text-danger mb-0"><i class="fa-solid fa-clipboard-list me-2"></i> Laporan Sisa Produk Tidak Laku Diterima Dari Kasir Outlet</h6>
+                                <h6 class="fw-bold text-danger mb-0"><i class="fa-solid fa-clipboard-list me-2"></i> Laporan Rekapan Penjualan Per Outlet</h6>
                                 <span class="badge bg-danger fs-8"><i class="fa-solid fa-circle-check me-1"></i> Terhubung Live Kasir</span>
                             </div>
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
-                                    <thead class="bg-light">
-                                        <tr>
-                                            <th>Cabang Outlet</th>
-                                            <th>Varian Produk Mamam Yuk</th>
-                                            <th>Stok Alokasi</th>
-                                            <th>Terjual (Cup)</th>
-                                            <th>Sisa Tidak Laku (Cup)</th>
+                                    <thead>
+                                        <tr style="background-color: #F5EBFB; color: #212121; border-bottom: 2px solid #B57EDC;">
+                                            <th class="py-2 px-3 text-start">NAMA ITEM</th>
+                                            <th class="py-2 px-3 text-end">HARGA</th>
+                                            <th class="py-2 px-3 text-center">PESANAN</th>
+                                            <th class="py-2 px-3 text-center">JUALAN</th>
+                                            <th class="py-2 px-3 text-center">SISA</th>
+                                            <th class="py-2 px-3 text-end">TOTAL</th>
                                         </tr>
                                     </thead>
                                     <tbody id="adm-leftover-report-tbody"></tbody>
@@ -998,18 +998,19 @@
 
                         <div class="card-custom p-3 border-danger border-opacity-25">
                             <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                                <h6 class="fw-bold text-danger mb-0"><i class="fa-solid fa-clipboard-list me-2"></i> Laporan Sisa Produk Tidak Laku Diterima Dari Kasir Outlet</h6>
+                                <h6 class="fw-bold text-danger mb-0"><i class="fa-solid fa-clipboard-list me-2"></i> Laporan Rekapan Penjualan Per Outlet</h6>
                                 <span class="badge bg-danger fs-8"><i class="fa-solid fa-circle-check me-1"></i> Terhubung Live Kasir</span>
                             </div>
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
-                                    <thead class="bg-light">
-                                        <tr>
-                                            <th>Cabang Outlet</th>
-                                            <th>Varian Produk Mamam Yuk</th>
-                                            <th>Stok Alokasi</th>
-                                            <th>Terjual (Cup)</th>
-                                            <th>Sisa Tidak Laku (Cup)</th>
+                                    <thead>
+                                        <tr style="background-color: #F5EBFB; color: #212121; border-bottom: 2px solid #B57EDC;">
+                                            <th class="py-2 px-3 text-start">NAMA ITEM</th>
+                                            <th class="py-2 px-3 text-end">HARGA</th>
+                                            <th class="py-2 px-3 text-center">PESANAN</th>
+                                            <th class="py-2 px-3 text-center">JUALAN</th>
+                                            <th class="py-2 px-3 text-center">SISA</th>
+                                            <th class="py-2 px-3 text-end">TOTAL</th>
                                         </tr>
                                     </thead>
                                     <tbody id="own-leftover-report-tbody"></tbody>
@@ -2673,38 +2674,141 @@
             });
             return totalQty;
         }
+        function buildExactFormattedReportRows(outName, showOutletHeader = false) {
+            const dayNamesMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const todayDayName = dayNamesMap[new Date().getDay()] || 'Senin';
+            const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === todayDayName.toLowerCase());
+            const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
+            
+            let todayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)) && p.status === 'Aktif');
+            if (todayProducts.length === 0) {
+                todayProducts = state.products.filter(p => p.status === 'Aktif');
+            }
+            if (todayProducts.length === 0) {
+                todayProducts = state.products;
+            }
+
+            const todayStr = getTodayDateString();
+            const salesRec = state.outletSalesRecords[outName] || {};
+
+            const preorderCounts = {};
+            let qrisPreorderTotal = 0;
+            let cashPreorderTotal = 0;
+
+            (state.preOrders || []).forEach(order => {
+                if (order.outlet === outName && order.date === todayStr && order.cancelStatus !== 'approved') {
+                    if (Array.isArray(order.cart)) {
+                        order.cart.forEach(ci => {
+                            const pid = String(ci.productId || ci.id);
+                            preorderCounts[pid] = (preorderCounts[pid] || 0) + (ci.qty || 1);
+                        });
+                    }
+                    if (order.isPaid) {
+                        const pm = (order.paymentMethod || '').toLowerCase();
+                        const isQris = pm.includes('qris') || pm.includes('bca') || pm.includes('transfer');
+                        if (isQris) {
+                            qrisPreorderTotal += (order.totalAmount || 0);
+                        } else {
+                            cashPreorderTotal += (order.totalAmount || 0);
+                        }
+                    }
+                }
+            });
+
+            let totalPesanan = 0;
+            let totalJualan = 0;
+            let totalSisa = 0;
+            let grandTotalVal = 0;
+            let rowsHtml = '';
+
+            if (showOutletHeader) {
+                rowsHtml += `<tr class="table-primary border-top border-purple-200">
+                    <td colspan="6" class="fw-extrabold text-brand-purple fs-7 py-2 text-start">
+                        <i class="fa-solid fa-store me-2"></i> CABANG OUTLET: ${outName.toUpperCase()} (MENU HARI ${todayDayName.toUpperCase()})
+                    </td>
+                </tr>`;
+            }
+
+            todayProducts.forEach(p => {
+                const pid = String(p.id);
+                const price = p.price || 0;
+                const pesanan = preorderCounts[pid] || 0;
+                const jualan = salesRec[pid] ? (salesRec[pid].sold || 0) : 0;
+                const allocated = getOutletStock(outName, p);
+                const sisa = Math.max(0, allocated - (pesanan + jualan));
+                const itemTotal = (pesanan + jualan) * price;
+
+                totalPesanan += pesanan;
+                totalJualan += jualan;
+                totalSisa += sisa;
+                grandTotalVal += itemTotal;
+
+                rowsHtml += `<tr>
+                    <td class="fw-bold text-dark text-start py-2 px-3">${p.name.toUpperCase()}</td>
+                    <td class="text-end py-2 px-3">${price.toLocaleString('id-ID')}</td>
+                    <td class="text-center py-2 px-3">${pesanan}</td>
+                    <td class="text-center py-2 px-3">${jualan}</td>
+                    <td class="text-center py-2 px-3">${sisa}</td>
+                    <td class="text-end fw-bold py-2 px-3">${itemTotal.toLocaleString('id-ID')}</td>
+                </tr>`;
+            });
+
+            const qrisPosTotal = salesRec._qrisTotal || 0;
+            const totalQris = qrisPreorderTotal + qrisPosTotal;
+            const totalPemasukan = grandTotalVal;
+            const totalCash = Math.max(0, totalPemasukan - totalQris);
+            const isCheckTrue = (totalCash + totalQris) === totalPemasukan;
+
+            const summaryRows = `
+                <tr class="fw-bold text-dark border-top border-2 border-dark" style="border-top: 2px solid #212121 !important; background-color: #F8F9FA;">
+                    <td class="text-start py-2 px-3">TOTAL</td>
+                    <td></td>
+                    <td class="text-center py-2 px-3">${totalPesanan}</td>
+                    <td class="text-center py-2 px-3">${totalJualan}</td>
+                    <td class="text-center py-2 px-3">${totalSisa}</td>
+                    <td class="text-end fw-extrabold py-2 px-3">${grandTotalVal.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr class="fw-bold text-dark">
+                    <td class="text-start py-2 px-3">PEMASUKAN</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-end py-2 px-3">${totalPemasukan.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr class="fw-bold text-dark">
+                    <td class="text-start py-2 px-3">QRIS</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-end py-2 px-3">${totalQris.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr class="fw-bold text-dark">
+                    <td class="text-start py-2 px-3">CASH</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-end fw-extrabold py-2 px-3">${totalCash.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr class="fw-bold text-dark">
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-center fw-extrabold py-2 px-3">${totalCash.toLocaleString('id-ID')}</td>
+                    <td class="text-end text-success fw-extrabold py-2 px-3">${isCheckTrue ? 'TRUE' : 'FALSE'}</td>
+                </tr>
+            `;
+
+            return rowsHtml + summaryRows;
+        }
+
         function renderKasirLeftoverTable() {
             const tbody = document.getElementById('kasir-leftover-tbody');
             if (!tbody) return;
-            const todayProds = getTodayProducts();
-            const targetProducts = todayProds.length > 0 ? todayProds : state.products;
-            const outletSales = state.outletSalesRecords[state.kasirActiveOutlet] || {};
-            let grandTotalProfit = 0;
-            const rowsHtml = targetProducts.map(p => {
-                const prodId = p.id;
-                const price = p.price;
-                const allocatedQty = getOutletStock(state.kasirActiveOutlet, p);
-                const preorderQty = getOutletPreorderQty(state.kasirActiveOutlet, p);
-                const soldQty = outletSales[prodId] ? outletSales[prodId].sold : 0;
-                const leftoverQty = Math.max(0, allocatedQty - soldQty);
-                const totalSold = soldQty + preorderQty;
-                const profit = totalSold * price;
-                grandTotalProfit += profit;
-                return `<tr>
-                    <td class="fw-bold text-dark">${p.name}</td>
-                    <td>Rp ${price.toLocaleString('id-ID')}</td>
-                    <td class="fw-bold text-brand-purple">${preorderQty} Cup Dipesan</td>
-                    <td class="fw-bold text-primary">${allocatedQty} Cup</td>
-                    <td class="fw-bold text-success">${soldQty} Cup Terjual</td>
-                    <td class="fw-bold text-danger">${leftoverQty} Cup Sisa</td>
-                    <td class="fw-bold text-success">Rp ${profit.toLocaleString('id-ID')}</td>
-                </tr>`;
-            }).join('');
-            const summaryFooter = `<tr class="table-light fw-bold">
-                <td colspan="6" class="text-end text-dark">TOTAL KEUNTUNGAN HARI INI (${state.kasirActiveOutlet}):</td>
-                <td class="text-success fs-7">Rp ${grandTotalProfit.toLocaleString('id-ID')}</td>
-            </tr>`;
-            tbody.innerHTML = rowsHtml + summaryFooter;
+            tbody.innerHTML = buildExactFormattedReportRows(state.kasirActiveOutlet, false);
         }
         function submitAllKasirLeftovers() { renderAdminOutletReports(); renderOwnerOutletReports(); Swal.fire({ icon: 'success', title: 'Rekap Laporan Dikirim!', text: 'Laporan rekapan penjualan, sisa produk, dan keuntungan untuk ' + state.kasirActiveOutlet + ' telah diteruskan ke Admin & Owner secara real-time!', confirmButtonColor: '#B57EDC' }); }
         function renderAdminOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'adm-report-period-filter', outletSelectId: 'adm-report-outlet-filter', cardsId: 'adm-outlet-metric-cards', summaryTbodyId: 'adm-outlet-report-tbody', leftoverTbodyId: 'adm-leftover-report-tbody', isAdmin: true }); }
@@ -2753,68 +2857,14 @@
             }
             const leftoverTbody = document.getElementById(cfg.leftoverTbodyId);
             if (leftoverTbody) {
-                let allLeftoverRows = [];
+                let allLeftoverRows = '';
                 const outletsToProcess = selectedOutlet === 'ALL' ? outletsList : [selectedOutlet];
-                const dayNamesMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-                const todayDayName = dayNamesMap[new Date().getDay()] || 'Senin';
-                const daysOrder = [todayDayName];
 
                 outletsToProcess.forEach(outName => {
-                    const salesRec = state.outletSalesRecords[outName] || {};
-                    let outletTotalAllocated = 0;
-                    let outletTotalSold = 0;
-                    let outletTotalLeftover = 0;
-                    let outletContentRows = [];
-
-                    daysOrder.forEach(dayName => {
-                        const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
-                        const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
-                        let dayProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)));
-                        if (dayProducts.length === 0) dayProducts = state.products;
-
-                        if (dayProducts.length > 0) {
-                            let dayRows = '';
-                            dayProducts.forEach(p => {
-                                const sold = salesRec[p.id] ? salesRec[p.id].sold : 0;
-                                const allocated = getOutletStock(outName, p);
-                                const leftover = Math.max(0, allocated - sold);
-                                outletTotalAllocated += allocated;
-                                outletTotalSold += sold;
-                                outletTotalLeftover += leftover;
-
-                                dayRows += `<tr>
-                                    <td class="fw-bold text-brand-purple ps-4"><i class="fa-solid fa-angle-right me-2 fs-8 text-secondary"></i>${outName}</td>
-                                    <td class="fw-bold text-dark">${p.name}</td>
-                                    <td>${allocated} Cup</td>
-                                    <td class="text-success fw-bold">${sold} Cup Terjual</td>
-                                    <td class="text-danger fw-bold">${leftover} Cup Sisa</td>
-                                </tr>`;
-                            });
-
-                            if (dayRows) {
-                                outletContentRows.push(`
-                                    <tr class="table-light border-top">
-                                        <td colspan="5" class="fw-bold text-brand-purple fs-8 py-1.5 ps-3">
-                                            <i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (HARI INI)
-                                        </td>
-                                    </tr>
-                                ` + dayRows);
-                            }
-                        }
-                    });
-
-                    if (outletContentRows.length > 0) {
-                        allLeftoverRows.push(`
-                            <tr class="table-primary border-top border-purple-200">
-                                <td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2">
-                                    <i class="fa-solid fa-store me-2"></i> Cabang Outlet: ${outName} (Total Alokasi: ${outletTotalAllocated} Cup | Terjual: ${outletTotalSold} Cup | Total Sisa: ${outletTotalLeftover} Cup)
-                                </td>
-                            </tr>
-                        ` + outletContentRows.join(''));
-                    }
+                    allLeftoverRows += buildExactFormattedReportRows(outName, selectedOutlet === 'ALL');
                 });
 
-                leftoverTbody.innerHTML = allLeftoverRows.join('') || `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada data sisa produk untuk hari ini.</td></tr>`;
+                leftoverTbody.innerHTML = allLeftoverRows || `<tr><td colspan="6" class="text-center text-muted fs-8 fst-italic py-3">Belum ada data rekapan penjualan untuk hari ini.</td></tr>`;
             }
         }
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); renderAdminOutletStockTable(); }
