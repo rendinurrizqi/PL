@@ -13,9 +13,9 @@
 
     <style>
         :root {
-            --brand-purple: #6A1B9A;
-            --brand-purple-hover: #4A148C;
-            --brand-purple-light: #F3E5F5;
+            --brand-purple: #8C52FF;
+            --brand-purple-hover: #703BE3;
+            --brand-purple-light: #F3E8FF;
             --brand-yellow: #FBC02D;
             --brand-yellow-hover: #F57F17;
             --brand-yellow-light: #FFFDE7;
@@ -39,9 +39,11 @@
         .text-brand-yellow { color: var(--brand-yellow) !important; }
         .btn-brand-purple { background-color: var(--brand-purple); color: #fff; border: none; }
         .btn-brand-purple:hover { background-color: var(--brand-purple-hover); color: #fff; }
+        .btn-outline-purple { color: var(--brand-purple); border-color: var(--brand-purple); }
+        .btn-outline-purple:hover { background-color: var(--brand-purple); color: #fff; }
         .btn-brand-yellow { background-color: var(--brand-yellow); color: #000; border: none; font-weight: 600; }
         .btn-brand-yellow:hover { background-color: var(--brand-yellow-hover); color: #000; }
-        .border-purple-200 { border-color: #E1BEE7 !important; }
+        .border-purple-200 { border-color: #E9D5FF !important; }
         .bg-purple-light { background-color: var(--brand-purple-light) !important; }
 
         .navbar-custom {
@@ -62,11 +64,11 @@
             transition: all 0.2s ease-in-out;
         }
         .card-custom:hover {
-            box-shadow: 0 8px 25px rgba(106, 27, 154, 0.08);
+            box-shadow: 0 8px 25px rgba(140, 82, 255, 0.12);
         }
 
         .hero-banner {
-            background: linear-gradient(135deg, var(--brand-purple) 0%, #4A148C 100%);
+            background: linear-gradient(135deg, var(--brand-purple) 0%, #703BE3 100%);
             color: #ffffff;
             border-radius: var(--radius-lg);
             padding: 30px;
@@ -80,7 +82,7 @@
             flex-shrink: 0;
         }
         .role-sidebar .nav-link {
-            color: #E1BEE7;
+            color: #E9D5FF;
             padding: 12px 16px;
             border-radius: var(--radius-md);
             margin-bottom: 4px;
@@ -119,7 +121,7 @@
             background: rgba(255, 255, 255, 0.98) !important;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(106, 27, 154, 0.12) !important;
+            border-top: 1px solid rgba(140, 82, 255, 0.18) !important;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
             height: 64px;
         }
