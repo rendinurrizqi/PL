@@ -81,8 +81,10 @@ class MpasiController extends Controller
 
     public function portalLoginPage()
     {
+        $settings = Setting::query()->pluck('value', 'key')->toArray();
         return view('portal.login', [
             'portalTitle' => 'Mamam Yuk',
+            'settings' => $settings,
         ]);
     }
 
@@ -476,6 +478,35 @@ class MpasiController extends Controller
         return response()->json([
             'success' => true,
             'rate' => (int) $validated['rate'],
+        ]);
+    }
+
+    public function apiUpdateBgImage(Request $request)
+    {
+        $validated = $request->validate([
+            'bg_image' => 'nullable|string',
+            'image_file' => 'nullable|image|max:5120',
+        ]);
+
+        $bgImageUrl = null;
+
+        if ($request->hasFile('image_file')) {
+            $file = $request->file('image_file');
+            $filename = 'bg-custom-' . time() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('images'), $filename);
+            $bgImageUrl = '/images/' . $filename;
+        } elseif (!empty($validated['bg_image'])) {
+            $bgImageUrl = $validated['bg_image'];
+        } else {
+            $bgImageUrl = '/images/bg-login.jpg';
+        }
+
+        $this->setSetting('bg_login_image', $bgImageUrl);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gambar latar belakang berhasil diperbarui.',
+            'bg_image' => $bgImageUrl,
         ]);
     }
 

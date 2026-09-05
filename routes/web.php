@@ -27,6 +27,7 @@ Route::post('/member/login', [MpasiController::class, 'loginMember'])->name('mpa
 Route::post('/member/profile', [MpasiController::class, 'updateMemberProfile'])->name('mpasi.member.profile');
 Route::post('/member/redeem-reward', [MpasiController::class, 'redeemReward'])->name('mpasi.member.redeem');
 Route::post('/points/rate', [MpasiController::class, 'updatePointsRate'])->name('mpasi.points.rate');
+Route::post('/api/settings/bg-image', [MpasiController::class, 'apiUpdateBgImage'])->name('mpasi.settings.bg-image');
 
 Route::get('/portal/login', [MpasiController::class, 'portalLoginPage'])->name('portal.login');
 Route::post('/portal/login', [MpasiController::class, 'portalLoginSubmit'])->name('portal.login.submit');

@@ -769,6 +769,9 @@
                             <i class="fa-solid fa-key"></i> Reset Password Pelanggan
                             <span id="owner-resetpass-badge" class="badge bg-danger fs-8 ms-auto" style="display:none;">0</span>
                         </a>
+                        <a class="nav-link" href="#" onclick="switchOwnerTab('background')">
+                            <i class="fa-solid fa-image"></i> Ubah Latar Belakang
+                        </a>
                     </nav>
 
                     <div class="mt-4 pt-3 border-top border-purple-200 px-1">
@@ -1178,6 +1181,107 @@
                             </div>
                         </div>
                     </div>
+
+                    <div id="owner-tab-background" class="owner-tab-content" style="display:none;">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                            <div>
+                                <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-image text-brand-purple me-2"></i> Pengaturan Gambar Latar Belakang</h4>
+                                <p class="text-muted fs-7 mb-0">Ubah gambar latar belakang (background) portal login dan tampilan pelanggan secara langsung dari Portal Owner.</p>
+                            </div>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-lg-7">
+                                <div class="card-custom p-4 border-purple-200 shadow-sm h-100">
+                                    <h6 class="fw-bold text-brand-purple border-bottom pb-2 mb-3">
+                                        <i class="fa-solid fa-upload me-2"></i> Pilih / Unggah Gambar Latar Belakang
+                                    </h6>
+                                    
+                                    <form id="owner-bg-form" onsubmit="saveOwnerBgImage(event)">
+                                        <!-- Opsi 1: Unggah File Gambar -->
+                                        <div class="mb-3">
+                                            <label class="form-label fs-7 fw-bold text-dark mb-1">
+                                                <i class="fa-solid fa-file-image me-1 text-brand-purple"></i> Unggah File Gambar Baru (Komputer / HP)
+                                            </label>
+                                            <input type="file" id="owner-bg-file-input" class="form-control form-control-sm border-purple-200" accept="image/*" onchange="handleBgFileSelect(event)">
+                                            <div class="form-text fs-8 text-muted mt-1">Format didukung: JPG, PNG, WEBP (Maksimal 5MB).</div>
+                                        </div>
+
+                                        <div class="d-flex align-items-center my-3">
+                                            <hr class="flex-grow-1 border-purple-200 my-0">
+                                            <span class="px-3 text-muted fs-8 fw-bold text-uppercase">ATAU</span>
+                                            <hr class="flex-grow-1 border-purple-200 my-0">
+                                        </div>
+
+                                        <!-- Opsi 2: URL Gambar -->
+                                        <div class="mb-3">
+                                            <label class="form-label fs-7 fw-bold text-dark mb-1">
+                                                <i class="fa-solid fa-link me-1 text-brand-purple"></i> Masukkan Link / URL Gambar Web
+                                            </label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-purple-light border-purple-200 text-brand-purple"><i class="fa-solid fa-globe"></i></span>
+                                                <input type="url" id="owner-bg-url-input" class="form-control border-purple-200 fs-7 fw-semibold" placeholder="https://example.com/gambar-background.jpg" oninput="handleBgUrlInput(event)">
+                                            </div>
+                                        </div>
+
+                                        <!-- Opsi 3: Preset Pilihan -->
+                                        <div class="mb-4">
+                                            <label class="form-label fs-7 fw-bold text-dark mb-2">
+                                                <i class="fa-solid fa-palette me-1 text-brand-purple"></i> Gunakan Preset Background Siap Pakai:
+                                            </label>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <button type="button" class="btn btn-sm btn-outline-purple fw-bold fs-8" onclick="applyBgPreset('/images/bg-login.jpg')">
+                                                    <i class="fa-solid fa-rotate-left me-1"></i> Asli (Mamam Yuk Default)
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-warning text-dark fw-bold fs-8" onclick="applyBgPreset('https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1600&q=80')">
+                                                    <i class="fa-solid fa-carrot me-1"></i> Healthy Organic Food
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-info text-dark fw-bold fs-8" onclick="applyBgPreset('https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1600&q=80')">
+                                                    <i class="fa-solid fa-utensils me-1"></i> Warm Kitchen & Bakery
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-success fw-bold fs-8" onclick="applyBgPreset('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1600&q=80')">
+                                                    <i class="fa-solid fa-leaf me-1"></i> Fresh Veggies Pastel
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex gap-2 pt-3 border-top">
+                                            <button type="submit" class="btn btn-brand-purple fw-bold py-2 px-4 shadow-sm fs-7">
+                                                <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Gambar Latar Belakang
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger fw-bold py-2 px-3 fs-7" onclick="resetBgToDefault()">
+                                                <i class="fa-solid fa-arrow-rotate-left me-1"></i> Reset Default
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-5">
+                                <div class="card-custom p-4 border-purple-200 shadow-sm h-100 bg-light">
+                                    <h6 class="fw-bold text-brand-purple border-bottom pb-2 mb-3">
+                                        <i class="fa-solid fa-eye me-2"></i> Live Preview Tampilan Latar Belakang
+                                    </h6>
+                                    
+                                    <div id="owner-bg-preview-card" class="rounded-4 overflow-hidden shadow-lg p-4 d-flex flex-column align-items-center justify-content-center text-center position-relative" style="min-height: 280px; background-size: cover; background-position: center; transition: all 0.3s ease;">
+                                        <div class="position-absolute inset-0 bg-dark bg-opacity-40" style="backdrop-filter: blur(2px);"></div>
+                                        
+                                        <div class="position-relative z-1 bg-white bg-opacity-95 p-4 rounded-4 shadow border w-100" style="max-width: 320px;">
+                                            <div class="bg-brand-yellow text-dark p-2 rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;">
+                                                <i class="fa-solid fa-user-shield fs-5"></i>
+                                            </div>
+                                            <h6 class="fw-bold text-brand-purple mb-1">Portal Mamam Yuk</h6>
+                                            <p class="text-muted fs-8 mb-3">Tampilan login dengan background baru.</p>
+                                            <button type="button" class="btn btn-brand-purple btn-sm w-100 fw-bold disabled" style="opacity:0.85;">Contoh Tombol Login</button>
+                                        </div>
+                                    </div>
+                                    <div class="fs-8 text-muted text-center mt-3">
+                                        <i class="fa-solid fa-circle-info me-1 text-brand-purple"></i> Preview di atas akan langsung berubah sesuai pilihan gambar Anda secara realtime.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1479,7 +1583,192 @@
             }
         }
         function switchAdminTab(tabName) { document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#admin-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('admin-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } }
-        function switchOwnerTab(tabName) { document.querySelectorAll('.owner-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#owner-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('owner-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } if (tabName === 'poin') renderOwnerProductPointsTable(); if (tabName === 'pengeluaran') renderOwnerExpenses(); }
+        function switchOwnerTab(tabName) { document.querySelectorAll('.owner-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#owner-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('owner-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } if (tabName === 'poin') renderOwnerProductPointsTable(); if (tabName === 'pengeluaran') renderOwnerExpenses(); if (tabName === 'background') initOwnerBgTab(); }
+
+        let ownerSelectedBgImage = '{{ $settings["bg_login_image"] ?? "/images/bg-login.jpg" }}';
+        let ownerBgFileObj = null;
+
+        function updateBgPreview(url) {
+            const previewEl = document.getElementById('owner-bg-preview-card');
+            if (previewEl) {
+                previewEl.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.5)), url('${url}')`;
+            }
+        }
+
+        function applyDynamicBgCss(url) {
+            let dynamicStyle = document.getElementById('dynamic-bg-style');
+            if (!dynamicStyle) {
+                dynamicStyle = document.createElement('style');
+                dynamicStyle.id = 'dynamic-bg-style';
+                document.head.appendChild(dynamicStyle);
+            }
+            dynamicStyle.innerHTML = `
+                .login-bg-container {
+                    background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.5)), url('${url}') !important;
+                }
+                .login-portal-bg {
+                    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.55)), url('${url}') !important;
+                }
+            `;
+        }
+
+        function initOwnerBgTab() {
+            const currentBg = state.settings?.bg_login_image || ownerSelectedBgImage || '/images/bg-login.jpg';
+            ownerSelectedBgImage = currentBg;
+            ownerBgFileObj = null;
+            const fileInput = document.getElementById('owner-bg-file-input');
+            const urlInput = document.getElementById('owner-bg-url-input');
+            if (fileInput) fileInput.value = '';
+            if (urlInput) {
+                urlInput.value = (currentBg.startsWith('http') || currentBg.startsWith('/images/bg-')) ? (currentBg.startsWith('http') ? currentBg : '') : '';
+            }
+            updateBgPreview(currentBg);
+        }
+
+        function handleBgFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            ownerBgFileObj = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                ownerSelectedBgImage = e.target.result;
+                const urlInput = document.getElementById('owner-bg-url-input');
+                if (urlInput) urlInput.value = '';
+                updateBgPreview(ownerSelectedBgImage);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleBgUrlInput(event) {
+            const url = event.target.value.trim();
+            ownerBgFileObj = null;
+            const fileInput = document.getElementById('owner-bg-file-input');
+            if (fileInput) fileInput.value = '';
+            if (url) {
+                ownerSelectedBgImage = url;
+                updateBgPreview(url);
+            } else {
+                ownerSelectedBgImage = '/images/bg-login.jpg';
+                updateBgPreview('/images/bg-login.jpg');
+            }
+        }
+
+        function applyBgPreset(url) {
+            ownerBgFileObj = null;
+            ownerSelectedBgImage = url;
+            const fileInput = document.getElementById('owner-bg-file-input');
+            const urlInput = document.getElementById('owner-bg-url-input');
+            if (fileInput) fileInput.value = '';
+            if (urlInput) urlInput.value = url.startsWith('http') ? url : '';
+            updateBgPreview(url);
+            Swal.fire({
+                icon: 'info',
+                title: 'Preset Dipilih!',
+                text: 'Klik "Simpan Gambar Latar Belakang" untuk menerapkan ke seluruh sistem.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        function resetBgToDefault() {
+            ownerBgFileObj = null;
+            ownerSelectedBgImage = '/images/bg-login.jpg';
+            const fileInput = document.getElementById('owner-bg-file-input');
+            const urlInput = document.getElementById('owner-bg-url-input');
+            if (fileInput) fileInput.value = '';
+            if (urlInput) urlInput.value = '';
+            updateBgPreview('/images/bg-login.jpg');
+            
+            Swal.fire({
+                title: 'Reset ke Gambar Default?',
+                text: 'Gambar latar belakang akan dikembalikan ke gambar standar Mamam Yuk.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Reset Sekarang',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#6A1B9A'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    saveOwnerBgImageDirect('/images/bg-login.jpg');
+                }
+            });
+        }
+
+        function saveOwnerBgImage(e) {
+            if (e) e.preventDefault();
+            
+            if (ownerBgFileObj) {
+                const formData = new FormData();
+                formData.append('image_file', ownerBgFileObj);
+                formData.append('_token', '{{ csrf_token() }}');
+                
+                startLoading();
+                fetch('/api/settings/bg-image', {
+                    method: 'POST',
+                    body: formData
+                }).then(async r => {
+                    const data = await r.json().catch(() => ({}));
+                    if (!r.ok || data.success === false) {
+                        throw new Error(data.message || 'Gagal mengunggah gambar latar belakang');
+                    }
+                    return data;
+                }).then(data => {
+                    state.settings = state.settings || {};
+                    state.settings['bg_login_image'] = data.bg_image;
+                    ownerSelectedBgImage = data.bg_image;
+                    applyDynamicBgCss(data.bg_image);
+                    updateBgPreview(data.bg_image);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil Disimpan! 🎉',
+                        text: 'Gambar latar belakang portal berhasil diperbarui.',
+                        timer: 1600,
+                        showConfirmButton: false
+                    });
+                }).catch(err => {
+                    Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: err.message || 'Terjadi kesalahan saat mengunggah.' });
+                }).finally(() => {
+                    endLoading();
+                });
+            } else {
+                saveOwnerBgImageDirect(ownerSelectedBgImage);
+            }
+        }
+
+        function saveOwnerBgImageDirect(bgUrl) {
+            startLoading();
+            fetch('/api/settings/bg-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ bg_image: bgUrl })
+            }).then(async r => {
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok || data.success === false) {
+                    throw new Error(data.message || 'Gagal menyimpan gambar latar belakang');
+                }
+                return data;
+            }).then(data => {
+                state.settings = state.settings || {};
+                state.settings['bg_login_image'] = data.bg_image;
+                ownerSelectedBgImage = data.bg_image;
+                applyDynamicBgCss(data.bg_image);
+                updateBgPreview(data.bg_image);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Disimpan! 🎉',
+                    text: 'Gambar latar belakang portal berhasil diperbarui.',
+                    timer: 1600,
+                    showConfirmButton: false
+                });
+            }).catch(err => {
+                Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: err.message || 'Terjadi kesalahan sistem.' });
+            }).finally(() => {
+                endLoading();
+            });
+        }
         function switchOwnerPoinSubTab(tabName) { const memberPane = document.getElementById('owner-poin-sub-member'); const rewardPane = document.getElementById('owner-poin-sub-reward'); const ratePane = document.getElementById('owner-poin-sub-rate'); if (memberPane) memberPane.style.display = tabName === 'member' ? 'block' : 'none'; if (rewardPane) rewardPane.style.display = tabName === 'reward' ? 'block' : 'none'; if (ratePane) ratePane.style.display = tabName === 'rate' ? 'block' : 'none'; document.querySelectorAll('#owner-poin-subnav .nav-link').forEach(el => { el.classList.remove('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); el.classList.add('border'); }); if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); } if (tabName === 'rate') { const rateInput = document.getElementById('owner-points-rate-input'); if (rateInput) rateInput.value = state.pointsEarnRate; updatePointsRateExample(); renderOwnerProductPointsTable(); } }
         function switchCustView(viewName) { document.querySelectorAll('.cust-view').forEach(el => el.style.display = 'none'); document.querySelectorAll('.navbar-custom .nav-link').forEach(el => el.classList.remove('active')); document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active')); const target = document.getElementById('cust-view-' + viewName); if (target) target.style.display = 'block'; const navTarget = document.getElementById('cust-nav-' + viewName); if (navTarget) navTarget.classList.add('active'); const mobileNavTarget = document.getElementById('mobile-nav-' + viewName); if (mobileNavTarget) mobileNavTarget.classList.add('active'); const mobileBottomNav = document.querySelector('.mobile-bottom-nav'); const custNavContent = document.getElementById('custNavContent'); const custToggler = document.querySelector('.navbar-toggler'); if (viewName === 'login') { if (mobileBottomNav) mobileBottomNav.style.setProperty('display', 'none', 'important'); if (custNavContent) custNavContent.style.setProperty('display', 'none', 'important'); if (custToggler) custToggler.style.setProperty('display', 'none', 'important'); } else { if (mobileBottomNav) mobileBottomNav.style.removeProperty('display'); if (custNavContent) custNavContent.style.removeProperty('display'); if (custToggler) custToggler.style.removeProperty('display'); } if (viewName === 'checkout') prefillCheckoutForm(); if (viewName === 'poin') renderCustomerPointsPage(); if (viewName === 'akun') renderCustomerProfilePage(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
         function updateStoreHoursStatus() { state.isStoreOpen = true; const alertEl = document.getElementById('closed-hours-alert'); const labelEl = document.getElementById('store-hours-label'); const mobileLabelEl = document.getElementById('store-hours-label-mobile'); if (alertEl) alertEl.style.display = 'none'; if (labelEl) labelEl.innerHTML = '<span id="store-hours-dot" class="d-inline-block rounded-circle bg-success" style="width:8px;height:8px;"></span> BUKA 24 Jam'; if (mobileLabelEl) mobileLabelEl.innerHTML = '<span id="store-hours-dot-mobile" class="d-inline-block rounded-circle bg-success" style="width:7px;height:7px;"></span> BUKA'; }

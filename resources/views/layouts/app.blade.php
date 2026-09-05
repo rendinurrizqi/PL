@@ -167,6 +167,10 @@
             }
         }
 
+        @php
+            $currentBgImage = $settings['bg_login_image'] ?? \App\Models\Setting::query()->where('key', 'bg_login_image')->value('value') ?? '/images/bg-login.jpg';
+        @endphp
+
         /* Background & Glassmorphism styling untuk Login Full Screen */
         .login-bg-container {
             width: 100vw !important;
@@ -182,7 +186,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.5)), url('/images/bg-login.jpg') !important;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.5)), url('{{ $currentBgImage }}') !important;
             background-size: cover !important;
             background-position: center center !important;
             background-repeat: no-repeat !important;
@@ -192,7 +196,7 @@
         }
 
         .login-portal-bg {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.55)), url('/images/bg-login.jpg') !important;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.55)), url('{{ $currentBgImage }}') !important;
             background-size: cover !important;
             background-position: center center !important;
             background-repeat: no-repeat !important;
