@@ -3244,11 +3244,20 @@
                 return;
             }
 
+            const tomorrowName = getTomorrowDayName();
+            let targetProducts = getTomorrowProducts();
+            if (!targetProducts || targetProducts.length === 0) {
+                targetProducts = state.products.filter(p => p.status === 'Aktif');
+            }
+            if (!targetProducts || targetProducts.length === 0) {
+                targetProducts = state.products;
+            }
+
             const outletsOptions = (state.outlets && state.outlets.length > 0)
                 ? state.outlets.map(o => `<option value="${escAttr(o)}">${o}</option>`).join('')
                 : '<option value="Outlet Utama">Outlet Utama</option>';
 
-            const productsInputsHtml = state.products.map(p => `
+            const productsInputsHtml = targetProducts.map(p => `
                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                     <div class="text-start pe-2" style="flex: 1;">
                         <div class="fw-bold fs-8 text-dark">${p.name}</div>
@@ -3264,7 +3273,7 @@
                 title: '<i class="fa-solid fa-plus-circle text-brand-purple me-2"></i>Tambah Pesanan Manual (Offline / WA)',
                 width: '580px',
                 html: `
-                    <div class="text-start fs-8 text-muted mb-3">Input pesanan untuk pelanggan yang memesan secara langsung via WhatsApp, Telepon, atau Offline Walk-in.</div>
+                    <div class="text-start fs-8 text-muted mb-3">Input pesanan untuk pelanggan yang memesan secara langsung via WhatsApp, Telepon, atau Offline Walk-in (diambil besok, Hari ${tomorrowName}).</div>
                     <div class="text-start mb-2">
                         <label class="form-label fs-8 fw-bold mb-1 text-dark">Nama Bunda / Pelanggan *</label>
                         <input id="swal-mname" class="form-control form-control-sm border-purple-200" placeholder="Contoh: Bunda Rina (Offline / WA)">
@@ -3289,7 +3298,7 @@
                         </select>
                     </div>
                     <div class="text-start mb-1">
-                        <label class="form-label fs-8 fw-bold mb-1 text-dark"><i class="fa-solid fa-utensils me-1 text-brand-purple"></i> Pilih Varian & Jumlah Cup *</label>
+                        <label class="form-label fs-8 fw-bold mb-1 text-dark"><i class="fa-solid fa-utensils me-1 text-brand-purple"></i> Pilih Varian & Jumlah Cup (Menu Besok - Hari ${tomorrowName}) *</label>
                     </div>
                     <div style="max-height: 200px; overflow-y: auto;" class="border rounded p-2 bg-light">
                         ${productsInputsHtml}
@@ -3319,7 +3328,7 @@
                     const itemsParts = [];
                     let totalAmount = 0;
 
-                    state.products.forEach(p => {
+                    targetProducts.forEach(p => {
                         const qtyInput = document.getElementById('swal-mqty-' + p.id);
                         const qty = parseInt(qtyInput ? qtyInput.value : 0);
                         if (!isNaN(qty) && qty > 0) {
