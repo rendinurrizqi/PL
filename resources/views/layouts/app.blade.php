@@ -13,9 +13,9 @@
 
     <style>
         :root {
-            --brand-purple: #8C52FF;
-            --brand-purple-hover: #703BE3;
-            --brand-purple-light: #F3E8FF;
+            --brand-purple: #B57EDC;
+            --brand-purple-hover: #9B56C7;
+            --brand-purple-light: #F5EBFB;
             --brand-yellow: #FBC02D;
             --brand-yellow-hover: #F57F17;
             --brand-yellow-light: #FFFDE7;
@@ -43,7 +43,7 @@
         .btn-outline-purple:hover { background-color: var(--brand-purple); color: #fff; }
         .btn-brand-yellow { background-color: var(--brand-yellow); color: #000; border: none; font-weight: 600; }
         .btn-brand-yellow:hover { background-color: var(--brand-yellow-hover); color: #000; }
-        .border-purple-200 { border-color: #E9D5FF !important; }
+        .border-purple-200 { border-color: #E5CCF4 !important; }
         .bg-purple-light { background-color: var(--brand-purple-light) !important; }
 
         .navbar-custom {
@@ -64,11 +64,11 @@
             transition: all 0.2s ease-in-out;
         }
         .card-custom:hover {
-            box-shadow: 0 8px 25px rgba(140, 82, 255, 0.12);
+            box-shadow: 0 8px 25px rgba(181, 126, 220, 0.15);
         }
 
         .hero-banner {
-            background: linear-gradient(135deg, var(--brand-purple) 0%, #703BE3 100%);
+            background: linear-gradient(135deg, var(--brand-purple) 0%, #9B56C7 100%);
             color: #ffffff;
             border-radius: var(--radius-lg);
             padding: 30px;
@@ -82,7 +82,7 @@
             flex-shrink: 0;
         }
         .role-sidebar .nav-link {
-            color: #E9D5FF;
+            color: #F5EBFB;
             padding: 12px 16px;
             border-radius: var(--radius-md);
             margin-bottom: 4px;
@@ -121,7 +121,7 @@
             background: rgba(255, 255, 255, 0.98) !important;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(140, 82, 255, 0.18) !important;
+            border-top: 1px solid rgba(181, 126, 220, 0.25) !important;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
             height: 64px;
         }
