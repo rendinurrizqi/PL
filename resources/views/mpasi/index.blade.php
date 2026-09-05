@@ -413,6 +413,27 @@
                                             <span id="pos-total-display" class="text-brand-purple">Rp 0</span>
                                         </div>
 
+                                        <!-- Pilih Metode Pembayaran (Uang Cash / QRIS / Transfer) -->
+                                        <div class="mb-3 p-2.5 bg-light rounded-3 border">
+                                            <label class="form-label fs-8 fw-bold text-brand-purple mb-2 d-block">
+                                                <i class="fa-solid fa-credit-card me-1"></i> Metode Pembayaran Kasir
+                                            </label>
+                                            <div class="d-flex gap-2">
+                                                <div class="form-check flex-fill p-2 border rounded-3 bg-white text-center cursor-pointer mb-0">
+                                                    <input class="form-check-input ms-0 me-1.5 cursor-pointer" type="radio" name="posPaymentMethod" id="posPayCash" value="cash" checked>
+                                                    <label class="form-check-label fw-bold text-dark cursor-pointer fs-8" for="posPayCash">
+                                                        <i class="fa-solid fa-money-bill-wave text-success me-1"></i> Uang Cash
+                                                    </label>
+                                                </div>
+                                                <div class="form-check flex-fill p-2 border rounded-3 bg-white text-center cursor-pointer mb-0">
+                                                    <input class="form-check-input ms-0 me-1.5 cursor-pointer" type="radio" name="posPaymentMethod" id="posPayQris" value="qris">
+                                                    <label class="form-check-label fw-bold text-dark cursor-pointer fs-8" for="posPayQris">
+                                                        <i class="fa-solid fa-qrcode text-primary me-1"></i> QRIS / Transfer
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <!-- Pilihan Cetak Belanja (Ya / Engga) -->
                                         <div class="mb-3 p-2.5 bg-purple-light rounded-3 border border-purple-200">
                                             <label class="form-label fs-8 fw-bold text-brand-purple mb-1.5 d-block"><i class="fa-solid fa-print me-1"></i> Cetak Struk Belanja?</label>
@@ -2544,9 +2565,10 @@
             }
         }
 
-        function printPosReceipt(items, subtotal, discountAmount, finalTotal, outletName, trxId) {
+        function printPosReceipt(items, subtotal, discountAmount, finalTotal, outletName, trxId, payMethod = 'cash') {
             const d = new Date();
             const dateTimeStr = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const payMethodLabel = payMethod === 'qris' ? 'QRIS / Transfer' : 'Uang Cash';
 
             const itemsHtml = items.map(item => `
                 <tr>
@@ -2594,6 +2616,7 @@
                         <div style="font-size: 11px; font-weight: bold;">${outletName || 'Outlet Kasir'}</div>
                         <div style="font-size: 10px; color: #333; margin-top: 2px;">Waktu: ${dateTimeStr}</div>
                         <div style="font-size: 10px; color: #333;">No. Trx: <b>${trxId}</b></div>
+                        <div style="font-size: 10px; color: #333;">Bayar: <b>${payMethodLabel}</b></div>
                     </div>
                     <div class="border-dashed"></div>
                     <table>
@@ -2630,6 +2653,7 @@
             }
 
             const printOption = document.querySelector('input[name="posPrintReceipt"]:checked')?.value || 'yes';
+            const payMethod = document.querySelector('input[name="posPaymentMethod"]:checked')?.value || 'cash';
             const { subtotal, discountAmount, finalTotal } = calculatePosTotals();
             const totalPosQty = state.posCart.reduce((a, b) => a + b.qty, 0);
             const trxId = 'POS-' + Math.floor(1000 + Math.random() * 9000);
@@ -2638,6 +2662,12 @@
 
             if (!state.outletSalesRecords[activeOutlet]) {
                 state.outletSalesRecords[activeOutlet] = {};
+            }
+
+            if (payMethod === 'qris') {
+                state.outletSalesRecords[activeOutlet]._qrisTotal = (state.outletSalesRecords[activeOutlet]._qrisTotal || 0) + finalTotal;
+            } else {
+                state.outletSalesRecords[activeOutlet]._cashTotal = (state.outletSalesRecords[activeOutlet]._cashTotal || 0) + finalTotal;
             }
 
             state.posCart.forEach(item => {
@@ -2671,12 +2701,13 @@
             renderAdminProduction();
             renderOwnerProduction();
 
+            const payMethodText = payMethod === 'qris' ? 'QRIS / Transfer' : 'Uang Cash';
             if (printOption === 'yes') {
-                printPosReceipt(purchasedItems, subtotal, discountAmount, finalTotal, activeOutlet, trxId);
+                printPosReceipt(purchasedItems, subtotal, discountAmount, finalTotal, activeOutlet, trxId, payMethod);
                 Swal.fire({
                     icon: 'success',
                     title: 'Transaksi POS Berhasil! 🧾',
-                    text: discountAmount > 0 ? `Penjualan tercatat (Diskon Rp ${discountAmount.toLocaleString('id-ID')}), stok dipotong, dan struk belanja dicetak!` : 'Penjualan tercatat, stok dipotong, dan struk belanja dicetak!',
+                    text: `Metode: ${payMethodText}. Penjualan tercatat, stok dipotong, dan struk dicetak!`,
                     timer: 1800,
                     showConfirmButton: false
                 });
@@ -2684,7 +2715,7 @@
                 Swal.fire({
                     icon: 'success',
                     title: 'Transaksi POS Berhasil!',
-                    text: discountAmount > 0 ? `Penjualan tercatat (Diskon Rp ${discountAmount.toLocaleString('id-ID')}) dan stok dipotong.` : 'Penjualan tercatat dan stok dipotong (tanpa cetak struk).',
+                    text: `Metode: ${payMethodText}. Penjualan tercatat dan stok dipotong.`,
                     timer: 1800,
                     showConfirmButton: false
                 });
