@@ -16,9 +16,9 @@
             --brand-purple: #B57EDC;
             --brand-purple-hover: #9B56C7;
             --brand-purple-light: #F5EBFB;
-            --brand-yellow: #FBC02D;
-            --brand-yellow-hover: #F57F17;
-            --brand-yellow-light: #FFFDE7;
+            --brand-yellow: #FCD249;
+            --brand-yellow-hover: #EAB82E;
+            --brand-yellow-light: #FFF9E5;
             --dark-navy: #1A237E;
             --bg-gray: #F8F9FA;
             --border-color: #E0E0E0;
