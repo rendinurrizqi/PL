@@ -2042,6 +2042,8 @@
             let processedProdIds = new Set();
             let totalItemCount = 0;
 
+            const outletLabel = outletFilter === 'ALL' ? 'Semua Outlet (Konsolidasi)' : outletFilter;
+
             filteredDays.forEach(dayName => {
                 const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
                 const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
@@ -2063,33 +2065,32 @@
                     }
                     const totalPorsiMasak = onlinePreorder + manualPreorder + productStock;
 
-                    if (totalPorsiMasak > 0 || dayFilter !== 'ALL') {
-                        totalItemCount++;
-                        dayOnline += onlinePreorder;
-                        dayManual += manualPreorder;
-                        dayStock += productStock;
-                        dayTotal += totalPorsiMasak;
-                        dayRows += `<tr>
-                            <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-brand-purple fs-8"></i>${p.name}</td>
-                            <td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td>
-                            <td><span class="badge bg-warning text-dark fs-8">${manualPreorder} Cup</span></td>
-                            <td><span class="badge bg-info text-dark fs-8">${productStock} Cup</span></td>
-                            <td class="fw-bold text-brand-purple">${totalPorsiMasak} Cup</td>
-                        </tr>`;
-                    }
+                    totalItemCount++;
+                    dayOnline += onlinePreorder;
+                    dayManual += manualPreorder;
+                    dayStock += productStock;
+                    dayTotal += totalPorsiMasak;
+                    dayRows += `<tr>
+                        <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-brand-purple fs-8"></i>${p.name}</td>
+                        <td><span class="badge bg-primary fs-8">${onlinePreorder} Cup</span></td>
+                        <td><span class="badge bg-warning text-dark fs-8">${manualPreorder} Cup</span></td>
+                        <td><span class="badge bg-info text-dark fs-8">${productStock} Cup</span></td>
+                        <td class="fw-bold text-brand-purple">${totalPorsiMasak} Cup</td>
+                    </tr>`;
                 });
 
-                if (dayRows) {
-                    totalOnlineAll += dayOnline;
-                    totalManualAll += dayManual;
-                    totalStockAll += dayStock;
-                    grandTotalAll += dayTotal;
-                    rowsHtml += `<tr class="table-primary border-top border-purple-200">
-                        <td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2">
-                            <i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (Total Masak: ${dayTotal} Cup)
-                        </td>
-                    </tr>` + dayRows;
-                }
+                totalOnlineAll += dayOnline;
+                totalManualAll += dayManual;
+                totalStockAll += dayStock;
+                grandTotalAll += dayTotal;
+
+                const dayContent = dayRows ? dayRows : `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-2 ps-4">Belum ada varian produk diatur untuk hari ${dayName}.</td></tr>`;
+
+                rowsHtml += `<tr class="table-primary border-top border-purple-200">
+                    <td colspan="5" class="fw-extrabold text-brand-purple fs-7 py-2">
+                        <i class="fa-solid fa-calendar-day me-2"></i> Menu Rotasi Harian: HARI ${dayName.toUpperCase()} — Cabang: <span class="text-dark">${outletLabel}</span> (Total Masak: ${dayTotal} Cup)
+                    </td>
+                </tr>` + dayContent;
             });
 
             if (dayFilter === 'ALL') {
@@ -2132,23 +2133,19 @@
                     grandTotalAll += otherTotal;
                     rowsHtml += `<tr class="table-light border-top">
                         <td colspan="5" class="fw-extrabold text-secondary fs-7 py-2">
-                            <i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya (Total Masak: ${otherTotal} Cup)
+                            <i class="fa-solid fa-boxes-stacked me-2"></i> Master Produk Lainnya — Cabang: <span class="text-dark">${outletLabel}</span> (Total Masak: ${otherTotal} Cup)
                         </td>
                     </tr>` + otherRows;
                 }
             }
 
-            if (totalItemCount === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-utensils me-2 text-secondary"></i>Belum ada varian produk yang dipesan untuk ${outletFilter !== 'ALL' ? outletFilter : 'semua outlet'}${dayFilter !== 'ALL' ? ` pada hari ${dayFilter}` : ''}.</td></tr>`;
-            } else {
-                tbody.innerHTML = rowsHtml + `<tr class="table-light border-top border-purple-200">
-                    <td class="fw-bold fs-7 text-dark">TOTAL SELURUH VARIAN ${outletFilter !== 'ALL' ? `(${outletFilter})` : '(Semua Outlet)'}</td>
-                    <td class="fw-bold text-primary fs-7">${totalOnlineAll} Cup</td>
-                    <td class="fw-bold text-warning text-dark fs-7">${totalManualAll} Cup</td>
-                    <td class="fw-bold text-info text-dark fs-7">${totalStockAll} Cup</td>
-                    <td class="fw-bold text-brand-purple fs-6">${grandTotalAll} Cup</td>
-                </tr>`;
-            }
+            tbody.innerHTML = rowsHtml + `<tr class="table-light border-top border-purple-200">
+                <td class="fw-bold fs-7 text-dark">TOTAL SELURUH VARIAN — Cabang: <span class="text-brand-purple">${outletLabel}</span></td>
+                <td class="fw-bold text-primary fs-7">${totalOnlineAll} Cup</td>
+                <td class="fw-bold text-warning text-dark fs-7">${totalManualAll} Cup</td>
+                <td class="fw-bold text-info text-dark fs-7">${totalStockAll} Cup</td>
+                <td class="fw-bold text-brand-purple fs-6">${grandTotalAll} Cup</td>
+            </tr>`;
         }
         function renderAdminProduction() { renderProductionGeneric({ filterSelectId: 'adm-dapur-outlet-filter', cardsId: 'adm-dapur-outlet-cards', tbodyId: 'adm-production-tbody' }); }
         function renderOwnerProduction() { renderProductionGeneric({ filterSelectId: 'own-dapur-outlet-filter', cardsId: 'own-dapur-outlet-cards', tbodyId: 'own-production-tbody' }); }
@@ -4196,6 +4193,8 @@
             let processedProdIds = new Set();
             let totalItemCount = 0;
 
+            const outletLabel = outletFilter === 'ALL' ? 'SEMUA OUTLET (KONSOLIDASI)' : outletFilter;
+
             filteredDays.forEach(dayName => {
                 const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === dayName.toLowerCase());
                 const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
@@ -4217,37 +4216,36 @@
                     }
                     const totalPorsiMasak = onlinePreorder + manualPreorder + productStock;
 
-                    if (totalPorsiMasak > 0 || dayFilter !== 'ALL') {
-                        totalItemCount++;
-                        dayOnline += onlinePreorder;
-                        dayManual += manualPreorder;
-                        dayStock += productStock;
-                        dayTotal += totalPorsiMasak;
-                        dayRows += `
-                            <tr>
-                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; font-weight: bold; color: #2C3E50;">${p.name}</td>
-                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${onlinePreorder} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${manualPreorder} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${productStock} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center; font-weight: bold; color: #7D3C98;">${totalPorsiMasak} Cup</td>
-                            </tr>
-                        `;
-                    }
+                    totalItemCount++;
+                    dayOnline += onlinePreorder;
+                    dayManual += manualPreorder;
+                    dayStock += productStock;
+                    dayTotal += totalPorsiMasak;
+                    dayRows += `
+                        <tr>
+                            <td style="padding: 6px 8px; border: 1px solid #9B59B6; font-weight: bold; color: #2C3E50;">${p.name}</td>
+                            <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${onlinePreorder} Cup</td>
+                            <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${manualPreorder} Cup</td>
+                            <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${productStock} Cup</td>
+                            <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center; font-weight: bold; color: #7D3C98;">${totalPorsiMasak} Cup</td>
+                        </tr>
+                    `;
                 });
 
-                if (dayRows) {
-                    totalOnlineAll += dayOnline;
-                    totalManualAll += dayManual;
-                    totalStockAll += dayStock;
-                    grandTotalAll += dayTotal;
-                    rowsHtml += `
-                        <tr style="background-color: #F4ECF7 !important; font-weight: bold;">
-                            <td colspan="5" style="padding: 7px 10px; border: 1px solid #9B59B6; color: #5B2C6F; font-size: 13px;">
-                                Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (Total Masak: ${dayTotal} Cup)
-                            </td>
-                        </tr>
-                    ` + dayRows;
-                }
+                totalOnlineAll += dayOnline;
+                totalManualAll += dayManual;
+                totalStockAll += dayStock;
+                grandTotalAll += dayTotal;
+
+                const dayContent = dayRows ? dayRows : `<tr><td colspan="5" style="text-align:center; padding:8px; color:#888; border: 1px solid #9B59B6; font-style:italic;">Belum ada varian produk diatur untuk hari ${dayName}.</td></tr>`;
+
+                rowsHtml += `
+                    <tr style="background-color: #F4ECF7 !important; font-weight: bold;">
+                        <td colspan="5" style="padding: 7px 10px; border: 1px solid #9B59B6; color: #5B2C6F; font-size: 13px;">
+                            Menu Rotasi Harian: HARI ${dayName.toUpperCase()} — Cabang: ${outletLabel} (Total Masak: ${dayTotal} Cup)
+                        </td>
+                    </tr>
+                ` + dayContent;
             });
 
             if (dayFilter === 'ALL') {
