@@ -2925,16 +2925,34 @@
                     dayProducts.forEach(p => {
                         processedProdIds.add(String(p.id));
                         const curStock = getOutletStock(selectedOutlet, p);
+                        const isSaved = state.outletStock && state.outletStock[selectedOutlet] && state.outletStock[selectedOutlet][String(p.id)] !== undefined;
+                        const editKey = `${selectedOutlet}_${p.id}_${dayName}`;
+                        const isEditing = window._outletStockEditing && window._outletStockEditing[editKey];
+
+                        let stockColHtml = '';
+                        let actionColHtml = '';
+
+                        if (isSaved && !isEditing) {
+                            stockColHtml = `<div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold fs-8 px-2 py-1"><i class="fa-solid fa-circle-check me-1"></i>Tersimpan</span>
+                                <input type="number" disabled class="form-control form-control-sm fw-bold bg-light text-dark border-0 text-center" style="max-width:90px;" id="ostock-${dayName}-${p.id}" value="${curStock}">
+                            </div>`;
+                            actionColHtml = `<button class="btn btn-sm btn-outline-purple py-1 px-3 fs-8 fw-bold" onclick="toggleEditOutletStock('${editKey}')">
+                                <i class="fa-solid fa-pen-to-square me-1"></i> Edit Stok ${dayName}
+                            </button>`;
+                        } else {
+                            stockColHtml = `<input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" style="max-width:140px;" id="ostock-${dayName}-${p.id}" value="${curStock}">`;
+                            actionColHtml = `<button class="btn btn-sm btn-brand-purple py-1 px-3 fs-8 fw-bold shadow-sm" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-${dayName}-${p.id}', '${editKey}')">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok ${dayName}
+                            </button>`;
+                        }
+
                         rowsHtml += `<tr>
                             <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-brand-purple fs-8"></i>${p.name}</td>
                             <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
                             <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
-                            <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-${dayName}-${p.id}" value="${curStock}"></td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-${dayName}-${p.id}')">
-                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok ${dayName}
-                                </button>
-                            </td>
+                            <td>${stockColHtml}</td>
+                            <td class="text-center">${actionColHtml}</td>
                         </tr>`;
                     });
                 }
@@ -2946,34 +2964,63 @@
                 rowsHtml += `<tr class="table-light border-top"><td colspan="5" class="fw-extrabold text-secondary fs-7 py-2"><i class="fa-solid fa-boxes-stacked me-2"></i> ${sectionTitle} (${remainingProducts.length} Varian)</td></tr>`;
                 remainingProducts.forEach(p => {
                     const curStock = getOutletStock(selectedOutlet, p);
+                    const isSaved = state.outletStock && state.outletStock[selectedOutlet] && state.outletStock[selectedOutlet][String(p.id)] !== undefined;
+                    const editKey = `${selectedOutlet}_${p.id}_other`;
+                    const isEditing = window._outletStockEditing && window._outletStockEditing[editKey];
+
+                    let stockColHtml = '';
+                    let actionColHtml = '';
+
+                    if (isSaved && !isEditing) {
+                        stockColHtml = `<div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold fs-8 px-2 py-1"><i class="fa-solid fa-circle-check me-1"></i>Tersimpan</span>
+                            <input type="number" disabled class="form-control form-control-sm fw-bold bg-light text-dark border-0 text-center" style="max-width:90px;" id="ostock-other-${p.id}" value="${curStock}">
+                        </div>`;
+                        actionColHtml = `<button class="btn btn-sm btn-outline-purple py-1 px-3 fs-8 fw-bold" onclick="toggleEditOutletStock('${editKey}')">
+                            <i class="fa-solid fa-pen-to-square me-1"></i> Edit Stok Cabang
+                        </button>`;
+                    } else {
+                        stockColHtml = `<input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" style="max-width:140px;" id="ostock-other-${p.id}" value="${curStock}">`;
+                        actionColHtml = `<button class="btn btn-sm btn-brand-purple py-1 px-3 fs-8 fw-bold shadow-sm" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-other-${p.id}', '${editKey}')">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok Cabang
+                        </button>`;
+                    }
+
                     rowsHtml += `<tr>
                         <td class="fw-bold text-dark ps-4"><i class="fa-solid fa-angle-right me-2 text-secondary fs-8"></i>${p.name}</td>
                         <td><span class="badge bg-light text-dark border fs-8">${p.category || 'Bubur'} (${p.age || '6+ Bulan'})</span></td>
                         <td class="fw-bold text-brand-purple">Rp ${p.price.toLocaleString('id-ID')}</td>
-                        <td style="max-width:140px;"><input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" id="ostock-other-${p.id}" value="${curStock}"></td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-brand-purple py-1 px-2.5 fs-8 fw-bold" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-other-${p.id}')">
-                                <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok Cabang
-                            </button>
-                        </td>
+                        <td>${stockColHtml}</td>
+                        <td class="text-center">${actionColHtml}</td>
                     </tr>`;
                 });
             }
 
             tbody.innerHTML = rowsHtml;
         }
-        function saveAdminOutletStock(outletName, prodId, inputId) {
+
+        window._outletStockEditing = window._outletStockEditing || {};
+
+        function toggleEditOutletStock(editKey) {
+            window._outletStockEditing[editKey] = true;
+            renderAdminOutletStockTable();
+        }
+
+        function saveAdminOutletStock(outletName, prodId, inputId, editKey) {
             const p = state.products.find(x => x.id == prodId || String(x.id) === String(prodId));
             if (!p) return;
             const input = document.getElementById(inputId || ('ostock-' + prodId));
             const val = parseInt(input ? input.value : 0);
             const newStock = isNaN(val) ? 0 : Math.max(0, val);
             setOutletStock(outletName, p, newStock);
+            if (editKey) {
+                window._outletStockEditing[editKey] = false;
+            }
             renderAllUI();
             Swal.fire({
                 icon: 'success',
                 title: 'Stok Cabang Disimpan!',
-                text: `Stok ready ${p.name} untuk ${outletName} berhasil diatur menjadi ${newStock} cup!`,
+                text: `Stok ready ${p.name} untuk ${outletName} berhasil diatur menjadi ${newStock} cup! Status: Tersimpan ✅`,
                 timer: 1500,
                 showConfirmButton: false
             });
