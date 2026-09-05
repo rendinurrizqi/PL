@@ -4019,11 +4019,11 @@
                         dayTotal += totalPorsiMasak;
                         dayRows += `
                             <tr>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; font-weight: bold; color: #2C3E50;">${p.name}</td>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; text-align: center;">${onlinePreorder} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; text-align: center;">${manualPreorder} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; text-align: center;">${productStock} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; text-align: center; font-weight: bold; color: #7D3C98;">${totalPorsiMasak} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; font-weight: bold; color: #2C3E50;">${p.name}</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${onlinePreorder} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${manualPreorder} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${productStock} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center; font-weight: bold; color: #7D3C98;">${totalPorsiMasak} Cup</td>
                             </tr>
                         `;
                     }
@@ -4069,11 +4069,11 @@
                         otherTotal += totalPorsiMasak;
                         otherRows += `
                             <tr>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; font-weight: bold; color: #2C3E50;">${p.name}</td>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; text-align: center;">${onlinePreorder} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; text-align: center;">${manualPreorder} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; text-align: center;">${productStock} Cup</td>
-                                <td style="padding: 6px 8px; border: 1px solid #D7BDE2; text-align: center; font-weight: bold; color: #7D3C98;">${totalPorsiMasak} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; font-weight: bold; color: #2C3E50;">${p.name}</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${onlinePreorder} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${manualPreorder} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center;">${productStock} Cup</td>
+                                <td style="padding: 6px 8px; border: 1px solid #9B59B6; text-align: center; font-weight: bold; color: #7D3C98;">${totalPorsiMasak} Cup</td>
                             </tr>
                         `;
                     }
@@ -4102,7 +4102,7 @@
                     <td style="padding: 8px; border: 1px solid #9B59B6; text-align: center; color: #16A085; font-weight: bold;">${totalStockAll} Cup</td>
                     <td style="padding: 8px; border: 1px solid #9B59B6; text-align: center; color: #5B2C6F; font-size: 14px; font-weight: bold;">${grandTotalAll} Cup</td>
                 </tr>
-            ` : `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666; border: 1px solid #D7BDE2;">Belum ada pesanan untuk ${outletFilter}.</td></tr>`;
+            ` : `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666; border: 1px solid #9B59B6;">Belum ada pesanan untuk ${outletFilter}.</td></tr>`;
 
             const titleFilterText = outletFilter === 'ALL' ? 'KONSOLIDASI SEMUA OUTLET' : outletFilter;
 
@@ -4118,10 +4118,10 @@
                         .header { text-align: center; border-bottom: 3px double #9B59B6; padding-bottom: 10px; margin-bottom: 12px; }
                         .header h2 { margin: 0 0 4px 0; color: #5B2C6F; font-size: 20px; font-weight: bold; text-transform: uppercase; }
                         .header p { margin: 0; color: #555; font-size: 12px; }
-                        .meta-info { display: flex; justify-content: space-between; background: #F4ECF7; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #D7BDE2; font-size: 11px; }
-                        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; table-layout: fixed; }
+                        .meta-info { display: flex; justify-content: space-between; background: #F4ECF7; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #9B59B6; font-size: 11px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; table-layout: fixed; border: 1px solid #9B59B6 !important; }
                         th { background: #B57EDC !important; color: #ffffff !important; font-weight: bold; border: 1px solid #9B59B6 !important; padding: 8px 6px; font-size: 12px; text-align: center; vertical-align: middle; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                        td { border: 1px solid #D7BDE2; padding: 6px 8px; font-size: 12px; vertical-align: middle; word-wrap: break-word; }
+                        td { border: 1px solid #9B59B6 !important; padding: 6px 8px; font-size: 12px; vertical-align: middle; word-wrap: break-word; }
                         .total-row td { background: #F4ECF7 !important; font-weight: bold; font-size: 14px; border: 1px solid #9B59B6 !important; color: #5B2C6F; }
                         .footer { margin-top: 40px; display: flex; justify-content: space-between; text-align: center; }
                         .signature-box { width: 40%; border-top: 1px solid #888; padding-top: 6px; font-size: 11px; margin-top: 50px; }
@@ -4208,9 +4208,9 @@
                         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
                         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; font-size: 11px; margin: 0; padding: 10px; }
                         h2 { color: #5B2C6F; margin: 0 0 5px 0; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; border: 1px solid #9B59B6 !important; }
                         th { background: #B57EDC !important; color: #ffffff !important; padding: 7px 6px; text-align: left; border: 1px solid #9B59B6 !important; font-weight: bold; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                        td { border: 1px solid #D7BDE2; padding: 6px; vertical-align: middle; word-wrap: break-word; }
+                        td { border: 1px solid #9B59B6 !important; padding: 6px; vertical-align: middle; word-wrap: break-word; }
                     </style>
                 </head>
                 <body onload="window.print(); setTimeout(() => window.close(), 600);">
