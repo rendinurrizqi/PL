@@ -627,9 +627,6 @@
                                 <p class="text-muted fs-7 mb-0">Terintegrasi dengan data Pesanan Per Outlet: Total Porsi Masak dihitung murni dari pre-order online yang masih berlaku (tanpa buffer walk-in).</p>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button class="btn btn-brand-yellow btn-sm fw-bold px-3 py-1.5 fs-8" onclick="showAddManualOrderModal()">
-                                    <i class="fa-solid fa-plus-circle me-1"></i> Tambah Pesanan Manual
-                                </button>
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('adm-dapur-outlet-filter')">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
                                 </button>
@@ -907,9 +904,6 @@
                                 <p class="text-muted fs-7 mb-0">Terintegrasi dengan data Pesanan Per Outlet: Total Porsi Masak dihitung murni dari pre-order online yang masih berlaku (tanpa buffer walk-in).</p>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button class="btn btn-brand-yellow btn-sm fw-bold px-3 py-1.5 fs-8" onclick="showAddManualOrderModal()">
-                                    <i class="fa-solid fa-plus-circle me-1"></i> Tambah Pesanan Manual
-                                </button>
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('own-dapur-outlet-filter')">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
                                 </button>
@@ -1931,37 +1925,54 @@
 
         function computeProductionNumbers(productId, outletFilter) {
             const todayStr = getTodayDateString();
-            const relevantOrders = state.preOrders.filter(o => o.date === todayStr && o.cancelStatus !== 'approved' && isOutletMatch(o.outlet, outletFilter));
-            const prod = state.products.find(p => p.id == productId);
-            const prodName = prod ? prod.name.toLowerCase() : '';
+            const prod = state.products.find(p => p.id == productId || String(p.id) === String(productId));
+            const prodName = prod ? prod.name.toLowerCase().trim() : '';
+
+            const relevantOrders = (state.preOrders || []).filter(o => {
+                if (!o || o.cancelStatus === 'approved') return false;
+                const orderDateStr = o.date ? String(o.date).substring(0, 10) : todayStr;
+                if (orderDateStr !== todayStr) return false;
+                return isOutletMatch(o.outlet, outletFilter);
+            });
 
             let onlinePreorder = 0;
             let manualPreorder = 0;
 
             relevantOrders.forEach(o => {
-                const isManual = o.isManual === true || (o.id && String(o.id).startsWith('ORD-M-')) || (o.customerName && String(o.customerName).includes('(Manual)'));
+                const isManual = o.isManual === true ||
+                                 o.is_manual === true ||
+                                 o.is_manual == 1 ||
+                                 (o.id && String(o.id).startsWith('ORD-M-')) ||
+                                 (o.customerName && String(o.customerName).includes('(Manual)'));
                 let orderQty = 0;
-                if (o.itemsDetail && Array.isArray(o.itemsDetail) && o.itemsDetail.length > 0) {
-                    const item = o.itemsDetail.find(it => it.productId == productId || String(it.productId) === String(productId));
-                    if (item) {
-                        orderQty = parseInt(item.qty) || 0;
-                    }
+
+                const details = o.itemsDetail || o.items_detail || o.cart || [];
+                if (Array.isArray(details) && details.length > 0) {
+                    details.forEach(it => {
+                        const itPid = String(it.productId || it.product_id || it.id || '');
+                        if (itPid === String(productId) || (prod && (itPid == prod.id || String(itPid) === String(prod.id)))) {
+                            orderQty += parseInt(it.qty || it.quantity || 1) || 0;
+                        }
+                    });
                 }
+
                 if (orderQty === 0 && o.items && prodName) {
-                    const parts = o.items.split(',');
+                    const parts = String(o.items).split(',');
                     parts.forEach(part => {
                         const trimmed = part.trim();
                         const matchX = trimmed.match(/^(.*?)\s*x(\d+)$/i);
                         const matchCup = trimmed.match(/^(.*?)\s*\((\d+)\s*Cup\)/i);
                         if (matchX) {
-                            if (matchX[1].trim().toLowerCase() === prodName) {
+                            const namePart = matchX[1].trim().toLowerCase();
+                            if (namePart === prodName || namePart.includes(prodName) || prodName.includes(namePart)) {
                                 orderQty += parseInt(matchX[2]) || 0;
                             }
                         } else if (matchCup) {
-                            if (matchCup[1].trim().toLowerCase() === prodName) {
+                            const namePart = matchCup[1].trim().toLowerCase();
+                            if (namePart === prodName || namePart.includes(prodName) || prodName.includes(namePart)) {
                                 orderQty += parseInt(matchCup[2]) || 0;
                             }
-                        } else if (trimmed.toLowerCase().includes(prodName)) {
+                        } else if (trimmed.toLowerCase().includes(prodName) || prodName.includes(trimmed.toLowerCase())) {
                             orderQty += 1;
                         }
                     });
