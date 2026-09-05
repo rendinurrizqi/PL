@@ -4037,7 +4037,7 @@
                     rowsHtml += `
                         <tr style="background-color: #F4ECF7 !important; font-weight: bold;">
                             <td colspan="5" style="padding: 7px 10px; border: 1px solid #9B59B6; color: #5B2C6F; font-size: 13px;">
-                                📅 Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (Total Masak: ${dayTotal} Cup)
+                                Menu Rotasi Harian: HARI ${dayName.toUpperCase()} (Total Masak: ${dayTotal} Cup)
                             </td>
                         </tr>
                     ` + dayRows;
@@ -4087,7 +4087,7 @@
                     rowsHtml += `
                         <tr style="background-color: #F4ECF7 !important; font-weight: bold;">
                             <td colspan="5" style="padding: 7px 10px; border: 1px solid #9B59B6; color: #5B2C6F; font-size: 13px;">
-                                📦 Master Produk Lainnya (Total Masak: ${otherTotal} Cup)
+                                Master Produk Lainnya (Total Masak: ${otherTotal} Cup)
                             </td>
                         </tr>
                     ` + otherRows;
@@ -4129,7 +4129,7 @@
                 </head>
                 <body onload="window.print(); setTimeout(() => window.close(), 600);">
                     <div class="header">
-                        <h2>🍳 REKAPITULASI DAPUR MASAK ESOK HARI</h2>
+                        <h2>REKAPITULASI DAPUR MASAK ESOK HARI</h2>
                         <p><b>MAMAM YUK</b> — Laporan Produksi Dapur Masak Hari Ini</p>
                     </div>
 
@@ -4139,7 +4139,6 @@
                         <div><b>Waktu Cetak:</b> ${dateTimeStr}</div>
                     </div>
 
-                    <div style="font-weight: bold; margin-bottom: 6px; color: #5B2C6F; font-size: 12px;">📋 Target Porsi Masak Varian Mamam Yuk:</div>
                     <table>
                         <thead>
                             <tr>
