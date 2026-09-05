@@ -2864,9 +2864,25 @@
             });
 
             const qrisPosTotal = salesRec._qrisTotal || 0;
-            const totalQris = qrisPreorderTotal + qrisPosTotal;
+            const cashPosTotal = salesRec._cashTotal || 0;
+
+            let totalQris = qrisPreorderTotal + qrisPosTotal;
+            let totalCash = cashPreorderTotal + cashPosTotal;
             const totalPemasukan = grandTotalVal;
-            const totalCash = Math.max(0, totalPemasukan - totalQris);
+
+            if (totalQris + totalCash === 0 && totalPemasukan > 0) {
+                totalCash = Math.max(0, totalPemasukan - totalQris);
+            } else if (totalQris + totalCash !== totalPemasukan && totalPemasukan > 0) {
+                if (totalQris > totalPemasukan && cashPosTotal > 0) {
+                    totalCash = Math.min(totalPemasukan, cashPosTotal + cashPreorderTotal);
+                    totalQris = Math.max(0, totalPemasukan - totalCash);
+                } else if (totalQris > totalPemasukan && cashPosTotal === 0) {
+                    totalQris = totalPemasukan;
+                    totalCash = 0;
+                } else {
+                    totalCash = Math.max(0, totalPemasukan - totalQris);
+                }
+            }
             const isCheckTrue = (totalCash + totalQris) === totalPemasukan;
 
             const summaryRows = `
