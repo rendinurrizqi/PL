@@ -697,10 +697,13 @@
                                 <table class="table align-middle fs-7 mb-0">
                                     <thead class="bg-light">
                                         <tr>
-                                            <th>Nama Cabang Outlet</th>
-                                            <th>Omset (Rp)</th>
-                                            <th>Porsi Terjual</th>
-                                            <th class="text-center">Aksi</th>
+                                            <th class="py-2 px-3 text-start">Nama Cabang Outlet</th>
+                                            <th class="py-2 px-3 text-center">PO Diambil</th>
+                                            <th class="py-2 px-3 text-center">Porsi Terjual</th>
+                                            <th class="py-2 px-3 text-center">Sisa</th>
+                                            <th class="py-2 px-3 text-end">Rugi (Rp)</th>
+                                            <th class="py-2 px-3 text-end">Omset (Rp)</th>
+                                            <th class="py-2 px-3 text-center">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody id="adm-outlet-report-tbody"></tbody>
@@ -979,10 +982,13 @@
                                 <table class="table align-middle fs-7 mb-0">
                                     <thead class="bg-light">
                                         <tr>
-                                            <th>Nama Cabang Outlet</th>
-                                            <th>Omset (Rp)</th>
-                                            <th>Porsi Terjual</th>
-                                            <th class="text-center">Aksi</th>
+                                            <th class="py-2 px-3 text-start">Nama Cabang Outlet</th>
+                                            <th class="py-2 px-3 text-center">PO Diambil</th>
+                                            <th class="py-2 px-3 text-center">Porsi Terjual</th>
+                                            <th class="py-2 px-3 text-center">Sisa</th>
+                                            <th class="py-2 px-3 text-end">Rugi (Rp)</th>
+                                            <th class="py-2 px-3 text-end">Omset (Rp)</th>
+                                            <th class="py-2 px-3 text-center">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody id="own-outlet-report-tbody"></tbody>
@@ -2891,41 +2897,111 @@
             const selectedPeriod = document.getElementById(cfg.periodSelectId)?.value || 'HARIAN';
             const outletsList = state.outlets;
             const isHarian = selectedPeriod === 'HARIAN';
+            const todayStr = getTodayDateString();
+            const yesterdayStr = getYesterdayDateString();
+
             const outletData = outletsList.map(outletName => {
                 const salesRec = state.outletSalesRecords[outletName] || {};
                 let omset = 0;
                 let porsi = 0;
+                let preorderPorsi = 0;
+                let sisaPorsi = 0;
                 let loss = 0;
-                state.products.forEach(p => {
-                    const prodSales = salesRec[p.id] ? salesRec[p.id].sold : 0;
-                    const allocated = getOutletStock(outletName, p);
-                    const leftover = Math.max(0, allocated - prodSales);
-                    omset += prodSales * p.price;
-                    porsi += prodSales;
-                    loss += leftover * p.price;
+
+                const preorderCounts = {};
+                (state.preOrders || []).forEach(order => {
+                    if (order && order.cancelStatus !== 'approved' && (order.isTaken === true || order.is_taken === true || order.is_taken == 1)) {
+                        const orderDateStr = order.date ? String(order.date).substring(0, 10) : todayStr;
+                        if (isOutletMatch(order.outlet, outletName) && (orderDateStr === todayStr || orderDateStr === yesterdayStr)) {
+                            const details = order.itemsDetail || order.items_detail || order.cart || (Array.isArray(order.items) ? order.items : []);
+                            if (Array.isArray(details) && details.length > 0) {
+                                details.forEach(ci => {
+                                    const pid = String(ci.productId || ci.product_id || ci.id || '');
+                                    if (pid) {
+                                        preorderCounts[pid] = (preorderCounts[pid] || 0) + (parseInt(ci.qty || ci.quantity || 1) || 0);
+                                    }
+                                });
+                            } else if (typeof order.items === 'string') {
+                                const parts = order.items.split(',');
+                                parts.forEach(part => {
+                                    const match = part.trim().match(/^(.*?)\s*x(\d+)$/i);
+                                    if (match) {
+                                        const name = match[1].trim().toLowerCase();
+                                        const qty = parseInt(match[2]) || 1;
+                                        const matchingProd = state.products.find(p => p.name.toLowerCase().includes(name) || name.includes(p.name.toLowerCase()));
+                                        if (matchingProd) {
+                                            const pid = String(matchingProd.id);
+                                            preorderCounts[pid] = (preorderCounts[pid] || 0) + qty;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
                 });
-                return { name: outletName, harianOmset: omset, bulananOmset: omset * 30, porsi: porsi, loss: loss };
+
+                const dayNamesMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const todayDayName = dayNamesMap[new Date().getDay()] || 'Senin';
+                const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === todayDayName.toLowerCase());
+                const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
+                let activeProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)) && p.status === 'Aktif');
+                if (activeProducts.length === 0) activeProducts = state.products.filter(p => p.status === 'Aktif');
+                if (activeProducts.length === 0) activeProducts = state.products;
+
+                activeProducts.forEach(p => {
+                    const pid = String(p.id);
+                    const price = p.price || 0;
+                    const pesanan = preorderCounts[pid] || 0;
+                    const prodSales = salesRec[pid] ? (salesRec[pid].sold || 0) : 0;
+                    const allocated = getOutletStock(outletName, p);
+                    const sisa = Math.max(0, allocated - (pesanan + prodSales));
+                    
+                    preorderPorsi += pesanan;
+                    porsi += (pesanan + prodSales);
+                    sisaPorsi += sisa;
+                    omset += (pesanan + prodSales) * price;
+                    loss += sisa * price;
+                });
+
+                return { 
+                    name: outletName, 
+                    preorderPorsi: preorderPorsi,
+                    porsi: porsi, 
+                    sisaPorsi: sisaPorsi,
+                    loss: loss,
+                    harianOmset: omset, 
+                    bulananOmset: omset * 30 
+                };
             });
+
             const filteredList = selectedOutlet === 'ALL' ? outletData : outletData.filter(o => o.name === selectedOutlet);
             let totalOmset = 0;
             let totalLoss = 0;
             let totalPorsi = 0;
+            let totalPreorder = 0;
+
             filteredList.forEach(o => {
                 const omset = isHarian ? o.harianOmset : o.bulananOmset;
                 totalOmset += omset;
                 totalLoss += (isHarian ? o.loss : o.loss * 30);
                 totalPorsi += (isHarian ? o.porsi : o.porsi * 30);
+                totalPreorder += (isHarian ? o.preorderPorsi : o.preorderPorsi * 30);
             });
+
             const cardContainer = document.getElementById(cfg.cardsId);
             if (cardContainer) {
-                cardContainer.innerHTML = `<div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET (${selectedPeriod})</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmset.toLocaleString('id-ID')}</div></div></div><div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsi} Cup</div></div></div>`;
+                cardContainer.innerHTML = `<div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET (${selectedPeriod})</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmset.toLocaleString('id-ID')}</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsi} Cup</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-purple"><div class="text-muted fs-8 fw-bold">PO DIAMBIL</div><div class="fs-5 fw-bold text-brand-purple">${totalPreorder} Cup</div></div></div><div class="col-md-3"><div class="card-custom p-3 border-start border-4 border-danger"><div class="text-muted fs-8 fw-bold">POTENSI RUGI SISA</div><div class="fs-5 fw-bold text-danger">Rp ${totalLoss.toLocaleString('id-ID')}</div></div></div>`;
             }
+
             const tbody = document.getElementById(cfg.summaryTbodyId);
             if (tbody) {
                 tbody.innerHTML = filteredList.map(o => {
                     const omset = isHarian ? o.harianOmset : o.bulananOmset;
                     const porsi = isHarian ? o.porsi : o.porsi * 30;
-                    return `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${omset.toLocaleString('id-ID')}</td><td>${porsi} Cup</td><td class="text-center"><button class="btn btn-sm btn-brand-purple fs-8 font-bold py-1 px-2.5" onclick="Swal.fire('${o.name}', 'Laporan ${selectedPeriod} untuk ${o.name}:<br>Omset: Rp ${omset.toLocaleString('id-ID')}<br>Porsi Terjual: ${porsi} Cup', 'info')"><i class="fa-solid fa-eye me-1"></i> Rincian</button></td></tr>`;
+                    const preorderPorsi = isHarian ? o.preorderPorsi : o.preorderPorsi * 30;
+                    const sisaPorsi = isHarian ? o.sisaPorsi : o.sisaPorsi * 30;
+                    const loss = isHarian ? o.loss : o.loss * 30;
+                    return `<tr><td class="fw-bold text-brand-purple py-2 px-3">${o.name}</td><td class="text-center py-2 px-3"><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${preorderPorsi} Cup</span></td><td class="text-center py-2 px-3 fw-bold text-info">${porsi} Cup</td><td class="text-center py-2 px-3"><span class="badge bg-warning text-dark fs-8">${sisaPorsi} Cup</span></td><td class="text-end text-danger fw-bold py-2 px-3">Rp ${loss.toLocaleString('id-ID')}</td><td class="text-end fw-bold text-success py-2 px-3">Rp ${omset.toLocaleString('id-ID')}</td><td class="text-center py-2 px-3"><button class="btn btn-sm btn-brand-purple fs-8 font-bold py-1 px-2.5" onclick="Swal.fire({ title: '${escAttr(o.name)}', html: '<div class=&quot;text-start fs-7 py-2&quot;><p class=&quot;mb-2 border-bottom pb-1 fw-bold text-brand-purple&quot;>Rincian Rekapitulasi (${selectedPeriod}):</p><div class=&quot;d-flex justify-content-between mb-1&quot;><span>Pre-Order Diambil:</span> <b>${preorderPorsi} Cup</b></div><div class=&quot;d-flex justify-content-between mb-1&quot;><span>Total Porsi Terjual:</span> <b>${porsi} Cup</b></div><div class=&quot;d-flex justify-content-between mb-1&quot;><span>Sisa Produk:</span> <b>${sisaPorsi} Cup</b></div><div class=&quot;d-flex justify-content-between mb-1 text-danger&quot;><span>Kerugian Sisa:</span> <b>Rp ${loss.toLocaleString('id-ID')}</b></div><div class=&quot;d-flex justify-content-between pt-2 border-top fw-bold text-success&quot;><span>Total Omset:</span> <b>Rp ${omset.toLocaleString('id-ID')}</b></div></div>', icon: 'info', confirmButtonColor: '#B57EDC' })"><i class="fa-solid fa-eye me-1"></i> Rincian</button></td></tr>`;
                 }).join('');
             }
             const leftoverTbody = document.getElementById(cfg.leftoverTbodyId);
