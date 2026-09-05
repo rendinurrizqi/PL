@@ -475,6 +475,7 @@
                                         <tr style="background-color: #F5EBFB; color: #212121; border-bottom: 2px solid #B57EDC;">
                                             <th class="py-2 px-3 text-start">NAMA ITEM</th>
                                             <th class="py-2 px-3 text-end">HARGA</th>
+                                            <th class="py-2 px-3 text-center">STOK</th>
                                             <th class="py-2 px-3 text-center">PESANAN</th>
                                             <th class="py-2 px-3 text-center">JUALAN</th>
                                             <th class="py-2 px-3 text-center">SISA</th>
@@ -743,6 +744,7 @@
                                         <tr style="background-color: #F5EBFB; color: #212121; border-bottom: 2px solid #B57EDC;">
                                             <th class="py-2 px-3 text-start">NAMA ITEM</th>
                                             <th class="py-2 px-3 text-end">HARGA</th>
+                                            <th class="py-2 px-3 text-center">STOK</th>
                                             <th class="py-2 px-3 text-center">PESANAN</th>
                                             <th class="py-2 px-3 text-center">JUALAN</th>
                                             <th class="py-2 px-3 text-center">SISA</th>
@@ -1028,6 +1030,7 @@
                                         <tr style="background-color: #F5EBFB; color: #212121; border-bottom: 2px solid #B57EDC;">
                                             <th class="py-2 px-3 text-start">NAMA ITEM</th>
                                             <th class="py-2 px-3 text-end">HARGA</th>
+                                            <th class="py-2 px-3 text-center">STOK</th>
                                             <th class="py-2 px-3 text-center">PESANAN</th>
                                             <th class="py-2 px-3 text-center">JUALAN</th>
                                             <th class="py-2 px-3 text-center">SISA</th>
@@ -2825,6 +2828,7 @@
                 }
             });
 
+            let totalStok = 0;
             let totalPesanan = 0;
             let totalJualan = 0;
             let totalSisa = 0;
@@ -2833,7 +2837,7 @@
 
             if (showOutletHeader) {
                 rowsHtml += `<tr class="table-primary border-top border-purple-200">
-                    <td colspan="6" class="fw-extrabold text-brand-purple fs-7 py-2 text-start">
+                    <td colspan="7" class="fw-extrabold text-brand-purple fs-7 py-2 text-start">
                         <i class="fa-solid fa-store me-2"></i> CABANG OUTLET: ${outName.toUpperCase()} (MENU HARI ${todayDayName.toUpperCase()})
                     </td>
                 </tr>`;
@@ -2845,9 +2849,11 @@
                 const pesanan = preorderCounts[pid] || 0;
                 const jualan = salesRec[pid] ? (salesRec[pid].sold || 0) : 0;
                 const allocated = getOutletStock(outName, p);
-                const sisa = Math.max(0, allocated - (pesanan + jualan));
+                const stok = allocated + pesanan;
+                const sisa = Math.max(0, allocated - jualan);
                 const itemTotal = (pesanan + jualan) * price;
 
+                totalStok += stok;
                 totalPesanan += pesanan;
                 totalJualan += jualan;
                 totalSisa += sisa;
@@ -2856,6 +2862,7 @@
                 rowsHtml += `<tr>
                     <td class="fw-bold text-dark text-start py-2 px-3">${p.name.toUpperCase()}</td>
                     <td class="text-end py-2 px-3">${price.toLocaleString('id-ID')}</td>
+                    <td class="text-center py-2 px-3 fw-semibold">${stok}</td>
                     <td class="text-center py-2 px-3">${pesanan}</td>
                     <td class="text-center py-2 px-3">${jualan}</td>
                     <td class="text-center py-2 px-3">${sisa}</td>
@@ -2889,6 +2896,7 @@
                 <tr class="fw-bold text-dark border-top border-2 border-dark" style="border-top: 2px solid #212121 !important; background-color: #F8F9FA;">
                     <td class="text-start py-2 px-3">TOTAL</td>
                     <td></td>
+                    <td class="text-center py-2 px-3 fw-bold">${totalStok}</td>
                     <td class="text-center py-2 px-3">${totalPesanan}</td>
                     <td class="text-center py-2 px-3">${totalJualan}</td>
                     <td class="text-center py-2 px-3">${totalSisa}</td>
@@ -2896,6 +2904,7 @@
                 </tr>
                 <tr class="fw-bold text-dark">
                     <td class="text-start py-2 px-3">PEMASUKAN</td>
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -2908,6 +2917,7 @@
                     <td></td>
                     <td></td>
                     <td></td>
+                    <td></td>
                     <td class="text-end py-2 px-3">${totalQris.toLocaleString('id-ID')}</td>
                 </tr>
                 <tr class="fw-bold text-dark">
@@ -2916,9 +2926,11 @@
                     <td></td>
                     <td></td>
                     <td></td>
+                    <td></td>
                     <td class="text-end fw-extrabold py-2 px-3">${totalCash.toLocaleString('id-ID')}</td>
                 </tr>
                 <tr class="fw-bold text-dark">
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -3060,7 +3072,7 @@
                     allLeftoverRows += buildExactFormattedReportRows(outName, selectedOutlet === 'ALL');
                 });
 
-                leftoverTbody.innerHTML = allLeftoverRows || `<tr><td colspan="6" class="text-center text-muted fs-8 fst-italic py-3">Belum ada data rekapan penjualan untuk hari ini.</td></tr>`;
+                leftoverTbody.innerHTML = allLeftoverRows || `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada data rekapan penjualan untuk hari ini.</td></tr>`;
             }
         }
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); renderAdminOutletStockTable(); }
