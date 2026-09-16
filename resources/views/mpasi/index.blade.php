@@ -2465,7 +2465,7 @@
                     
                     const orderIdToPay = (data.order ? data.order.id : newOrder.id);
 
-                    if (window.snap && typeof window.snap.pay === 'function') {
+                    if (!data.snap_token.startsWith('SNAP-MOCK-') && window.snap && typeof window.snap.pay === 'function') {
                         window.snap.pay(data.snap_token, {
                             onSuccess: function(result) {
                                 confirmMidtransPayment(orderIdToPay);
