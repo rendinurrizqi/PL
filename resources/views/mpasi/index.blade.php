@@ -2471,17 +2471,17 @@
                                 confirmMidtransPayment(orderIdToPay);
                             },
                             onPending: function(result) {
-                                showTestingSimulatePayModal(orderIdToPay);
+                                showTestingSimulatePayModal(orderIdToPay, newOrder);
                             },
                             onError: function(result) {
                                 Swal.fire({ icon: 'error', title: 'Pembayaran Gagal', text: 'Terjadi kesalahan saat memproses pembayaran Midtrans.' });
                             },
                             onClose: function() {
-                                showTestingSimulatePayModal(orderIdToPay);
+                                showTestingSimulatePayModal(orderIdToPay, newOrder);
                             }
                         });
                     } else {
-                        showTestingSimulatePayModal(orderIdToPay);
+                        showTestingSimulatePayModal(orderIdToPay, newOrder);
                     }
                 }
             })
@@ -2558,26 +2558,190 @@
             .finally(() => endLoading());
         }
 
-        function showTestingSimulatePayModal(orderId) {
+        window.simCompleteMidtransPayment = function(orderId) {
             Swal.fire({
-                icon: 'info',
-                title: 'Pembayaran Midtrans Sandbox 💳',
+                title: 'Verifikasi Midtrans...',
+                html: '<div class="text-muted fs-7 my-2"><i class="fa-solid fa-spinner fa-spin me-2 text-primary"></i> Menerima simulasi Webhook Callback dari Midtrans Sandbox</div>',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                timer: 900
+            }).then(() => {
+                confirmMidtransPayment(orderId);
+            });
+        };
+
+        window.updateSimVaNumber = function() {
+            const bank = document.getElementById('simVaBank')?.value || 'BCA';
+            const prefixMap = { 'BCA': '88001', 'MANDIRI': '90012', 'BRI': '88810', 'BNI': '98811' };
+            const num = (prefixMap[bank] || '88001') + '0812' + Math.floor(100000 + Math.random() * 900000);
+            const display = document.getElementById('simVaNumberDisplay');
+            if (display) display.innerText = num;
+        };
+
+        function showTestingSimulatePayModal(orderId, orderObj) {
+            const orderIdDisplay = typeof orderId === 'string' ? (orderId.startsWith('ORD-') ? orderId : ('ORD-' + orderId)) : ('ORD-' + orderId);
+            let amount = 0;
+            if (orderObj && orderObj.totalAmount) {
+                amount = orderObj.totalAmount;
+            } else if (orderObj && orderObj.total) {
+                amount = orderObj.total;
+            } else {
+                const found = state.preOrders.find(p => p.id == orderId || p.dbId == orderId);
+                if (found) amount = found.totalAmount || 0;
+            }
+            const formattedAmount = (amount || 0).toLocaleString('id-ID');
+
+            Swal.fire({
+                width: '540px',
+                padding: '0',
+                showConfirmButton: false,
+                showCloseButton: true,
+                customClass: {
+                    popup: 'rounded-4 overflow-hidden shadow-lg border-0'
+                },
                 html: `
-                    <div class="text-start fs-7 mb-3">
-                        Pesanan telah dibuat di sistem! Untuk pengujian mode Sandbox/Testing:<br>
-                        Klik tombol <b>"📱 Simulasi Bayar Lunas"</b> di bawah untuk mengubah status pesanan menjadi <b>LUNAS ✅</b> secara otomatis!
+                    <div class="midtrans-simulator-container text-start" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                        <!-- Midtrans Header Bar -->
+                        <div class="p-3" style="background: linear-gradient(135deg, #002b49 0%, #004b7a 100%); color: #ffffff;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-warning text-dark font-monospace fs-9 fw-bold px-2 py-1">MIDTRANS SANDBOX</span>
+                                    <span class="fw-bold fs-6">Mamam Yuk Official</span>
+                                </div>
+                                <span class="fs-9 opacity-75"><i class="fa-solid fa-lock me-1"></i>256-bit SSL</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-end mt-2 pt-2 border-top border-light border-opacity-25">
+                                <div>
+                                    <div class="fs-8 opacity-75">Order ID</div>
+                                    <div class="fw-bold text-warning font-monospace fs-7">${orderIdDisplay}</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fs-8 opacity-75">Total Pembayaran</div>
+                                    <div class="fw-bold text-warning fs-5">Rp ${formattedAmount}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timer Badge -->
+                        <div class="bg-light p-2 border-bottom d-flex justify-content-between align-items-center fs-8 px-3">
+                            <span class="text-muted"><i class="fa-regular fa-clock me-1 text-primary"></i> Selesaikan pembayaran dalam:</span>
+                            <span class="badge bg-danger text-white font-monospace">23:59:59</span>
+                        </div>
+
+                        <!-- Accordion / Payment Tabs -->
+                        <div class="p-3">
+                            <div class="fw-bold fs-8 text-secondary mb-2 text-uppercase tracking-wide"><i class="fa-solid fa-credit-card me-1 text-primary"></i> Pilih Metode Pembayaran Simulasi:</div>
+
+                            <div class="accordion" id="midtransSimulatorAccordion">
+                                <!-- 1. QRIS / GOPAY -->
+                                <div class="accordion-item border rounded mb-2 overflow-hidden shadow-sm">
+                                    <h2 class="accordion-header" id="headingQris">
+                                        <button class="accordion-button py-2 px-3 fw-semibold fs-7" type="button" data-bs-toggle="collapse" data-bs-target="#collapseQris" aria-expanded="true">
+                                            <div class="d-flex align-items-center justify-content-between w-100 me-2">
+                                                <span class="d-flex align-items-center gap-2">
+                                                    <i class="fa-solid fa-qrcode text-success fs-5"></i>
+                                                    <span>GoPay / QRIS (Scan Barcode)</span>
+                                                </span>
+                                                <span class="badge bg-success-subtle text-success fs-9">Otomatis Lunas</span>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="collapseQris" class="accordion-collapse collapse show" data-bs-parent="#midtransSimulatorAccordion">
+                                        <div class="accordion-body text-center bg-white p-3">
+                                            <div class="fs-8 text-muted mb-2">Buka GoPay, OVO, DANA, LinkAja, atau m-Banking untuk Scan QR Code</div>
+                                            <div class="d-inline-block bg-white p-2 rounded shadow-sm border mb-2">
+                                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=MIDTRANS-SANDBOX-${orderIdDisplay}" alt="QRIS Code" class="img-fluid rounded" style="width: 140px; height: 140px;">
+                                            </div>
+                                            <div class="fs-9 fw-semibold text-muted mb-3 font-monospace">NMK: ID1020039102931 - MAMAM YUK</div>
+                                            <button type="button" onclick="simCompleteMidtransPayment('${orderId}')" class="btn btn-success w-100 btn-sm py-2 fw-bold shadow-sm">
+                                                <i class="fa-solid fa-circle-check me-1"></i> 📱 Simulasi Scan & Bayar Sukses (GoPay/QRIS)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 2. VIRTUAL ACCOUNT / BANK TRANSFER -->
+                                <div class="accordion-item border rounded mb-2 overflow-hidden shadow-sm">
+                                    <h2 class="accordion-header" id="headingVa">
+                                        <button class="accordion-button collapsed py-2 px-3 fw-semibold fs-7" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVa">
+                                            <div class="d-flex align-items-center justify-content-between w-100 me-2">
+                                                <span class="d-flex align-items-center gap-2">
+                                                    <i class="fa-solid fa-building-columns text-primary fs-5"></i>
+                                                    <span>Virtual Account (BCA, Mandiri, BRI, BNI)</span>
+                                                </span>
+                                                <span class="badge bg-primary-subtle text-primary fs-9">Transfer Bank</span>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="collapseVa" class="accordion-collapse collapse" data-bs-parent="#midtransSimulatorAccordion">
+                                        <div class="accordion-body bg-white p-3">
+                                            <div class="mb-2">
+                                                <label class="fs-8 text-muted mb-1 fw-semibold">Pilih Bank Virtual Account:</label>
+                                                <select class="form-select form-select-sm" id="simVaBank" onchange="updateSimVaNumber()">
+                                                    <option value="BCA">Bank BCA Virtual Account</option>
+                                                    <option value="MANDIRI">Bank Mandiri Bill Payment</option>
+                                                    <option value="BRI">Bank BRI Virtual Account</option>
+                                                    <option value="BNI">Bank BNI Virtual Account</option>
+                                                </select>
+                                            </div>
+                                            <div class="bg-light p-2 rounded border mb-3 text-center">
+                                                <div class="fs-9 text-muted">Nomor Virtual Account Simulasi:</div>
+                                                <div class="fw-bold font-monospace text-primary fs-6 my-1" id="simVaNumberDisplay">8800108192837411</div>
+                                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 fs-9" onclick="navigator.clipboard.writeText(document.getElementById('simVaNumberDisplay').innerText); Swal.fire({toast:true, icon:'success', title:'Nomor VA disalin!', position:'top-end', timer:1500, showConfirmButton:false});">
+                                                    <i class="fa-regular fa-copy me-1"></i> Salin Nomor VA
+                                                </button>
+                                            </div>
+                                            <button type="button" onclick="simCompleteMidtransPayment('${orderId}')" class="btn btn-primary w-100 btn-sm py-2 fw-bold shadow-sm">
+                                                <i class="fa-solid fa-paper-plane me-1"></i> 🏦 Simulasi Transfer VA Sukses
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 3. KARTU KREDIT / DEBIT -->
+                                <div class="accordion-item border rounded mb-2 overflow-hidden shadow-sm">
+                                    <h2 class="accordion-header" id="headingCc">
+                                        <button class="accordion-button collapsed py-2 px-3 fw-semibold fs-7" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCc">
+                                            <div class="d-flex align-items-center justify-content-between w-100 me-2">
+                                                <span class="d-flex align-items-center gap-2">
+                                                    <i class="fa-solid fa-credit-card text-warning fs-5"></i>
+                                                    <span>Kartu Kredit / Debit (Visa/Mastercard)</span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="collapseCc" class="accordion-collapse collapse" data-bs-parent="#midtransSimulatorAccordion">
+                                        <div class="accordion-body bg-white p-3">
+                                            <div class="mb-2">
+                                                <label class="fs-9 text-muted mb-1">Nomor Kartu (Test Card):</label>
+                                                <input type="text" class="form-control form-control-sm mb-2 font-monospace" value="4811 1111 1111 1111" readonly>
+                                                <div class="d-flex gap-2">
+                                                    <div class="w-50">
+                                                        <label class="fs-9 text-muted mb-1">Kadaluarsa:</label>
+                                                        <input type="text" class="form-control form-control-sm font-monospace" value="12/28" readonly>
+                                                    </div>
+                                                    <div class="w-50">
+                                                        <label class="fs-9 text-muted mb-1">CVV:</label>
+                                                        <input type="text" class="form-control form-control-sm font-monospace" value="123" readonly>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" onclick="simCompleteMidtransPayment('${orderId}')" class="btn btn-warning text-dark w-100 btn-sm py-2 fw-bold shadow-sm">
+                                                <i class="fa-solid fa-lock me-1"></i> 💳 Simulasi Bayar Kartu Sukses
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="text-center mt-3 pt-2 border-top">
+                                <button type="button" onclick="Swal.close(); switchCustView('riwayat');" class="btn btn-link text-decoration-none text-muted fs-8 py-0">
+                                    <i class="fa-solid fa-arrow-left me-1"></i> Batalkan & Bayar Nanti
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: '📱 Simulasi Bayar Lunas (Testing)',
-                cancelButtonText: 'Tutup',
-                confirmButtonColor: '#28a745'
-            }).then(res => {
-                if (res.isConfirmed) {
-                    confirmMidtransPayment(orderId);
-                } else {
-                    switchCustView('riwayat');
-                }
+                `
             });
         }
         function changeKasirOutlet(outletName) { state.kasirActiveOutlet = outletName; const badge = document.getElementById('kasir-active-outlet-badge'); if (badge) { badge.innerHTML = `<i class="fa-solid fa-location-dot me-1 text-danger"></i> ${outletName}`; } renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); Swal.fire({ icon: 'info', title: 'Cabang Kasir Diperbarui', text: 'Kasir aktif bertugas di: ' + outletName, timer: 1200, showConfirmButton: false }); }
