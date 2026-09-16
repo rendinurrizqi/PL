@@ -26,6 +26,9 @@ Route::post('/pos/checkout', [MpasiController::class, 'posCheckout'])->name('mpa
 Route::post('/member/login', [MpasiController::class, 'loginMember'])->name('mpasi.member.login');
 Route::post('/member/profile', [MpasiController::class, 'updateMemberProfile'])->name('mpasi.member.profile');
 Route::post('/member/redeem-reward', [MpasiController::class, 'redeemReward'])->name('mpasi.member.redeem');
+Route::get('/api/redemptions', [MpasiController::class, 'apiGetRedemptions']);
+Route::post('/api/redemptions/{id}/approve', [MpasiController::class, 'apiApproveRedemption']);
+Route::post('/api/redemptions/{id}/reject', [MpasiController::class, 'apiRejectRedemption']);
 Route::post('/points/rate', [MpasiController::class, 'updatePointsRate'])->name('mpasi.points.rate');
 Route::post('/api/settings/bg-image', [MpasiController::class, 'apiUpdateBgImage'])->name('mpasi.settings.bg-image');
 

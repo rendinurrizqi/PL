@@ -132,10 +132,10 @@ class DatabaseSeeder extends Seeder
 
         // 4. Point Rewards
         $rewards = [
-            ['name' => 'Voucher Diskon Rp 5.000', 'points_cost' => 10, 'description' => 'Potongan harga Rp 5.000 untuk pembelian berikutnya', 'is_active' => true],
-            ['name' => 'Gratis Pudding Mamam Yuk Mangga', 'points_cost' => 20, 'description' => '1 Cup Pudding Mamam Yuk Mangga Avocado secara cuma-cuma', 'is_active' => true],
-            ['name' => 'Gratis Puree Daging Sapi', 'points_cost' => 35, 'description' => '1 Cup Puree Daging Sapi & Wortel', 'is_active' => true],
-            ['name' => 'Voucher Diskon Rp 25.000', 'points_cost' => 50, 'description' => 'Potongan harga Rp 25.000', 'is_active' => true],
+            ['name' => 'Voucher Potongan Rp 5.000', 'points_cost' => 50, 'description' => 'Potongan langsung Rp 5.000 untuk pembelian berikutnya di semua outlet.', 'is_active' => true],
+            ['name' => 'Voucher Potongan Rp 10.000', 'points_cost' => 90, 'description' => 'Potongan langsung Rp 10.000 untuk pembelian berikutnya di semua outlet.', 'is_active' => true],
+            ['name' => 'Voucher Potongan Rp 25.000', 'points_cost' => 220, 'description' => 'Potongan langsung Rp 25.000, cocok untuk belanja borongan mingguan.', 'is_active' => true],
+            ['name' => 'Gratis 1 Cup Puding Alpukat Kurma', 'points_cost' => 150, 'description' => 'Tukar poin dengan 1 cup Puding Alpukat Kurma gratis, tunjukkan kode ke Kasir saat ambil.', 'is_active' => true],
         ];
 
         foreach ($rewards as $r) {
@@ -154,5 +154,16 @@ class DatabaseSeeder extends Seeder
         // 6. Settings
         Setting::query()->updateOrCreate(['key' => 'store_hours'], ['value' => 'BUKA 24 Jam']);
         Setting::query()->updateOrCreate(['key' => 'points_earn_rate'], ['value' => '1000']);
+
+        // 7. Daily Menus
+        $allProductIds = Product::query()->pluck('id')->toArray();
+        $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+        foreach ($days as $index => $day) {
+            DailyMenu::query()->updateOrCreate(
+                ['day_name' => $day],
+                ['product_ids' => $allProductIds]
+            );
+        }
     }
 }
+

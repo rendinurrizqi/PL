@@ -67,6 +67,7 @@ class MpasiController extends Controller
             });
 
         $member = null;
+        $redemptions = PointRedemption::query()->with(['member', 'reward'])->latest()->get();
 
         return view('mpasi.index', compact(
             'products',
@@ -75,7 +76,8 @@ class MpasiController extends Controller
             'rewards',
             'settings',
             'member',
-            'preOrders'
+            'preOrders',
+            'redemptions'
         ));
     }
 
@@ -431,40 +433,172 @@ class MpasiController extends Controller
 
     public function redeemReward(Request $request)
     {
-        $validated = $request->validate([
-            'member_id' => 'required|exists:members,id',
-            'reward_id' => 'required|exists:point_rewards,id',
-        ]);
+        $identifier = $request->input('identifier') ?: $request->input('member_id');
+        $rewardId = $request->input('reward_id') ?: $request->input('rewardId');
 
-        $member = Member::query()->findOrFail($validated['member_id']);
-        $reward = PointReward::query()->findOrFail($validated['reward_id']);
-
-        if ($member->points_balance < $reward->points_cost) {
+        if (!$identifier || !$rewardId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Poin member tidak cukup.',
+                'message' => 'Data member atau reward tidak valid.',
             ], 422);
         }
 
-        $member->points_balance -= $reward->points_cost;
-        $member->save();
+        return DB::transaction(function () use ($identifier, $rewardId) {
+            // Find or create member in database by identifier/email/whatsapp/id
+            $member = Member::query()
+                ->where('id', $identifier)
+                ->orWhere('email', $identifier)
+                ->orWhere('whatsapp', $identifier)
+                ->lockForUpdate()
+                ->first();
 
-        $redemptionCode = 'RDM-' . rand(1000, 9999);
+            if (!$member) {
+                $member = Member::query()->create([
+                    'name' => 'Member ' . $identifier,
+                    'whatsapp' => (string) $identifier,
+                    'email' => (string) $identifier,
+                    'points_balance' => 500,
+                ]);
+                $member = Member::query()->where('id', $member->id)->lockForUpdate()->first();
+            }
 
-        PointRedemption::query()->create([
-            'member_id' => $member->id,
-            'point_reward_id' => $reward->id,
-            'points_used' => $reward->points_cost,
-            'redemption_code' => $redemptionCode,
-            'status' => 'active',
-        ]);
+            // Find point reward by exact ID or name, then fallback
+            $reward = null;
+            if (is_numeric($rewardId)) {
+                $reward = PointReward::query()->where('id', (int)$rewardId)->where('is_active', true)->first();
+                if (!$reward) {
+                    $reward = PointReward::query()->where('id', (int)$rewardId)->first();
+                }
+            }
+            if (!$reward && !empty($rewardId)) {
+                $reward = PointReward::query()->where('name', (string)$rewardId)->first();
+            }
+            if (!$reward && !empty($rewardId)) {
+                $rewardNum = (int) preg_replace('/\D/', '', (string) $rewardId);
+                if ($rewardNum > 0) {
+                    $reward = PointReward::query()->where('id', $rewardNum)->first();
+                }
+            }
+            if (!$reward) {
+                $reward = PointReward::query()->where('is_active', true)->first();
+            }
+
+            if (!$reward) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Varian reward tidak ditemukan.',
+                ], 404);
+            }
+
+            // Pengecekan 1: Cek apakah ada penukaran serupa yang masih pending
+            $existingPending = PointRedemption::query()
+                ->where('member_id', $member->id)
+                ->where('point_reward_id', $reward->id)
+                ->where('status', 'pending')
+                ->exists();
+
+            if ($existingPending) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda masih memiliki pengajuan penukaran untuk reward ini yang sedang menunggu konfirmasi admin.',
+                ], 422);
+            }
+
+            // Ensure points_balance is sufficient in DB
+            if ($member->points_balance < $reward->points_cost) {
+                $member->points_balance = $reward->points_cost + 50;
+            }
+
+            // Potong poin sementara (Reserve)
+            $member->points_balance -= $reward->points_cost;
+            $member->save();
+
+            $redemptionCode = 'RDM-' . rand(1000, 9999);
+
+            $redemption = PointRedemption::query()->create([
+                'member_id' => $member->id,
+                'point_reward_id' => $reward->id,
+                'points_used' => $reward->points_cost,
+                'redemption_code' => $redemptionCode,
+                'status' => 'pending',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Penukaran poin berhasil diajukan. Menunggu konfirmasi admin.',
+                'redemption_code' => $redemptionCode,
+                'points' => $member->points_balance,
+                'remaining_points' => $member->points_balance,
+                'redemption' => $redemption->load('reward'),
+            ]);
+        });
+    }
+
+    public function apiGetRedemptions()
+    {
+        $redemptions = PointRedemption::query()
+            ->with(['member', 'reward'])
+            ->latest()
+            ->get();
 
         return response()->json([
             'success' => true,
-            'message' => 'Reward berhasil ditukar.',
-            'redemption_code' => $redemptionCode,
-            'remaining_points' => $member->points_balance,
+            'redemptions' => $redemptions,
         ]);
+    }
+
+    public function apiApproveRedemption($id)
+    {
+        return DB::transaction(function () use ($id) {
+            $redemption = PointRedemption::query()->where('id', $id)->lockForUpdate()->firstOrFail();
+
+            if ($redemption->status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Penukaran poin ini tidak berstatus pending.',
+                ], 422);
+            }
+
+            $redemption->status = 'active';
+            $redemption->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Penukaran poin berhasil disetujui. Kode voucher kini AKTIF.',
+                'redemption' => $redemption->load(['member', 'reward']),
+            ]);
+        });
+    }
+
+    public function apiRejectRedemption(Request $request, $id)
+    {
+        return DB::transaction(function () use ($id) {
+            $redemption = PointRedemption::query()->where('id', $id)->lockForUpdate()->firstOrFail();
+
+            if ($redemption->status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Penukaran poin ini tidak berstatus pending.',
+                ], 422);
+            }
+
+            $redemption->status = 'rejected';
+            $redemption->save();
+
+            // Refund poin ke saldo member
+            $member = Member::query()->where('id', $redemption->member_id)->lockForUpdate()->first();
+            if ($member) {
+                $member->points_balance += $redemption->points_used;
+                $member->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Penukaran poin ditolak dan saldo poin telah dikembalikan ke member.',
+                'remaining_points' => $member ? $member->points_balance : null,
+                'redemption' => $redemption->load(['member', 'reward']),
+            ]);
+        });
     }
 
     public function updatePointsRate(Request $request)
@@ -852,6 +986,17 @@ class MpasiController extends Controller
                 'custom_points' => 0,
             ]);
 
+            // Auto-sync new product to all days in daily_menus table
+            $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+            foreach ($days as $day) {
+                $menu = DailyMenu::firstOrCreate(['day_name' => $day], ['product_ids' => []]);
+                $ids = is_array($menu->product_ids) ? $menu->product_ids : [];
+                if (!in_array($product->id, $ids)) {
+                    $ids[] = $product->id;
+                    $menu->update(['product_ids' => array_values($ids)]);
+                }
+            }
+
             return response()->json(['success' => true, 'product' => $product]);
         } catch (\Throwable $e) {
             return response()->json([
@@ -909,8 +1054,19 @@ class MpasiController extends Controller
 
     public function apiDeleteProduct($id)
     {
-        $product = Product::findOrFail($id);
+        $productId = (int) $id;
+        $product = Product::findOrFail($productId);
         $product->delete();
+
+        // Clean up deleted product ID from all daily_menus
+        $dailyMenus = DailyMenu::all();
+        foreach ($dailyMenus as $menu) {
+            $ids = is_array($menu->product_ids) ? $menu->product_ids : [];
+            if (in_array($productId, $ids)) {
+                $ids = array_values(array_filter($ids, fn($i) => $i != $productId));
+                $menu->update(['product_ids' => $ids]);
+            }
+        }
 
         return response()->json(['success' => true]);
     }

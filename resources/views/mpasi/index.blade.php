@@ -508,6 +508,7 @@
                         <a class="nav-link" href="#" onclick="switchAdminTab('dapur')"><i class="fa-solid fa-industry"></i> Rekap Dapur Masak</a>
                         <a class="nav-link" href="#" onclick="switchAdminTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> Persediaan Bahan Baku</a>
                         <a class="nav-link" href="#" onclick="switchAdminTab('laporan-outlet')"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Per Outlet</a>
+                        <a class="nav-link" href="#" onclick="switchAdminTab('poin')"><i class="fa-solid fa-coins"></i> Penukaran Poin <span id="admin-redemptions-pending-badge" class="badge rounded-pill bg-danger ms-1" style="display:none;">0</span></a>
                     </nav>
 
                     <div class="mt-4 pt-3 border-top border-purple-200 px-1">
@@ -752,6 +753,34 @@
                                         </tr>
                                     </thead>
                                     <tbody id="adm-leftover-report-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-tab-poin" class="admin-tab-content" style="display:none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-coins text-brand-purple me-2"></i> Permintaan Penukaran Poin Customer</h4>
+                                <p class="text-muted fs-7 mb-0">Konfirmasi atau tolak permintaan penukaran poin dari customer. Jika ditolak, poin otomatis dikembalikan ke customer.</p>
+                            </div>
+                            <button class="btn btn-sm btn-outline-brand-purple fw-bold" onclick="refreshRedemptionsData()"><i class="fa-solid fa-rotate me-1"></i> Refresh Data</button>
+                        </div>
+                        <div class="card-custom p-3 border-purple-200">
+                            <div class="table-responsive">
+                                <table class="table align-middle fs-7 mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Waktu</th>
+                                            <th>Member / Customer</th>
+                                            <th>Nama Reward</th>
+                                            <th>Kode Voucher</th>
+                                            <th>Biaya Poin</th>
+                                            <th>Status</th>
+                                            <th class="text-center">Aksi / Konfirmasi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adm-redemptions-tbody"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -1067,6 +1096,12 @@
                                     <i class="fa-solid fa-sliders me-1"></i> Pengaturan Perolehan Poin
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link border position-relative" href="#" onclick="switchOwnerPoinSubTab('redemptions')">
+                                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Permintaan Penukaran Poin
+                                    <span id="owner-redemptions-pending-badge" class="badge rounded-pill bg-danger ms-1" style="display:none;">0</span>
+                                </a>
+                            </li>
                         </ul>
 
                         <div id="owner-poin-sub-member">
@@ -1129,6 +1164,31 @@
                                             <tr><th>Varian Mamam Yuk</th><th>Harga / Cup</th><th>Poin Kustom / Cup</th><th class="text-center">Aksi</th></tr>
                                         </thead>
                                         <tbody id="own-product-points-tbody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="owner-poin-sub-redemptions" style="display:none;">
+                            <div class="card-custom p-3 border-purple-200">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-bold text-brand-purple mb-0"><i class="fa-solid fa-list-check me-2"></i> Daftar Permintaan Penukaran Poin Customer</h6>
+                                    <button class="btn btn-sm btn-outline-brand-purple fw-bold" onclick="refreshRedemptionsData()"><i class="fa-solid fa-rotate me-1"></i> Refresh Data</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table align-middle fs-7 mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th>Waktu</th>
+                                                <th>Member / Customer</th>
+                                                <th>Nama Reward</th>
+                                                <th>Kode Voucher</th>
+                                                <th>Biaya Poin</th>
+                                                <th>Status</th>
+                                                <th class="text-center">Aksi / Konfirmasi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="own-redemptions-tbody"></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -1411,6 +1471,7 @@
                 { name: 'Beras Organik', stock: '25 Kg', min: '5 Kg', status: 'Aman' },
                 { name: 'Salmon Fresh', stock: '2 Kg', min: '3 Kg', status: 'Menipis' }
             ],
+            redemptions: Array.isArray(window.MPASI_DATA?.redemptions) ? window.MPASI_DATA.redemptions : [],
             members: (() => {
                 try {
                     const saved = localStorage.getItem('mamamyuk_members');
@@ -1418,12 +1479,19 @@
                 } catch(e){}
                 return {};
             })(),
-            pointRewards: [
-                { id: 'RWD-1', name: 'Voucher Potongan Rp 5.000', pointsCost: 50, description: 'Potongan langsung Rp 5.000 untuk pembelian berikutnya di semua outlet.' },
-                { id: 'RWD-2', name: 'Voucher Potongan Rp 10.000', pointsCost: 90, description: 'Potongan langsung Rp 10.000 untuk pembelian berikutnya di semua outlet.' },
-                { id: 'RWD-3', name: 'Voucher Potongan Rp 25.000', pointsCost: 220, description: 'Potongan langsung Rp 25.000, cocok untuk belanja borongan mingguan.' },
-                { id: 'RWD-4', name: 'Gratis 1 Cup Puding Alpukat Kurma', pointsCost: 150, description: 'Tukar poin dengan 1 cup Puding Alpukat Kurma gratis, tunjukkan kode ke Kasir saat ambil.' }
-            ],
+            pointRewards: (Array.isArray(window.MPASI_DATA?.rewards) && window.MPASI_DATA.rewards.length > 0)
+                ? window.MPASI_DATA.rewards.map(r => ({
+                    id: r.id,
+                    name: r.name,
+                    pointsCost: Number(r.points_cost || 0),
+                    description: r.description || ''
+                }))
+                : [
+                    { id: 6, name: 'Voucher Potongan Rp 5.000', pointsCost: 50, description: 'Potongan langsung Rp 5.000 untuk pembelian berikutnya di semua outlet.' },
+                    { id: 7, name: 'Voucher Potongan Rp 10.000', pointsCost: 90, description: 'Potongan langsung Rp 10.000 untuk pembelian berikutnya di semua outlet.' },
+                    { id: 8, name: 'Voucher Potongan Rp 25.000', pointsCost: 220, description: 'Potongan langsung Rp 25.000, cocok untuk belanja borongan mingguan.' },
+                    { id: 9, name: 'Gratis 1 Cup Puding Alpukat Kurma', pointsCost: 150, description: 'Tukar poin dengan 1 cup Puding Alpukat Kurma gratis, tunjukkan kode ke Kasir saat ambil.' }
+                ],
             pointsEarnRate: 1000,
             expenses: (() => {
                 try {
@@ -1607,7 +1675,7 @@
                 window.event.currentTarget.classList.add('active');
             }
         }
-        function switchAdminTab(tabName) { document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#admin-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('admin-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } }
+        function switchAdminTab(tabName) { document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#admin-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('admin-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } if (tabName === 'poin') { refreshRedemptionsData(); } }
         function switchOwnerTab(tabName) { document.querySelectorAll('.owner-tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('#owner-sidebar-nav .nav-link').forEach(el => el.classList.remove('active')); const target = document.getElementById('owner-tab-' + tabName); if (target) target.style.display = 'block'; if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active'); } if (tabName === 'poin') renderOwnerProductPointsTable(); if (tabName === 'pengeluaran') renderOwnerExpenses(); if (tabName === 'background') initOwnerBgTab(); }
 
         let ownerSelectedBgImage = '{{ $settings["bg_login_image"] ?? "/images/bg-login.jpg" }}';
@@ -1794,14 +1862,14 @@
                 endLoading();
             });
         }
-        function switchOwnerPoinSubTab(tabName) { const memberPane = document.getElementById('owner-poin-sub-member'); const rewardPane = document.getElementById('owner-poin-sub-reward'); const ratePane = document.getElementById('owner-poin-sub-rate'); if (memberPane) memberPane.style.display = tabName === 'member' ? 'block' : 'none'; if (rewardPane) rewardPane.style.display = tabName === 'reward' ? 'block' : 'none'; if (ratePane) ratePane.style.display = tabName === 'rate' ? 'block' : 'none'; document.querySelectorAll('#owner-poin-subnav .nav-link').forEach(el => { el.classList.remove('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); el.classList.add('border'); }); if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); } if (tabName === 'rate') { const rateInput = document.getElementById('owner-points-rate-input'); if (rateInput) rateInput.value = state.pointsEarnRate; updatePointsRateExample(); renderOwnerProductPointsTable(); } }
+        function switchOwnerPoinSubTab(tabName) { const memberPane = document.getElementById('owner-poin-sub-member'); const rewardPane = document.getElementById('owner-poin-sub-reward'); const ratePane = document.getElementById('owner-poin-sub-rate'); const redemptionsPane = document.getElementById('owner-poin-sub-redemptions'); if (memberPane) memberPane.style.display = tabName === 'member' ? 'block' : 'none'; if (rewardPane) rewardPane.style.display = tabName === 'reward' ? 'block' : 'none'; if (ratePane) ratePane.style.display = tabName === 'rate' ? 'block' : 'none'; if (redemptionsPane) redemptionsPane.style.display = tabName === 'redemptions' ? 'block' : 'none'; document.querySelectorAll('#owner-poin-subnav .nav-link').forEach(el => { el.classList.remove('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); el.classList.add('border'); }); if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); } if (tabName === 'rate') { const rateInput = document.getElementById('owner-points-rate-input'); if (rateInput) rateInput.value = state.pointsEarnRate; updatePointsRateExample(); renderOwnerProductPointsTable(); } else if (tabName === 'redemptions') { renderOwnerRedemptionsTable(); } }
         function switchCustView(viewName) { document.querySelectorAll('.cust-view').forEach(el => el.style.display = 'none'); document.querySelectorAll('.navbar-custom .nav-link').forEach(el => el.classList.remove('active')); document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active')); const target = document.getElementById('cust-view-' + viewName); if (target) target.style.display = 'block'; const navTarget = document.getElementById('cust-nav-' + viewName); if (navTarget) navTarget.classList.add('active'); const mobileNavTarget = document.getElementById('mobile-nav-' + viewName); if (mobileNavTarget) mobileNavTarget.classList.add('active'); const mobileBottomNav = document.querySelector('.mobile-bottom-nav'); const custNavContent = document.getElementById('custNavContent'); const custToggler = document.querySelector('.navbar-toggler'); if (viewName === 'login') { if (mobileBottomNav) mobileBottomNav.style.setProperty('display', 'none', 'important'); if (custNavContent) custNavContent.style.setProperty('display', 'none', 'important'); if (custToggler) custToggler.style.setProperty('display', 'none', 'important'); } else { if (mobileBottomNav) mobileBottomNav.style.removeProperty('display'); if (custNavContent) custNavContent.style.removeProperty('display'); if (custToggler) custToggler.style.removeProperty('display'); } if (viewName === 'checkout') prefillCheckoutForm(); if (viewName === 'poin') renderCustomerPointsPage(); if (viewName === 'akun') renderCustomerProfilePage(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
         function updateStoreHoursStatus() { state.isStoreOpen = true; const alertEl = document.getElementById('closed-hours-alert'); const labelEl = document.getElementById('store-hours-label'); const mobileLabelEl = document.getElementById('store-hours-label-mobile'); if (alertEl) alertEl.style.display = 'none'; if (labelEl) labelEl.innerHTML = '<span id="store-hours-dot" class="d-inline-block rounded-circle bg-success" style="width:8px;height:8px;"></span> BUKA 24 Jam'; if (mobileLabelEl) mobileLabelEl.innerHTML = '<span id="store-hours-dot-mobile" class="d-inline-block rounded-circle bg-success" style="width:7px;height:7px;"></span> BUKA'; }
         function getTodayDateString() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function getYesterdayDateString() { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function purgeOldPreOrders() { const todayStr = getTodayDateString(); const yesterdayStr = getYesterdayDateString(); let changed = false; state.preOrders = (state.preOrders || []).filter(order => { if (!order.date) { order.date = todayStr; return true; } if (order.date === todayStr || order.date === yesterdayStr) { return true; } changed = true; return false; }); if (changed) savePreOrdersToStorage(); }
         function confirmResetAllOrders() { Swal.fire({ icon: 'warning', title: 'Bersihkan Semua Pesanan Hari Ini?', text: 'Seluruh pesanan per outlet hari ini akan dihapus agar data baru besok bersih.', showCancelButton: true, confirmButtonText: 'Ya, Bersihkan', cancelButtonText: 'Batal', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { state.preOrders = []; savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: 'Pesanan Dibersihkan!', text: 'Seluruh pesanan hari ini berhasil dihapus.', timer: 1500, showConfirmButton: false }); } }); }
-        function renderAllUI() { purgeOldPreOrders(); renderOutletDropdowns(); renderHomeProducts(); renderCatalogProducts(); renderCartUI(); renderCustomerHistory(); renderCustomerAuthArea(); renderCustomerPointsPage(); renderCustomerProfilePage(); renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); renderAdminProducts('adm-products-tbody', true); renderAdminProduction(); renderAdminInventory(); renderAdminDailyMenuGrid(); renderAdminOutletReports(); renderAdminPesananPerOutlet(); renderOwnerDashboard(); renderOwnerDailyMenuGrid(); renderOwnerProducts(); renderOwnerPreOrders(); renderOwnerProduction(); renderOwnerInventory(); renderOwnerOutletReports(); renderOwnerResetPasswordTable(); renderOwnerOutletsTable(); renderOwnerMembersTable(); renderOwnerRewardsTable(); renderOwnerProductPointsTable(); renderOwnerExpenses(); renderAdminOutletStockTable(); }
+        function renderAllUI() { purgeOldPreOrders(); renderOutletDropdowns(); renderHomeProducts(); renderCatalogProducts(); renderCartUI(); renderCustomerHistory(); renderCustomerAuthArea(); renderCustomerPointsPage(); renderCustomerProfilePage(); renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); renderAdminProducts('adm-products-tbody', true); renderAdminProduction(); renderAdminInventory(); renderAdminDailyMenuGrid(); renderAdminOutletReports(); renderAdminPesananPerOutlet(); renderOwnerDashboard(); renderOwnerDailyMenuGrid(); renderOwnerProducts(); renderOwnerPreOrders(); renderOwnerProduction(); renderOwnerInventory(); renderOwnerOutletReports(); renderOwnerResetPasswordTable(); renderOwnerOutletsTable(); renderOwnerMembersTable(); renderOwnerRewardsTable(); renderOwnerProductPointsTable(); renderOwnerExpenses(); renderAdminOutletStockTable(); renderOwnerRedemptionsTable(); }
         function getTomorrowDayName() { const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const nextIndex = (new Date().getDay() + 1) % 7; return days[nextIndex]; }
         function getTomorrowProducts() { const tomorrowName = getTomorrowDayName(); const config = state.dailyMenu.find(d => (d.day || '').toLowerCase() === tomorrowName.toLowerCase()); if (!config || !Array.isArray(config.productIds) || config.productIds.length === 0) { return []; } const activeIds = config.productIds.map(String); return state.products.filter(p => activeIds.includes(String(p.id)) && p.status === 'Aktif'); }
         function getTodayProducts() { const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const todayName = days[new Date().getDay()]; const todayConfig = state.dailyMenu.find(d => (d.day || '').toLowerCase() === todayName.toLowerCase()); if (!todayConfig || !Array.isArray(todayConfig.productIds) || todayConfig.productIds.length === 0) { return []; } const activeIds = todayConfig.productIds.map(String); return state.products.filter(p => activeIds.includes(String(p.id)) && p.status === 'Aktif'); }
@@ -1813,8 +1881,8 @@
             if (!grid) return;
             const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
             grid.innerHTML = days.map(day => {
-                let menuConfig = state.dailyMenu.find(d => d.day === day);
-                let pIds = menuConfig ? (menuConfig.productIds || []).map(String) : [];
+                let menuConfig = (state.dailyMenu || []).find(d => (d.day || d.day_name || '').trim().toLowerCase() === day.toLowerCase());
+                let pIds = menuConfig ? (menuConfig.productIds || menuConfig.product_ids || []).map(String) : [];
                 let assignedProducts = state.products.filter(p => pIds.includes(String(p.id)));
                 return `
                     <div class="col-md-3 mb-3">
@@ -1851,8 +1919,8 @@
             }
         }
         function editDailyMenuModal(dayName) {
-            let menuConfig = state.dailyMenu.find(d => d.day === dayName);
-            let currentIds = menuConfig ? (menuConfig.productIds || []).map(String) : [];
+            let menuConfig = (state.dailyMenu || []).find(d => (d.day || d.day_name || '').trim().toLowerCase() === dayName.toLowerCase());
+            let currentIds = menuConfig ? (menuConfig.productIds || menuConfig.product_ids || []).map(String) : [];
             let itemsHtml = state.products.map(p => {
                 const isChecked = currentIds.includes(String(p.id));
                 return `
@@ -2161,7 +2229,7 @@
         function bindImagePreview(inputId, previewImgId) { const inputEl = document.getElementById(inputId); const previewEl = document.getElementById(previewImgId); if (!inputEl || !previewEl) return; inputEl.addEventListener('change', () => { const file = inputEl.files && inputEl.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { previewEl.src = reader.result; previewEl.style.display = 'block'; }; reader.readAsDataURL(file); }); }
         function editProductModal(prodId) { const p = state.products.find(x => x.id == prodId); if (!p) return; Swal.fire({ title: 'Edit Varian Mamam Yuk', html: `<div class="text-start mb-2"><label class="fw-bold fs-7 d-block mb-1">Foto Produk (opsional)</label><img id="swal-eimg-preview" src="${p.image || ''}" class="rounded-3 mb-2" style="width:100%; max-height:150px; object-fit:cover; ${p.image ? '' : 'display:none;'}"><input id="swal-eimage" type="file" accept="image/*" class="swal2-file"></div><input id="swal-ename" class="swal2-input" placeholder="Nama Varian Mamam Yuk" value="${p.name}"><input id="swal-eprice" class="swal2-input" type="number" placeholder="Harga / Cup (Rp)" value="${p.price}"><select id="swal-ecategory" class="swal2-select"><option value="Bubur" ${p.category === 'Bubur' ? 'selected' : ''}>Bubur</option><option value="Snack" ${p.category === 'Snack' ? 'selected' : ''}>Snack</option></select><select id="swal-eage" class="swal2-select"><option value="6+ Bulan" ${p.age === '6+ Bulan' ? 'selected' : ''}>6+ Bulan</option><option value="8+ Bulan" ${p.age === '8+ Bulan' ? 'selected' : ''}>8+ Bulan</option><option value="12+ Bulan" ${p.age === '12+ Bulan' ? 'selected' : ''}>12+ Bulan</option></select><input id="swal-eingredients" class="swal2-input" placeholder="Komposisi Bahan" value="${p.ingredients}"><select id="swal-estatus" class="swal2-select"><option value="Aktif" ${p.status === 'Aktif' ? 'selected' : ''}>Aktif</option><option value="Nonaktif" ${p.status === 'Nonaktif' ? 'selected' : ''}>Nonaktif</option></select>`, focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan Perubahan', confirmButtonColor: '#B57EDC', didOpen: () => { bindImagePreview('swal-eimage', 'swal-eimg-preview'); }, preConfirm: async () => { const name = document.getElementById('swal-ename').value.trim(); const price = parseInt(document.getElementById('swal-eprice').value) || 0; if (!name || price <= 0) { Swal.showValidationMessage('Harap isi Nama dan Harga produk!'); return false; } const newImageDataUrl = await readImageFileAsDataUrl(document.getElementById('swal-eimage')); return { name, price, category: document.getElementById('swal-ecategory').value, age: document.getElementById('swal-eage').value, ingredients: document.getElementById('swal-eingredients').value.trim(), status: document.getElementById('swal-estatus').value, image: newImageDataUrl }; } }).then(result => { if (result.isConfirmed && result.value) { fetch('/api/products/' + prodId, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify(result.value) }).then(async res => { const data = await res.json().catch(() => ({})); if (!res.ok || data.success === false) { throw new Error(data.message || ('Gagal memperbarui data (Status ' + res.status + ')')); } return data; }).then(() => { p.name = result.value.name; p.price = result.value.price; p.category = result.value.category; p.age = result.value.age; p.ingredients = result.value.ingredients; p.status = result.value.status; if (result.value.image) p.image = result.value.image; renderAllUI(); Swal.fire({ icon: 'success', title: 'Produk Diperbarui', text: `${p.name} berhasil disimpan!`, timer: 1200, showConfirmButton: false }); }).catch(err => { Swal.fire({ icon: 'error', title: 'Gagal Memperbarui Varian', text: err.message || 'Terjadi kesalahan sistem.' }); }); } }); }
         function deleteProductOwner(prodId) { const p = state.products.find(x => x.id == prodId); if (!p) return; Swal.fire({ icon: 'warning', title: 'Hapus Varian Produk?', text: `Varian "${p.name}" akan dihapus permanen dari master produk dan menu harian.`, showCancelButton: true, confirmButtonText: 'Ya, Hapus', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { fetch('/api/products/' + prodId, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } }).then(() => { state.products = state.products.filter(x => x.id != prodId); state.dailyMenu.forEach(d => { d.productIds = (d.productIds || []).filter(id => id != prodId); }); state.cart = state.cart.filter(c => c.productId != prodId); state.posCart = state.posCart.filter(c => c.productId != prodId); renderAllUI(); Swal.fire({ icon: 'success', title: 'Produk Dihapus', timer: 1000, showConfirmButton: false }); }); } }); }
-        function showAddProductModal() { Swal.fire({ title: 'Tambah Varian Mamam Yuk Baru', html: `<div class="text-start mb-2"><label class="fw-bold fs-7 d-block mb-1">Foto Produk (opsional, maks 2MB)</label><img id="swal-pimg-preview" class="rounded-3 mb-2" style="width:100%; max-height:150px; object-fit:cover; display:none;"><input id="swal-pimage" type="file" accept="image/*" class="swal2-file"></div><input id="swal-pname" class="swal2-input" placeholder="Nama Varian Mamam Yuk"><input id="swal-pprice" class="swal2-input" type="number" placeholder="Harga / Cup (Rp)"><input id="swal-pstock" class="swal2-input" type="number" placeholder="Stok Ready Initial (Cup)"><select id="swal-pcategory" class="swal2-select"><option value="Bubur">Bubur</option><option value="Snack">Snack</option></select><select id="swal-page" class="swal2-select"><option value="6+ Bulan">6+ Bulan</option><option value="8+ Bulan">8+ Bulan</option><option value="12+ Bulan">12+ Bulan</option></select><input id="swal-pingredients" class="swal2-input" placeholder="Komposisi Bahan"><select id="swal-pstatus" class="swal2-select"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select>`, focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan Varian', confirmButtonColor: '#B57EDC', didOpen: () => { bindImagePreview('swal-pimage', 'swal-pimg-preview'); }, preConfirm: async () => { const name = document.getElementById('swal-pname').value.trim(); const price = parseInt(document.getElementById('swal-pprice').value) || 0; const stock = parseInt(document.getElementById('swal-pstock').value) || 0; const category = document.getElementById('swal-pcategory').value; const age = document.getElementById('swal-page').value; const ingredients = document.getElementById('swal-pingredients').value.trim(); const status = document.getElementById('swal-pstatus').value; if (!name || price <= 0) { Swal.showValidationMessage('Harap isi Nama dan Harga produk!'); return false; } const imageDataUrl = await readImageFileAsDataUrl(document.getElementById('swal-pimage')); return { name, price, stock, category, age, age_group: age, ingredients, status, image: imageDataUrl || '' }; } }).then((result) => { if (result.isConfirmed && result.value) { fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify(result.value) }).then(async res => { const data = await res.json().catch(() => ({})); if (!res.ok || data.success === false) { throw new Error(data.message || ('Gagal menyimpan data ke server (Status ' + res.status + ')')); } return data; }).then(data => { if (data.success && data.product) { const newP = { id: data.product.id, name: data.product.name, price: data.product.price, stock: data.product.stock, initialStock: data.product.stock, category: data.product.category || result.value.category || 'Bubur', age: data.product.age_group || result.value.age || '6+ Bulan', ingredients: data.product.ingredients || result.value.ingredients || 'Bahan segar alami', status: data.product.status || result.value.status || 'Aktif', image: data.product.image || result.value.image || '', customPoints: 0 }; state.products.push(newP); renderAllUI(); Swal.fire({ icon: 'success', title: 'Produk Ditambahkan', text: `${newP.name} berhasil disimpan!`, timer: 1200, showConfirmButton: false }); } else { Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: (data && data.message) ? data.message : 'Gagal menyimpan varian baru.' }); } }).catch(err => { Swal.fire({ icon: 'error', title: 'Gagal Menyimpan Varian', text: err.message || 'Terjadi kesalahan sistem.' }); }); } }); }
+        function showAddProductModal() { Swal.fire({ title: 'Tambah Varian Mamam Yuk Baru', html: `<div class="text-start mb-2"><label class="fw-bold fs-7 d-block mb-1">Foto Produk (opsional, maks 2MB)</label><img id="swal-pimg-preview" class="rounded-3 mb-2" style="width:100%; max-height:150px; object-fit:cover; display:none;"><input id="swal-pimage" type="file" accept="image/*" class="swal2-file"></div><input id="swal-pname" class="swal2-input" placeholder="Nama Varian Mamam Yuk"><input id="swal-pprice" class="swal2-input" type="number" placeholder="Harga / Cup (Rp)"><input id="swal-pstock" class="swal2-input" type="number" placeholder="Stok Ready Initial (Cup)"><select id="swal-pcategory" class="swal2-select"><option value="Bubur">Bubur</option><option value="Snack">Snack</option></select><select id="swal-page" class="swal2-select"><option value="6+ Bulan">6+ Bulan</option><option value="8+ Bulan">8+ Bulan</option><option value="12+ Bulan">12+ Bulan</option></select><input id="swal-pingredients" class="swal2-input" placeholder="Komposisi Bahan"><select id="swal-pstatus" class="swal2-select"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select>`, focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan Varian', confirmButtonColor: '#B57EDC', didOpen: () => { bindImagePreview('swal-pimage', 'swal-pimg-preview'); }, preConfirm: async () => { const name = document.getElementById('swal-pname').value.trim(); const price = parseInt(document.getElementById('swal-pprice').value) || 0; const stock = parseInt(document.getElementById('swal-pstock').value) || 0; const category = document.getElementById('swal-pcategory').value; const age = document.getElementById('swal-page').value; const ingredients = document.getElementById('swal-pingredients').value.trim(); const status = document.getElementById('swal-pstatus').value; if (!name || price <= 0) { Swal.showValidationMessage('Harap isi Nama dan Harga produk!'); return false; } const imageDataUrl = await readImageFileAsDataUrl(document.getElementById('swal-pimage')); return { name, price, stock, category, age, age_group: age, ingredients, status, image: imageDataUrl || '' }; } }).then((result) => { if (result.isConfirmed && result.value) { fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify(result.value) }).then(async res => { const data = await res.json().catch(() => ({})); if (!res.ok || data.success === false) { throw new Error(data.message || ('Gagal menyimpan data ke server (Status ' + res.status + ')')); } return data; }).then(data => { if (data.success && data.product) { const newP = { id: data.product.id, name: data.product.name, price: data.product.price, stock: data.product.stock, initialStock: data.product.stock, category: data.product.category || result.value.category || 'Bubur', age: data.product.age_group || result.value.age || '6+ Bulan', ingredients: data.product.ingredients || result.value.ingredients || 'Bahan segar alami', status: data.product.status || result.value.status || 'Aktif', image: data.product.image || result.value.image || '', customPoints: 0 }; state.products.push(newP); (state.dailyMenu || []).forEach(d => { if (!d.productIds) d.productIds = []; if (!d.productIds.includes(newP.id)) d.productIds.push(newP.id); }); renderAllUI(); Swal.fire({ icon: 'success', title: 'Produk Ditambahkan', text: `${newP.name} berhasil disimpan!`, timer: 1200, showConfirmButton: false }); } else { Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: (data && data.message) ? data.message : 'Gagal menyimpan varian baru.' }); } }).catch(err => { Swal.fire({ icon: 'error', title: 'Gagal Menyimpan Varian', text: err.message || 'Terjadi kesalahan sistem.' }); }); } }); }
         function updateCartQty(prodId, delta) { const item = state.cart.find(x => x.productId == prodId); if (item) { item.qty += delta; if (item.qty <= 0) { state.cart = state.cart.filter(x => x.productId != prodId); } } renderCartUI(); }
         function savePreOrdersToStorage() { try { localStorage.setItem('mpasi_customer_orders', JSON.stringify(state.preOrders)); } catch(e){} }
         function renderCartUI() { const totalQty = state.cart.reduce((a, b) => a + b.qty, 0); const totalAmt = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); const badge = document.getElementById('cart-badge'); if (badge) { badge.innerText = totalQty; badge.style.display = totalQty > 0 ? 'inline-block' : 'none'; } const mobileBadge = document.getElementById('mobile-cart-badge'); if (mobileBadge) { mobileBadge.innerText = totalQty; mobileBadge.style.display = totalQty > 0 ? 'inline-block' : 'none'; } const tbody = document.getElementById('cart-tbody'); if (tbody) { tbody.innerHTML = state.cart.map(c => ` <tr><td class="fw-bold text-dark">${c.name}</td><td>Rp ${c.price.toLocaleString('id-ID')}</td><td><div class="d-flex align-items-center gap-2"><button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${c.productId}', -1)">-</button><span class="fw-bold">${c.qty}</span><button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${c.productId}', 1)">+</button></div></td><td class="fw-bold text-brand-purple">Rp ${(c.price * c.qty).toLocaleString('id-ID')}</td><td><button class="btn btn-sm text-danger" onclick="updateCartQty('${c.productId}', -99)"><i class="fa-solid fa-trash"></i></button></td></tr>`).join(''); } const subtotalEl = document.getElementById('cart-summary-subtotal'); if (subtotalEl) subtotalEl.innerText = 'Rp ' + totalAmt.toLocaleString('id-ID'); const totalEl = document.getElementById('cart-summary-total'); if (totalEl) totalEl.innerText = 'Rp ' + totalAmt.toLocaleString('id-ID'); }
@@ -2447,6 +2515,8 @@
                 renderKasirPreOrders();
                 renderOwnerPreOrders();
                 renderKasirLeftoverTable();
+                renderAdminOutletReports();
+                renderOwnerOutletReports();
             }
         }
         
@@ -2728,7 +2798,6 @@
             const pNameLower = (product.name || '').toLowerCase();
             const activeOrders = (state.preOrders || []).filter(o =>
                 isOutletMatch(o.outlet, outletName) &&
-                (o.isTaken === true || o.is_taken === true || o.is_taken == 1) &&
                 o.cancelStatus !== 'approved' &&
                 (o.date === todayStr || o.date === yesterdayStr || !o.date)
             );
@@ -2781,19 +2850,25 @@
             const salesRec = state.outletSalesRecords[outName] || {};
 
             const preorderCounts = {};
+            const takenPreorderCounts = {};
             let qrisPreorderTotal = 0;
             let cashPreorderTotal = 0;
 
             (state.preOrders || []).forEach(order => {
-                if (order && order.cancelStatus !== 'approved' && (order.isTaken === true || order.is_taken === true || order.is_taken == 1)) {
+                if (order && order.cancelStatus !== 'approved') {
                     const orderDateStr = order.date ? String(order.date).substring(0, 10) : todayStr;
                     if (isOutletMatch(order.outlet, outName) && (orderDateStr === todayStr || orderDateStr === yesterdayStr)) {
+                        const isOrderTaken = (order.isTaken === true || order.is_taken === true || order.is_taken == 1);
                         const details = order.itemsDetail || order.items_detail || order.cart || (Array.isArray(order.items) ? order.items : []);
                         if (Array.isArray(details) && details.length > 0) {
                             details.forEach(ci => {
                                 const pid = String(ci.productId || ci.product_id || ci.id || '');
                                 if (pid) {
-                                    preorderCounts[pid] = (preorderCounts[pid] || 0) + (parseInt(ci.qty || ci.quantity || 1) || 0);
+                                    const qty = (parseInt(ci.qty || ci.quantity || 1) || 0);
+                                    preorderCounts[pid] = (preorderCounts[pid] || 0) + qty;
+                                    if (isOrderTaken) {
+                                        takenPreorderCounts[pid] = (takenPreorderCounts[pid] || 0) + qty;
+                                    }
                                 }
                             });
                         } else if (typeof order.items === 'string') {
@@ -2807,6 +2882,9 @@
                                     if (matchingProd) {
                                         const pid = String(matchingProd.id);
                                         preorderCounts[pid] = (preorderCounts[pid] || 0) + qty;
+                                        if (isOrderTaken) {
+                                            takenPreorderCounts[pid] = (takenPreorderCounts[pid] || 0) + qty;
+                                        }
                                     }
                                 }
                             });
@@ -2844,11 +2922,14 @@
                 const pid = String(p.id);
                 const price = p.price || 0;
                 const pesanan = preorderCounts[pid] || 0;
-                const jualan = salesRec[pid] ? (salesRec[pid].sold || 0) : 0;
-                const allocated = getOutletStock(outName, p);
-                const stok = allocated + pesanan;
-                const sisa = Math.max(0, allocated - jualan);
-                const itemTotal = (pesanan + jualan) * price;
+                const takenPreorder = takenPreorderCounts[pid] || 0;
+                const posWalkinSales = salesRec[pid] ? (salesRec[pid].sold || 0) : 0;
+                const jualan = posWalkinSales + takenPreorder;
+                const remainingPosAllocated = getOutletStock(outName, p);
+                const initialPosAllocated = remainingPosAllocated + posWalkinSales;
+                const stok = initialPosAllocated + pesanan;
+                const sisa = Math.max(0, stok - jualan);
+                const itemTotal = jualan * price;
 
                 totalStok += stok;
                 totalPesanan += pesanan;
@@ -2932,8 +3013,8 @@
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td class="text-center fw-extrabold py-2 px-3">${totalCash.toLocaleString('id-ID')}</td>
-                    <td class="text-end text-success fw-extrabold py-2 px-3">${isCheckTrue ? 'TRUE' : 'FALSE'}</td>
+                    <td class="text-center fw-extrabold py-2 px-3">${(totalQris + totalCash).toLocaleString('id-ID')}</td>
+                    <td class="text-end fw-extrabold py-2 px-3">${isCheckTrue ? '<span class="text-success">TRUE</span>' : '<span class="text-danger">FALSE</span>'}</td>
                 </tr>
             `;
 
@@ -2966,7 +3047,7 @@
 
                 const preorderCounts = {};
                 (state.preOrders || []).forEach(order => {
-                    if (order && order.cancelStatus !== 'approved' && (order.isTaken === true || order.is_taken === true || order.is_taken == 1)) {
+                    if (order && order.cancelStatus !== 'approved') {
                         const orderDateStr = order.date ? String(order.date).substring(0, 10) : todayStr;
                         if (isOutletMatch(order.outlet, outletName) && (orderDateStr === todayStr || orderDateStr === yesterdayStr)) {
                             const details = order.itemsDetail || order.items_detail || order.cart || (Array.isArray(order.items) ? order.items : []);
@@ -3009,8 +3090,8 @@
                     const price = p.price || 0;
                     const pesanan = preorderCounts[pid] || 0;
                     const prodSales = salesRec[pid] ? (salesRec[pid].sold || 0) : 0;
-                    const allocated = getOutletStock(outletName, p);
-                    const sisa = Math.max(0, allocated - (pesanan + prodSales));
+                    const remainingPosAllocated = getOutletStock(outletName, p);
+                    const sisa = Math.max(0, remainingPosAllocated);
                     
                     preorderPorsi += pesanan;
                     porsi += (pesanan + prodSales);
@@ -4113,7 +4194,42 @@
             });
         }
         function renderCustomerAuthArea() { const container = document.getElementById('cust-nav-auth-container'); if (container) { if (state.currentUser) { container.innerHTML = `<div class="d-flex align-items-center gap-2"><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8 fw-bold px-2.5 py-2 cursor-pointer" onclick="switchCustView('akun')" title="Profil & Akun Saya"><i class="fa-solid fa-user me-1"></i> ${state.currentUser.name}</span><span class="badge bg-brand-yellow text-dark fs-8 fw-bold px-2 py-2 cursor-pointer" onclick="switchCustView('poin')"><i class="fa-solid fa-coins me-1"></i> ${state.currentUser.points} Poin</span><button class="btn btn-outline-danger btn-sm rounded-pill px-2 fs-8 fw-bold" onclick="logoutCustomer()" title="Keluar"><i class="fa-solid fa-right-from-bracket"></i></button></div>`; } else { container.innerHTML = `<button class="btn btn-outline-brand-purple btn-sm rounded-pill px-3 fw-bold text-brand-purple" onclick="switchCustView('login')"><i class="fa-solid fa-user me-1"></i> Masuk</button>`; } } const navBadge = document.getElementById('poin-nav-badge'); if (navBadge) { if (state.currentUser) { navBadge.innerText = state.currentUser.points; navBadge.style.display = 'inline-block'; } else { navBadge.style.display = 'none'; } } const mobilePoinBadge = document.getElementById('mobile-poin-badge'); if (mobilePoinBadge) { if (state.currentUser) { mobilePoinBadge.innerText = state.currentUser.points; mobilePoinBadge.style.display = 'inline-block'; } else { mobilePoinBadge.style.display = 'none'; } } const mobileUserLabel = document.getElementById('mobile-nav-user-label'); const mobileUserIcon = document.getElementById('mobile-nav-user-icon'); if (mobileUserLabel) { if (state.currentUser) { const firstName = state.currentUser.name ? state.currentUser.name.split(' ')[0] : 'Akun'; mobileUserLabel.innerText = firstName; } else { mobileUserLabel.innerText = 'Masuk'; } } if (mobileUserIcon) { if (state.currentUser) { mobileUserIcon.className = 'fa-solid fa-circle-user nav-icon text-brand-purple'; } else { mobileUserIcon.className = 'fa-solid fa-user nav-icon'; } } }
-        function renderCustomerPointsPage() { const container = document.getElementById('poin-page-content'); if (!container) return; if (!state.currentUser) { container.innerHTML = `<div class="card-custom p-4 text-center max-w-500 mx-auto"><div class="bg-purple-light text-brand-purple d-inline-flex p-3 rounded-circle mb-3 fs-2 mx-auto"><i class="fa-solid fa-lock"></i></div><h5 class="fw-bold text-dark mb-2">Masuk Dulu Yuk, Bunda!</h5><p class="text-muted fs-7 mb-3">Poin hanya berlaku untuk pelanggan yang login sebagai member. Belanja tanpa login (tamu) tidak mendapat poin. Silakan masuk atau daftar gratis untuk mulai mengumpulkan poin dari setiap belanja.</p><button class="btn btn-brand-purple fw-bold px-4" onclick="switchCustView('login')"><i class="fa-solid fa-right-to-bracket me-1"></i> Masuk / Daftar Member</button></div>`; return; } const member = state.currentUser; const rewardsHtml = state.pointRewards.map(r => { const canRedeem = member.points >= r.pointsCost; return `<div class="col-md-6 col-lg-3"><div class="card-custom p-3 h-100 d-flex flex-column justify-content-between ${canRedeem ? '' : 'opacity-75'}"><div><div class="bg-purple-light text-brand-purple rounded-3 p-3 text-center mb-2 fs-3"><i class="fa-solid fa-gift"></i></div><h6 class="fw-bold text-dark mb-1">${r.name}</h6><p class="text-muted fs-8 mb-2">${r.description}</p></div><div><div class="fw-bold text-brand-purple fs-6 mb-2"><i class="fa-solid fa-coins me-1 text-warning"></i> ${r.pointsCost} Poin</div><button class="btn btn-sm w-100 fw-bold ${canRedeem ? 'btn-brand-yellow text-dark' : 'btn-secondary'}" ${canRedeem ? '' : 'disabled'} onclick="redeemReward('${r.id}')">${canRedeem ? '<i class="fa-solid fa-right-left me-1"></i> Tukar Sekarang' : 'Poin Belum Cukup'}</button></div></div></div>`; }).join(''); const historyRows = member.pointsHistory.length > 0 ? member.pointsHistory.map(h => `<tr><td class="fs-8 text-muted">${h.date}</td><td class="fw-bold text-dark fs-7">${h.label}</td><td class="text-end fw-bold fs-7 ${h.points >= 0 ? 'text-success' : 'text-danger'}">${h.points >= 0 ? '+' : ''}${h.points} Poin</td></tr>`).join('') : `<tr><td colspan="3" class="text-center text-muted fs-8 fst-italic py-3">Belum ada riwayat poin.</td></tr>`; container.innerHTML = `<div class="hero-banner mb-4 p-4 rounded-4 shadow-sm text-white"><div class="row align-items-center g-3"><div class="col-md-7"><div class="fs-8 text-white opacity-75 fw-bold text-uppercase mb-1"><i class="fa-solid fa-star text-warning me-1"></i> Saldo Poin Belanja Member</div><div class="display-6 fw-extrabold text-white mb-2"><i class="fa-solid fa-coins text-warning me-2"></i>${member.points} Poin</div><div class="fs-7 text-white opacity-90"><i class="fa-solid fa-user-circle me-1"></i> Member: <b>${member.name}</b> (${member.wa})</div></div><div class="col-md-5"><div class="text-white fs-8 bg-white bg-opacity-15 rounded-3 p-3 border border-white border-opacity-20"><div class="fw-bold mb-1"><i class="fa-solid fa-circle-info me-1 text-warning"></i> Info Perhitungan Poin:</div>Setiap belanja online kelipatan Rp ${state.pointsEarnRate.toLocaleString('id-ID')} = 1 Poin (kecuali produk dengan Poin Kustom). Poin otomatis masuk setelah checkout berhasil.</div></div></div></div><div class="mb-4"><div class="d-flex align-items-center justify-content-between mb-3"><h5 class="fw-bold text-brand-purple mb-0"><i class="fa-solid fa-gift me-2 text-warning"></i> Tukar Poin dengan Reward</h5><span class="badge bg-purple-light text-brand-purple fs-8 border border-purple-200">${state.pointRewards.length} Reward Tersedia</span></div><div class="row g-3">${rewardsHtml}</div></div><div class="mb-3"><h5 class="fw-bold text-brand-purple mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i> Riwayat Poin</h5><div class="card-custom p-3"><div class="table-responsive"><table class="table align-middle fs-7 mb-0"><thead class="bg-light"><tr><th>Waktu</th><th>Keterangan</th><th class="text-end">Poin</th></tr></thead><tbody>${historyRows}</tbody></table></div></div></div>`; }
+        function renderCustomerPointsPage() { const container = document.getElementById('poin-page-content'); if (!container) return; if (!state.currentUser) { container.innerHTML = `<div class="card-custom p-4 text-center max-w-500 mx-auto"><div class="bg-purple-light text-brand-purple d-inline-flex p-3 rounded-circle mb-3 fs-2 mx-auto"><i class="fa-solid fa-lock"></i></div><h5 class="fw-bold text-dark mb-2">Masuk Dulu Yuk, Bunda!</h5><p class="text-muted fs-7 mb-3">Poin hanya berlaku untuk pelanggan yang login sebagai member. Belanja tanpa login (tamu) tidak mendapat poin. Silakan masuk atau daftar gratis untuk mulai mengumpulkan poin dari setiap belanja.</p><button class="btn btn-brand-purple fw-bold px-4" onclick="switchCustView('login')"><i class="fa-solid fa-right-to-bracket me-1"></i> Masuk / Daftar Member</button></div>`; return; } const member = state.currentUser; const rewardsHtml = state.pointRewards.map(r => { const canRedeem = member.points >= r.pointsCost; return `<div class="col-md-6 col-lg-3"><div class="card-custom p-3 h-100 d-flex flex-column justify-content-between ${canRedeem ? '' : 'opacity-75'}"><div><div class="bg-purple-light text-brand-purple rounded-3 p-3 text-center mb-2 fs-3"><i class="fa-solid fa-gift"></i></div><h6 class="fw-bold text-dark mb-1">${r.name}</h6><p class="text-muted fs-8 mb-2">${r.description}</p></div><div><div class="fw-bold text-brand-purple fs-6 mb-2"><i class="fa-solid fa-coins me-1 text-warning"></i> ${r.pointsCost} Poin</div><button class="btn btn-sm w-100 fw-bold ${canRedeem ? 'btn-brand-yellow text-dark' : 'btn-secondary'}" ${canRedeem ? '' : 'disabled'} onclick="redeemReward('${r.id}')">${canRedeem ? '<i class="fa-solid fa-right-left me-1"></i> Tukar Sekarang' : 'Poin Belum Cukup'}</button></div></div></div>`; }).join('');
+
+        const memberId = (member.identifier || member.wa || member.email || '').toLowerCase();
+        const userRedemptions = (state.redemptions || []).filter(r => {
+            const rId = (r.customer_identifier || r.member?.whatsapp || r.member?.email || r.member?.name || '').toLowerCase();
+            return (rId && rId === memberId) || (r.member_id && member.id && r.member_id == member.id);
+        });
+
+        const redemptionsRows = userRedemptions.length > 0 ? userRedemptions.map(r => {
+            let statusBadge = '';
+            if (r.status === 'pending') {
+                statusBadge = `<span class="badge bg-warning text-dark fs-8"><i class="fa-solid fa-clock me-1"></i> 🟡 Menunggu Konfirmasi Admin</span>`;
+            } else if (r.status === 'active' || r.status === 'approved') {
+                statusBadge = `<span class="badge bg-success fs-8"><i class="fa-solid fa-check-circle me-1"></i> 🟢 Disetujui (Voucher Aktif)</span>`;
+            } else if (r.status === 'rejected') {
+                statusBadge = `<span class="badge bg-danger fs-8"><i class="fa-solid fa-circle-xmark me-1"></i> 🔴 Ditolak (Poin Dikembalikan)</span>`;
+            } else if (r.status === 'used') {
+                statusBadge = `<span class="badge bg-secondary fs-8"><i class="fa-solid fa-ticket me-1"></i> ⚪ Sudah Digunakan</span>`;
+            } else {
+                statusBadge = `<span class="badge bg-light text-dark border fs-8">${r.status}</span>`;
+            }
+            const dateStr = r.created_at ? new Date(r.created_at).toLocaleString('id-ID') : '-';
+            const rewardTitle = r.reward?.name || r.reward_name || 'Reward Voucher';
+            const code = r.redemption_code || r.voucher_code || '-';
+            const pointsSpent = r.points_used || r.points_spent || 0;
+
+            return `<tr>
+                <td class="fs-8 text-muted">${dateStr}</td>
+                <td class="fw-bold text-dark fs-7">${rewardTitle}</td>
+                <td><span class="badge bg-purple-light text-brand-purple border border-purple-200 font-mono fs-7">${code}</span></td>
+                <td class="fw-bold text-danger fs-7"><i class="fa-solid fa-coins me-1 text-warning"></i> -${pointsSpent} Poin</td>
+                <td>${statusBadge}</td>
+            </tr>`;
+        }).join('') : `<tr><td colspan="5" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pengajuan penukaran poin.</td></tr>`;
+
+        const historyRows = member.pointsHistory.length > 0 ? member.pointsHistory.map(h => `<tr><td class="fs-8 text-muted">${h.date}</td><td class="fw-bold text-dark fs-7">${h.label}</td><td class="text-end fw-bold fs-7 ${h.points >= 0 ? 'text-success' : 'text-danger'}">${h.points >= 0 ? '+' : ''}${h.points} Poin</td></tr>`).join('') : `<tr><td colspan="3" class="text-center text-muted fs-8 fst-italic py-3">Belum ada riwayat poin.</td></tr>`; container.innerHTML = `<div class="hero-banner mb-4 p-4 rounded-4 shadow-sm text-white"><div class="row align-items-center g-3"><div class="col-md-7"><div class="fs-8 text-white opacity-75 fw-bold text-uppercase mb-1"><i class="fa-solid fa-star text-warning me-1"></i> Saldo Poin Belanja Member</div><div class="display-6 fw-extrabold text-white mb-2"><i class="fa-solid fa-coins text-warning me-2"></i>${member.points} Poin</div><div class="fs-7 text-white opacity-90"><i class="fa-solid fa-user-circle me-1"></i> Member: <b>${member.name}</b> (${member.wa})</div></div><div class="col-md-5"><div class="text-white fs-8 bg-white bg-opacity-15 rounded-3 p-3 border border-white border-opacity-20"><div class="fw-bold mb-1"><i class="fa-solid fa-circle-info me-1 text-warning"></i> Info Perhitungan Poin:</div>Setiap belanja online kelipatan Rp ${state.pointsEarnRate.toLocaleString('id-ID')} = 1 Poin (kecuali produk dengan Poin Kustom). Poin otomatis masuk setelah checkout berhasil.</div></div></div></div><div class="mb-4"><div class="d-flex align-items-center justify-content-between mb-3"><h5 class="fw-bold text-brand-purple mb-0"><i class="fa-solid fa-gift me-2 text-warning"></i> Tukar Poin dengan Reward</h5><span class="badge bg-purple-light text-brand-purple fs-8 border border-purple-200">${state.pointRewards.length} Reward Tersedia</span></div><div class="row g-3">${rewardsHtml}</div></div><div class="mb-4"><h5 class="fw-bold text-brand-purple mb-3"><i class="fa-solid fa-list-check me-2"></i> Status Pengajuan Voucher Poin</h5><div class="card-custom p-3"><div class="table-responsive"><table class="table align-middle fs-7 mb-0"><thead class="bg-light"><tr><th>Waktu</th><th>Nama Reward</th><th>Kode Voucher</th><th>Potongan Poin</th><th>Status Permintaan</th></tr></thead><tbody>${redemptionsRows}</tbody></table></div></div></div><div class="mb-3"><h5 class="fw-bold text-brand-purple mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i> Riwayat Poin</h5><div class="card-custom p-3"><div class="table-responsive"><table class="table align-middle fs-7 mb-0"><thead class="bg-light"><tr><th>Waktu</th><th>Keterangan</th><th class="text-end">Poin</th></tr></thead><tbody>${historyRows}</tbody></table></div></div></div>`; }
         function renderCustomerProfilePage() { const container = document.getElementById('akun-page-content'); if (!container) return; if (!state.currentUser) { switchCustView('login'); return; } const member = state.currentUser; container.innerHTML = `<div class="max-w-600 mx-auto"><div class="card-custom p-4 bg-purple-light border border-purple-200 mb-4 shadow-sm"><div class="text-center mb-3"><div class="bg-brand-purple text-white d-inline-flex p-3 rounded-circle mb-2 fs-2 shadow-sm"><i class="fa-solid fa-circle-user"></i></div><h4 class="fw-bold text-brand-purple mb-0">${member.name}</h4><span class="badge bg-brand-yellow text-dark fs-8 fw-bold mt-1 px-3 py-1.5 rounded-pill"><i class="fa-solid fa-coins me-1"></i> ${member.points} Poin Belanja</span></div><hr class="border-purple-200"><div class="fs-7 text-dark space-y-2 mb-4"><div class="d-flex justify-content-between align-items-center py-2 border-bottom"><span class="text-muted"><i class="fa-solid fa-whatsapp text-success me-1"></i> No. WhatsApp:</span><span class="fw-bold text-dark">${member.wa}</span></div><div class="d-flex justify-content-between align-items-center py-2 border-bottom"><span class="text-muted"><i class="fa-solid fa-shop text-brand-purple me-1"></i> Outlet Favorit:</span><span class="fw-bold text-brand-purple">${member.favoriteOutlet || 'Belum Diatur'}</span></div><div class="d-flex justify-content-between align-items-center py-2"><span class="text-muted"><i class="fa-solid fa-shield-check text-primary me-1"></i> Status Akun:</span><span class="badge bg-success fs-8">Member Aktif</span></div></div><div class="d-flex flex-column gap-2 pt-2 border-top"><button class="btn btn-brand-purple w-100 fw-bold py-2.5 rounded-pill shadow-sm fs-7" onclick="showEditCustomerProfileModal()"><i class="fa-solid fa-user-pen me-2 text-warning"></i> Edit Profil Saya</button><button class="btn btn-outline-danger w-100 fw-bold py-2 rounded-pill fs-7" onclick="logoutCustomer()"><i class="fa-solid fa-right-from-bracket me-1"></i> Keluar dari Akun</button></div></div></div>`; }
         function handleSaveCustomerProfile(e) { e.preventDefault(); if (!state.currentUser) return; const member = state.currentUser; const oldIdentifier = member.identifier || member.wa; const newName = document.getElementById('prof-name').value.trim(); const newWa = document.getElementById('prof-wa').value.trim(); const newOutlet = document.getElementById('prof-outlet').value; if (!newName || !newWa) { Swal.fire({ icon: 'warning', title: 'Data Belum Lengkap', text: 'Nama dan Nomor WhatsApp wajib diisi!' }); return; } if (newWa !== oldIdentifier && state.members[oldIdentifier]) { delete state.members[oldIdentifier]; member.identifier = newWa; } member.name = newName; member.wa = newWa; if (newOutlet) member.favoriteOutlet = newOutlet; state.members[member.identifier || newWa] = member; state.currentUser = member; try { localStorage.setItem('mpasi_current_user', JSON.stringify(member)); } catch(err){} fetch('/member/profile', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ identifier: oldIdentifier, name: newName, whatsapp: newWa, favorite_outlet: newOutlet }) }).catch(() => {}); const coName = document.getElementById('co-name'); const coWa = document.getElementById('co-wa'); const coOutlet = document.getElementById('co-outlet'); if (coName) coName.value = newName; if (coWa) coWa.value = newWa; if (coOutlet && newOutlet) coOutlet.value = newOutlet; renderAllUI(); Swal.fire({ icon: 'success', title: 'Profil Diperbarui! 🎉', text: `Terima kasih, data profil Bunda ${newName} berhasil disimpan.`, timer: 1600, showConfirmButton: false }); }
         function redeemReward(rewardId) {
@@ -4126,49 +4242,232 @@
                 return;
             }
             Swal.fire({
-                title: 'Tukar Poin Sekarang?',
-                html: `Tukar <b>${reward.pointsCost} Poin</b> dengan <b>${reward.name}</b>?<br><span class="fs-8 text-muted">Sisa poin setelah ditukar: ${member.points - reward.pointsCost}</span>`,
+                title: 'Pengajuan Tukar Poin?',
+                html: `Tukar <b>${reward.pointsCost} Poin</b> dengan <b>${reward.name}</b>?<br><span class="fs-8 text-muted">Permintaan akan dikirim ke Admin untuk dikonfirmasi. Sisa poin setelah diajukan: ${member.points - reward.pointsCost}</span>`,
                 showCancelButton: true,
-                confirmButtonText: 'Ya, Tukar Sekarang',
+                confirmButtonText: 'Ya, Ajukan Penukaran',
                 cancelButtonText: 'Batal',
                 confirmButtonColor: '#B57EDC'
             }).then(res => {
                 if (res.isConfirmed) {
-                    member.points -= reward.pointsCost;
-                    const redemptionCode = 'RDM-' + Math.floor(1000 + Math.random() * 9000);
-                    if (!Array.isArray(member.pointsHistory)) member.pointsHistory = [];
-                    member.pointsHistory.unshift({
-                        type: 'redeem',
-                        rewardId: reward.id,
-                        rewardName: reward.name,
-                        code: redemptionCode,
-                        isUsed: false,
-                        label: `Tukar reward: ${reward.name} (Kode: ${redemptionCode})`,
-                        points: -reward.pointsCost,
-                        date: new Date().toLocaleString('id-ID')
+                    Swal.showLoading();
+                    fetch('/member/redeem-reward', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            identifier: member.identifier || member.wa,
+                            reward_id: reward.id,
+                            rewardId: reward.id
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            member.points = data.points !== undefined ? data.points : (member.points - reward.pointsCost);
+                            if (data.redemption) {
+                                if (!Array.isArray(state.redemptions)) state.redemptions = [];
+                                state.redemptions.unshift(data.redemption);
+                            }
+                            const redemptionCode = data.redemption?.voucher_code || data.redemption?.redemption_code || ('RDM-' + Math.floor(1000 + Math.random() * 9000));
+                            if (!Array.isArray(member.pointsHistory)) member.pointsHistory = [];
+                            member.pointsHistory.unshift({
+                                type: 'redeem',
+                                rewardId: reward.id,
+                                rewardName: reward.name,
+                                code: redemptionCode,
+                                status: 'pending',
+                                label: `Tukar reward: ${reward.name} (Kode: ${redemptionCode})`,
+                                points: -reward.pointsCost,
+                                date: new Date().toLocaleString('id-ID')
+                            });
+                            saveMembersToStorage();
+                            renderAllUI();
+                            switchCustView('poin');
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Permintaan Dikirim! ⏳',
+                                html: `
+                                    <div class="mb-2 text-start fs-7">Hadiah: <b>${reward.name}</b></div>
+                                    <div class="bg-purple-light text-brand-purple p-3 rounded-3 border border-purple-200 mb-3 text-center">
+                                        <div class="fs-8 text-muted fw-bold">KODE VOUCHER ANDA:</div>
+                                        <div class="fs-3 fw-extrabold text-brand-purple">${redemptionCode}</div>
+                                        <div class="badge bg-warning text-dark mt-2 px-3 py-1 fs-8">🟡 MENUNGGU KONFIRMASI ADMIN</div>
+                                    </div>
+                                    <div class="text-start fs-8 text-dark bg-light p-3 rounded-3 border">
+                                        <b><i class="fa-solid fa-clock text-warning me-1"></i> CATATAN KETENTUAN:</b>
+                                        <p class="mb-0 mt-1">Poin Anda dipotong sementara. Voucher siap digunakan begitu Admin menyetujui. Jika ditolak, poin otomatis kembali 100%.</p>
+                                    </div>
+                                `,
+                                confirmButtonText: 'Mengerti',
+                                confirmButtonColor: '#B57EDC'
+                            });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal Menukar', text: data.message || 'Terjadi kesalahan saat memproses penukaran.' });
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire({ icon: 'error', title: 'Kesalahan Jaringan', text: 'Gagal terhubung ke server.' });
                     });
-                    saveMembersToStorage();
-                    renderAllUI();
-                    switchCustView('poin');
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Penukaran Berhasil! 🎉',
-                        html: `
-                            <div class="mb-2 text-start fs-7">Hadiah: <b>${reward.name}</b></div>
-                            <div class="bg-purple-light text-brand-purple p-3 rounded-3 border border-purple-200 mb-3 text-center">
-                                <div class="fs-8 text-muted fw-bold">KODE VOUCHER ANDA:</div>
-                                <div class="fs-3 fw-extrabold text-brand-purple">${redemptionCode}</div>
-                            </div>
-                            <div class="text-start fs-8 text-dark bg-light p-3 rounded-3 border">
-                                <b><i class="fa-solid fa-lightbulb text-warning me-1"></i> CARA MENGGUNAKAN KODE VOUCHER:</b>
-                                <ol class="mb-0 ps-3 mt-1 space-y-1">
-                                    <li><b>Belanja Online:</b> Masukkan kode <b class="text-brand-purple">${redemptionCode}</b> di kolom <i>"Punya Kode Voucher / Poin?"</i> pada halaman Checkout. Total belanja Anda akan otomatis terpotong!</li>
-                                    <li><b>Ambil di Outlet:</b> Tunjukkan kode <b class="text-brand-purple">${redemptionCode}</b> ini kepada Kasir saat pengambilan produk.</li>
-                                </ol>
-                            </div>
-                        `,
-                        confirmButtonText: 'Tutup & Belanja Now',
-                        confirmButtonColor: '#B57EDC'
+                }
+            });
+        }
+
+        function refreshRedemptionsData() {
+            fetch('/api/redemptions')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && Array.isArray(data.redemptions)) {
+                        state.redemptions = data.redemptions;
+                        renderOwnerRedemptionsTable();
+                        renderCustomerPointsPage();
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        function renderOwnerRedemptionsTable() {
+            const ownTbody = document.getElementById('own-redemptions-tbody');
+            const admTbody = document.getElementById('adm-redemptions-tbody');
+            const list = state.redemptions || [];
+
+            const pendingCount = list.filter(r => r.status === 'pending').length;
+            ['owner-redemptions-pending-badge', 'admin-redemptions-pending-badge'].forEach(id => {
+                const badge = document.getElementById(id);
+                if (badge) {
+                    badge.innerText = pendingCount;
+                    badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+                }
+            });
+
+            let html = '';
+            if (list.length === 0) {
+                html = `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-4"><i class="fa-solid fa-inbox fs-3 d-block mb-2 text-secondary"></i>Belum ada riwayat pengajuan penukaran poin.</td></tr>`;
+            } else {
+                html = list.map(r => {
+                    const customerName = r.customer_name || r.member?.name || (state.members[r.customer_identifier]?.name) || r.customer_identifier || 'Customer';
+                    const customerIdentifier = r.customer_identifier || r.member?.whatsapp || r.member?.email || '';
+                    const dateStr = r.created_at ? new Date(r.created_at).toLocaleString('id-ID') : '-';
+                    const rewardTitle = r.reward?.name || r.reward_name || 'Reward Voucher';
+                    const code = r.redemption_code || r.voucher_code || '-';
+                    const pointsSpent = r.points_used || r.points_spent || 0;
+
+                    let statusBadge = '';
+                    if (r.status === 'pending') {
+                        statusBadge = `<span class="badge bg-warning text-dark fs-8"><i class="fa-solid fa-clock me-1"></i> Menunggu Konfirmasi</span>`;
+                    } else if (r.status === 'active' || r.status === 'approved') {
+                        statusBadge = `<span class="badge bg-success fs-8"><i class="fa-solid fa-check-circle me-1"></i> Disetujui (Aktif)</span>`;
+                    } else if (r.status === 'rejected') {
+                        statusBadge = `<span class="badge bg-danger fs-8"><i class="fa-solid fa-circle-xmark me-1"></i> Ditolak (Poin Dikembalikan)</span>`;
+                    } else if (r.status === 'used') {
+                        statusBadge = `<span class="badge bg-secondary fs-8"><i class="fa-solid fa-ticket me-1"></i> Sudah Digunakan</span>`;
+                    } else {
+                        statusBadge = `<span class="badge bg-light text-dark border fs-8">${r.status}</span>`;
+                    }
+
+                    let actionButtons = '';
+                    if (r.status === 'pending') {
+                        actionButtons = `<div class="d-flex justify-content-center gap-1"><button class="btn btn-sm btn-success fs-8 fw-bold py-1 px-2" onclick="approveRedemption(${r.id})"><i class="fa-solid fa-check me-1"></i> Setujui</button><button class="btn btn-sm btn-outline-danger fs-8 fw-bold py-1 px-2" onclick="rejectRedemption(${r.id})"><i class="fa-solid fa-xmark me-1"></i> Tolak</button></div>`;
+                    } else {
+                        actionButtons = `<span class="text-muted fs-8 fst-italic">Selesai</span>`;
+                    }
+
+                    return `<tr><td class="fs-8 text-muted">${dateStr}</td><td class="fw-bold text-dark">${customerName}<br><span class="fs-8 text-muted fw-normal">${customerIdentifier}</span></td><td class="fw-bold text-brand-purple">${rewardTitle}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 font-mono fs-7">${code}</span></td><td class="fw-bold text-danger"><i class="fa-solid fa-coins me-1 text-warning"></i> -${pointsSpent} Poin</td><td>${statusBadge}</td><td class="text-center">${actionButtons}</td></tr>`;
+                }).join('');
+            }
+
+            if (ownTbody) ownTbody.innerHTML = html;
+            if (admTbody) admTbody.innerHTML = html;
+        }
+
+        function approveRedemption(id) {
+            Swal.fire({
+                title: 'Setujui Penukaran Poin?',
+                text: 'Voucher akan diaktifkan dan customer dapat menggunakannya.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Setujui',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#198754'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    Swal.showLoading();
+                    fetch(`/api/redemptions/${id}/approve`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.redemption) {
+                                const idx = (state.redemptions || []).findIndex(r => r.id == id);
+                                if (idx !== -1) state.redemptions[idx] = data.redemption;
+                            }
+                            renderOwnerRedemptionsTable();
+                            renderCustomerPointsPage();
+                            Swal.fire({ icon: 'success', title: 'Penukaran Disetujui! ✅', text: data.message, timer: 1500, showConfirmButton: false });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Gagal menyetujui penukaran.' });
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan jaringan.' });
+                    });
+                }
+            });
+        }
+
+        function rejectRedemption(id) {
+            Swal.fire({
+                title: 'Tolak Penukaran Poin?',
+                text: 'Poin yang dipotong akan otomatis dikembalikan ke saldo customer.',
+                icon: 'warning',
+                input: 'text',
+                inputPlaceholder: 'Alasan penolakan (opsional)...',
+                showCancelButton: true,
+                confirmButtonText: 'Tolak & Kembalikan Poin',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc3545'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    const reason = res.value || '';
+                    Swal.showLoading();
+                    fetch(`/api/redemptions/${id}/reject`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ reason })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.redemption) {
+                                const idx = (state.redemptions || []).findIndex(r => r.id == id);
+                                if (idx !== -1) state.redemptions[idx] = data.redemption;
+                            }
+                            if (state.currentUser && data.refunded_points) {
+                                state.currentUser.points += data.refunded_points;
+                            }
+                            renderOwnerRedemptionsTable();
+                            renderCustomerPointsPage();
+                            renderCustomerAuthArea();
+                            Swal.fire({ icon: 'success', title: 'Penukaran Ditolak', text: data.message, timer: 1500, showConfirmButton: false });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Gagal menolak penukaran.' });
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan jaringan.' });
                     });
                 }
             });
