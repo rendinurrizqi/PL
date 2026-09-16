@@ -1871,7 +1871,7 @@
         function updateStoreHoursStatus() { state.isStoreOpen = true; const alertEl = document.getElementById('closed-hours-alert'); const labelEl = document.getElementById('store-hours-label'); const mobileLabelEl = document.getElementById('store-hours-label-mobile'); if (alertEl) alertEl.style.display = 'none'; if (labelEl) labelEl.innerHTML = '<span id="store-hours-dot" class="d-inline-block rounded-circle bg-success" style="width:8px;height:8px;"></span> BUKA 24 Jam'; if (mobileLabelEl) mobileLabelEl.innerHTML = '<span id="store-hours-dot-mobile" class="d-inline-block rounded-circle bg-success" style="width:7px;height:7px;"></span> BUKA'; }
         function getTodayDateString() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function getYesterdayDateString() { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
-        function purgeOldPreOrders() { const todayStr = getTodayDateString(); const yesterdayStr = getYesterdayDateString(); let changed = false; state.preOrders = (state.preOrders || []).filter(order => { if (!order.date) { order.date = todayStr; return true; } if (order.date === todayStr || order.date === yesterdayStr) { return true; } changed = true; return false; }); if (changed) savePreOrdersToStorage(); }
+        function purgeOldPreOrders() { const todayStr = getTodayDateString(); const yesterdayStr = getYesterdayDateString(); let changed = false; state.preOrders = (state.preOrders || []).filter(order => { if ((order.payMethod === 'Midtrans' || order.payMethod === 'Transfer') && !order.isPaid) { changed = true; return false; } if (!order.date) { order.date = todayStr; return true; } if (order.date === todayStr || order.date === yesterdayStr) { return true; } changed = true; return false; }); if (changed) savePreOrdersToStorage(); }
         function confirmResetAllOrders() { Swal.fire({ icon: 'warning', title: 'Bersihkan Semua Pesanan Hari Ini?', text: 'Seluruh pesanan per outlet hari ini akan dihapus agar data baru besok bersih.', showCancelButton: true, confirmButtonText: 'Ya, Bersihkan', cancelButtonText: 'Batal', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { state.preOrders = []; savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: 'Pesanan Dibersihkan!', text: 'Seluruh pesanan hari ini berhasil dihapus.', timer: 1500, showConfirmButton: false }); } }); }
         function renderAllUI() { purgeOldPreOrders(); renderOutletDropdowns(); renderHomeProducts(); renderCatalogProducts(); renderCartUI(); renderCustomerHistory(); renderCustomerAuthArea(); renderCustomerPointsPage(); renderCustomerProfilePage(); renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); renderAdminProducts('adm-products-tbody', true); renderAdminProduction(); renderAdminInventory(); renderAdminDailyMenuGrid(); renderAdminOutletReports(); renderAdminPesananPerOutlet(); renderOwnerDashboard(); renderOwnerDailyMenuGrid(); renderOwnerProducts(); renderOwnerPreOrders(); renderOwnerProduction(); renderOwnerInventory(); renderOwnerOutletReports(); renderOwnerResetPasswordTable(); renderOwnerOutletsTable(); renderOwnerMembersTable(); renderOwnerRewardsTable(); renderOwnerProductPointsTable(); renderOwnerExpenses(); renderAdminOutletStockTable(); renderOwnerRedemptionsTable(); }
         function getTomorrowDayName() { const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const nextIndex = (new Date().getDay() + 1) % 7; return days[nextIndex]; }
@@ -2237,7 +2237,7 @@
         function updateCartQty(prodId, delta) { const item = state.cart.find(x => x.productId == prodId); if (item) { item.qty += delta; if (item.qty <= 0) { state.cart = state.cart.filter(x => x.productId != prodId); } } renderCartUI(); }
         function savePreOrdersToStorage() { try { localStorage.setItem('mpasi_customer_orders', JSON.stringify(state.preOrders)); } catch(e){} }
         function renderCartUI() { const totalQty = state.cart.reduce((a, b) => a + b.qty, 0); const totalAmt = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); const badge = document.getElementById('cart-badge'); if (badge) { badge.innerText = totalQty; badge.style.display = totalQty > 0 ? 'inline-block' : 'none'; } const mobileBadge = document.getElementById('mobile-cart-badge'); if (mobileBadge) { mobileBadge.innerText = totalQty; mobileBadge.style.display = totalQty > 0 ? 'inline-block' : 'none'; } const tbody = document.getElementById('cart-tbody'); if (tbody) { tbody.innerHTML = state.cart.map(c => ` <tr><td class="fw-bold text-dark">${c.name}</td><td>Rp ${c.price.toLocaleString('id-ID')}</td><td><div class="d-flex align-items-center gap-2"><button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${c.productId}', -1)">-</button><span class="fw-bold">${c.qty}</span><button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${c.productId}', 1)">+</button></div></td><td class="fw-bold text-brand-purple">Rp ${(c.price * c.qty).toLocaleString('id-ID')}</td><td><button class="btn btn-sm text-danger" onclick="updateCartQty('${c.productId}', -99)"><i class="fa-solid fa-trash"></i></button></td></tr>`).join(''); } const subtotalEl = document.getElementById('cart-summary-subtotal'); if (subtotalEl) subtotalEl.innerText = 'Rp ' + totalAmt.toLocaleString('id-ID'); const totalEl = document.getElementById('cart-summary-total'); if (totalEl) totalEl.innerText = 'Rp ' + totalAmt.toLocaleString('id-ID'); }
-        function renderCustomerHistory() { const tbody = document.getElementById('riwayat-tbody'); if (!tbody) return; if (state.preOrders.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-7 fst-italic py-4"><i class="fa-solid fa-inbox fs-3 d-block mb-2 text-secondary"></i>Belum ada riwayat pesanan. Yuk mulai pesan Mamam Yuk dari menu hari ini!</td></tr>`; return; } tbody.innerHTML = state.preOrders.map(p => { let statusBadge; if (p.cancelStatus === 'approved') { statusBadge = '<span class="badge bg-danger fs-8">Pesanan Dibatalkan ❌</span>'; } else if (p.cancelStatus === 'pending') { statusBadge = '<span class="badge bg-secondary fs-8">Menunggu Persetujuan Batal</span>'; } else if (p.isTaken) { statusBadge = '<span class="badge bg-success fs-8">Sudah Diambil ✅</span>'; } else { statusBadge = '<span class="badge bg-warning text-dark fs-8">Menunggu Ambil</span>'; } let actionCell; if (p.cancelStatus === 'approved') { actionCell = '<span class="text-muted fs-8 fst-italic">Sudah dibatalkan</span>'; } else if (p.cancelStatus === 'pending') { actionCell = '<span class="text-muted fs-8 fst-italic">Menunggu Owner</span>'; } else if (p.isTaken) { actionCell = '<span class="text-muted fs-8 fst-italic">-</span>'; } else { actionCell = `<button class="btn btn-sm btn-outline-danger fs-8 fw-bold" onclick="requestCancelOrder('${p.id}')"><i class="fa-solid fa-ban me-1"></i> Batalkan Pesanan</button>`; if (p.cancelStatus === 'rejected') { actionCell = `<div class="text-danger fs-8 mb-1 fst-italic">Permintaan batal sebelumnya ditolak</div>` + actionCell; } } return `<tr class="${p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : ''}"><td class="fw-bold text-brand-purple">${p.id}</td><td>Besok (06.00 - 09.00)</td><td><span class="badge bg-light text-dark border">${p.payMethod}</span></td><td class="fw-bold text-dark">${p.items}</td><td>${statusBadge}</td><td class="text-center">${actionCell}</td></tr>`; }).join(''); }
+        function renderCustomerHistory() { const tbody = document.getElementById('riwayat-tbody'); if (!tbody) return; const validOrders = (state.preOrders || []).filter(p => p.payMethod === 'COD' || p.isPaid === true); if (validOrders.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-7 fst-italic py-4"><i class="fa-solid fa-inbox fs-3 d-block mb-2 text-secondary"></i>Belum ada riwayat pesanan. Yuk mulai pesan Mamam Yuk dari menu hari ini!</td></tr>`; return; } tbody.innerHTML = validOrders.map(p => { let statusBadge; if (p.cancelStatus === 'approved') { statusBadge = '<span class="badge bg-danger fs-8">Pesanan Dibatalkan ❌</span>'; } else if (p.cancelStatus === 'pending') { statusBadge = '<span class="badge bg-secondary fs-8">Menunggu Persetujuan Batal</span>'; } else if (p.isTaken) { statusBadge = '<span class="badge bg-success fs-8">Sudah Diambil ✅</span>'; } else { statusBadge = '<span class="badge bg-warning text-dark fs-8">Menunggu Ambil</span>'; } let actionCell; if (p.cancelStatus === 'approved') { actionCell = '<span class="text-muted fs-8 fst-italic">Sudah dibatalkan</span>'; } else if (p.cancelStatus === 'pending') { actionCell = '<span class="text-muted fs-8 fst-italic">Menunggu Owner</span>'; } else if (p.isTaken) { actionCell = '<span class="text-muted fs-8 fst-italic">-</span>'; } else { actionCell = `<button class="btn btn-sm btn-outline-danger fs-8 fw-bold" onclick="requestCancelOrder('${p.id}')"><i class="fa-solid fa-ban me-1"></i> Batalkan Pesanan</button>`; if (p.cancelStatus === 'rejected') { actionCell = `<div class="text-danger fs-8 mb-1 fst-italic">Permintaan batal sebelumnya ditolak</div>` + actionCell; } } return `<tr class="${p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : ''}"><td class="fw-bold text-brand-purple">${p.id}</td><td>Besok (06.00 - 09.00)</td><td><span class="badge bg-light text-dark border">${p.payMethod}</span></td><td class="fw-bold text-dark">${p.items}</td><td>${statusBadge}</td><td class="text-center">${actionCell}</td></tr>`; }).join(''); }
         function requestCancelOrder(orderId) { const order = state.preOrders.find(o => o.id == orderId); if (!order) return; if (order.isTaken) { Swal.fire({ icon: 'info', title: 'Tidak Bisa Dibatalkan', text: 'Pesanan sudah diambil, tidak bisa dibatalkan lagi.' }); return; } Swal.fire({ title: 'Ajukan Pembatalan Pesanan?', html: `Pesanan <b>${order.id}</b> akan diajukan pembatalan dan menunggu persetujuan Owner.`, input: 'textarea', inputPlaceholder: 'Alasan pembatalan (opsional)', showCancelButton: true, confirmButtonText: 'Ajukan Pembatalan', cancelButtonText: 'Batal', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { order.cancelStatus = 'pending'; order.cancelReason = (res.value || '').trim() || '-'; savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: 'Permintaan Terkirim', text: 'Menunggu persetujuan Owner untuk pembatalan pesanan ini.', timer: 1500, showConfirmButton: false }); } }); }
         function decideCancelOrder(orderId, decision) { const order = state.preOrders.find(o => o.id == orderId); if (!order) return; const isApprove = decision === 'approved'; Swal.fire({ icon: isApprove ? 'warning' : 'question', title: isApprove ? 'Setujui Pembatalan Pesanan?' : 'Tolak Permintaan Pembatalan?', html: `Pesanan <b>${order.id}</b> a.n <b>${order.customerName}</b>${order.cancelReason && order.cancelReason !== '-' ? `<br><span class="fs-8 text-muted">Alasan: ${order.cancelReason}</span>` : ''}`, showCancelButton: true, confirmButtonText: isApprove ? 'Ya, Setujui Pembatalan' : 'Ya, Tolak Pembatalan', cancelButtonText: 'Batal', confirmButtonColor: isApprove ? '#dc3545' : '#B57EDC' }).then(res => { if (res.isConfirmed) { order.cancelStatus = decision; if (isApprove && order.pointsAwarded && order.memberIdentifier && state.members[order.memberIdentifier]) { const member = state.members[order.memberIdentifier]; member.points = Math.max(0, member.points - order.pointsAwarded); member.pointsHistory.unshift({ type: 'adjust', label: `Poin ditarik - pesanan ${order.id} dibatalkan`, points: -order.pointsAwarded, date: new Date().toLocaleString('id-ID') }); order.pointsAwarded = 0; } savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: isApprove ? 'Pembatalan Disetujui' : 'Permintaan Ditolak', text: isApprove ? `Pesanan ${order.id} resmi dibatalkan.` : `Pesanan ${order.id} tetap diproses seperti biasa.`, timer: 1500, showConfirmButton: false }); } }); }
         function saveMembersToStorage() {
@@ -2432,8 +2432,32 @@
                 pointsAwarded: pointsEarned,
                 date: getTodayDateString()
             };
-            state.preOrders.unshift(newOrder);
-            savePreOrdersToStorage();
+            if (payMethod === 'Midtrans') {
+                window.pendingCheckoutOrder = newOrder;
+            } else {
+                state.preOrders.unshift(newOrder);
+                savePreOrdersToStorage();
+
+                if (memberIdentifier && pointsEarned > 0) {
+                    if (!state.members[memberIdentifier]) {
+                        state.members[memberIdentifier] = state.currentUser || { identifier: memberIdentifier, name: name, wa: wa, points: 0, pointsHistory: [] };
+                    }
+                    const member = state.members[memberIdentifier];
+                    member.points = (member.points || 0) + pointsEarned;
+                    if (!Array.isArray(member.pointsHistory)) member.pointsHistory = [];
+                    member.pointsHistory.unshift({
+                        type: 'earn',
+                        label: `Belanja pesanan ${newOrder.id}`,
+                        points: pointsEarned,
+                        date: new Date().toLocaleString('id-ID')
+                    });
+                    if (state.currentUser) {
+                        state.currentUser.points = member.points;
+                        state.currentUser.pointsHistory = member.pointsHistory;
+                    }
+                    saveMembersToStorage();
+                }
+            }
 
             fetch('/checkout', {
                 method: 'POST',
@@ -2483,26 +2507,6 @@
             })
             .catch(err => console.error("Database sync error:", err));
 
-            if (memberIdentifier && pointsEarned > 0) {
-                if (!state.members[memberIdentifier]) {
-                    state.members[memberIdentifier] = state.currentUser || { identifier: memberIdentifier, name: name, wa: wa, points: 0, pointsHistory: [] };
-                }
-                const member = state.members[memberIdentifier];
-                member.points = (member.points || 0) + pointsEarned;
-                if (!Array.isArray(member.pointsHistory)) member.pointsHistory = [];
-                member.pointsHistory.unshift({
-                    type: 'earn',
-                    label: `Belanja pesanan ${newOrder.id}`,
-                    points: pointsEarned,
-                    date: new Date().toLocaleString('id-ID')
-                });
-                if (state.currentUser) {
-                    state.currentUser.points = member.points;
-                    state.currentUser.pointsHistory = member.pointsHistory;
-                }
-                saveMembersToStorage();
-            }
-
             appliedCheckoutVoucher = null;
 
             if (payMethod !== 'Midtrans') {
@@ -2519,9 +2523,6 @@
                     });
                     switchCustView('riwayat');
                 }, 500);
-            } else {
-                state.cart = [];
-                renderAllUI();
             }
         }
 
@@ -2536,12 +2537,38 @@
             })
             .then(r => r.json())
             .then(data => {
-                const order = state.preOrders.find(p => p.id == orderId || p.dbId == orderId);
+                let order = state.preOrders.find(p => p.id == orderId || p.dbId == orderId);
+                if (!order && window.pendingCheckoutOrder) {
+                    order = window.pendingCheckoutOrder;
+                    state.preOrders.unshift(order);
+                }
                 if (order) {
                     order.isPaid = true;
                     order.payMethod = 'Midtrans (QRIS/VA)';
+
+                    if (order.memberIdentifier && order.pointsAwarded > 0) {
+                        if (!state.members[order.memberIdentifier]) {
+                            state.members[order.memberIdentifier] = state.currentUser || { identifier: order.memberIdentifier, name: order.customerName, wa: order.wa, points: 0, pointsHistory: [] };
+                        }
+                        const member = state.members[order.memberIdentifier];
+                        member.points = (member.points || 0) + order.pointsAwarded;
+                        if (!Array.isArray(member.pointsHistory)) member.pointsHistory = [];
+                        member.pointsHistory.unshift({
+                            type: 'earn',
+                            label: `Belanja pesanan ${order.id}`,
+                            points: order.pointsAwarded,
+                            date: new Date().toLocaleString('id-ID')
+                        });
+                        if (state.currentUser) {
+                            state.currentUser.points = member.points;
+                            state.currentUser.pointsHistory = member.pointsHistory;
+                        }
+                        saveMembersToStorage();
+                    }
                     savePreOrdersToStorage();
                 }
+                state.cart = [];
+                window.pendingCheckoutOrder = null;
                 renderAllUI();
                 Swal.fire({
                     icon: 'success',
@@ -2755,7 +2782,7 @@
             if (!tbody) return;
             const todayStr = getTodayDateString();
             const yesterdayStr = getYesterdayDateString();
-            const filteredOrders = state.preOrders.filter(p => isOutletMatch(p.outlet, state.kasirActiveOutlet) && (p.date === todayStr || p.date === yesterdayStr || !p.date));
+            const filteredOrders = state.preOrders.filter(p => isOutletMatch(p.outlet, state.kasirActiveOutlet) && (p.date === todayStr || p.date === yesterdayStr || !p.date) && (p.payMethod === 'COD' || p.isPaid === true));
             if (filteredOrders.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3"><i class="fa-solid fa-clipboard-check me-1 opacity-50"></i> Belum ada pre-order online untuk diambil hari ini di cabang ini.</td></tr>`;
                 return;
