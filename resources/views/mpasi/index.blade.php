@@ -2237,8 +2237,132 @@
         function updateCartQty(prodId, delta) { const item = state.cart.find(x => x.productId == prodId); if (item) { item.qty += delta; if (item.qty <= 0) { state.cart = state.cart.filter(x => x.productId != prodId); } } renderCartUI(); }
         function savePreOrdersToStorage() { try { localStorage.setItem('mpasi_customer_orders', JSON.stringify(state.preOrders)); } catch(e){} }
         function renderCartUI() { const totalQty = state.cart.reduce((a, b) => a + b.qty, 0); const totalAmt = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); const badge = document.getElementById('cart-badge'); if (badge) { badge.innerText = totalQty; badge.style.display = totalQty > 0 ? 'inline-block' : 'none'; } const mobileBadge = document.getElementById('mobile-cart-badge'); if (mobileBadge) { mobileBadge.innerText = totalQty; mobileBadge.style.display = totalQty > 0 ? 'inline-block' : 'none'; } const tbody = document.getElementById('cart-tbody'); if (tbody) { tbody.innerHTML = state.cart.map(c => ` <tr><td class="fw-bold text-dark">${c.name}</td><td>Rp ${c.price.toLocaleString('id-ID')}</td><td><div class="d-flex align-items-center gap-2"><button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${c.productId}', -1)">-</button><span class="fw-bold">${c.qty}</span><button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${c.productId}', 1)">+</button></div></td><td class="fw-bold text-brand-purple">Rp ${(c.price * c.qty).toLocaleString('id-ID')}</td><td><button class="btn btn-sm text-danger" onclick="updateCartQty('${c.productId}', -99)"><i class="fa-solid fa-trash"></i></button></td></tr>`).join(''); } const subtotalEl = document.getElementById('cart-summary-subtotal'); if (subtotalEl) subtotalEl.innerText = 'Rp ' + totalAmt.toLocaleString('id-ID'); const totalEl = document.getElementById('cart-summary-total'); if (totalEl) totalEl.innerText = 'Rp ' + totalAmt.toLocaleString('id-ID'); }
-        function renderCustomerHistory() { const tbody = document.getElementById('riwayat-tbody'); if (!tbody) return; const validOrders = (state.preOrders || []).filter(p => p.payMethod === 'COD' || p.isPaid === true); if (validOrders.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-7 fst-italic py-4"><i class="fa-solid fa-inbox fs-3 d-block mb-2 text-secondary"></i>Belum ada riwayat pesanan. Yuk mulai pesan Mamam Yuk dari menu hari ini!</td></tr>`; return; } tbody.innerHTML = validOrders.map(p => { let statusBadge; if (p.cancelStatus === 'approved') { statusBadge = '<span class="badge bg-danger fs-8">Pesanan Dibatalkan ❌</span>'; } else if (p.cancelStatus === 'pending') { statusBadge = '<span class="badge bg-secondary fs-8">Menunggu Persetujuan Batal</span>'; } else if (p.isTaken) { statusBadge = '<span class="badge bg-success fs-8">Sudah Diambil ✅</span>'; } else { statusBadge = '<span class="badge bg-warning text-dark fs-8">Menunggu Ambil</span>'; } let actionCell; if (p.cancelStatus === 'approved') { actionCell = '<span class="text-muted fs-8 fst-italic">Sudah dibatalkan</span>'; } else if (p.cancelStatus === 'pending') { actionCell = '<span class="text-muted fs-8 fst-italic">Menunggu Owner</span>'; } else if (p.isTaken) { actionCell = '<span class="text-muted fs-8 fst-italic">-</span>'; } else { actionCell = `<button class="btn btn-sm btn-outline-danger fs-8 fw-bold" onclick="requestCancelOrder('${p.id}')"><i class="fa-solid fa-ban me-1"></i> Batalkan Pesanan</button>`; if (p.cancelStatus === 'rejected') { actionCell = `<div class="text-danger fs-8 mb-1 fst-italic">Permintaan batal sebelumnya ditolak</div>` + actionCell; } } return `<tr class="${p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : ''}"><td class="fw-bold text-brand-purple">${p.id}</td><td>Besok (06.00 - 09.00)</td><td><span class="badge bg-light text-dark border">${p.payMethod}</span></td><td class="fw-bold text-dark">${p.items}</td><td>${statusBadge}</td><td class="text-center">${actionCell}</td></tr>`; }).join(''); }
-        function requestCancelOrder(orderId) { const order = state.preOrders.find(o => o.id == orderId); if (!order) return; if (order.isTaken) { Swal.fire({ icon: 'info', title: 'Tidak Bisa Dibatalkan', text: 'Pesanan sudah diambil, tidak bisa dibatalkan lagi.' }); return; } Swal.fire({ title: 'Ajukan Pembatalan Pesanan?', html: `Pesanan <b>${order.id}</b> akan diajukan pembatalan dan menunggu persetujuan Owner.`, input: 'textarea', inputPlaceholder: 'Alasan pembatalan (opsional)', showCancelButton: true, confirmButtonText: 'Ajukan Pembatalan', cancelButtonText: 'Batal', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { order.cancelStatus = 'pending'; order.cancelReason = (res.value || '').trim() || '-'; savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: 'Permintaan Terkirim', text: 'Menunggu persetujuan Owner untuk pembatalan pesanan ini.', timer: 1500, showConfirmButton: false }); } }); }
+        function getPickupDateString(orderDateStr) {
+            let d;
+            if (orderDateStr) {
+                const parts = orderDateStr.split('-');
+                if (parts.length === 3) {
+                    d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    d.setDate(d.getDate() + 1);
+                } else {
+                    d = new Date();
+                    d.setDate(d.getDate() + 1);
+                }
+            } else {
+                d = new Date();
+                d.setDate(d.getDate() + 1);
+            }
+            const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const dayName = days[d.getDay()];
+            const dateNum = String(d.getDate()).padStart(2, '0');
+            const monthName = months[d.getMonth()];
+            const year = d.getFullYear();
+            return `${dayName}, ${dateNum} ${monthName} ${year} (06.00 - 09.00)`;
+        }
+
+        function isOrderExpired(order) {
+            if (!order) return false;
+            if (order.isTaken || order.cancelStatus === 'approved') return false;
+
+            const now = new Date();
+            let pickupDeadline;
+            if (order.date) {
+                const parts = order.date.split('-');
+                if (parts.length === 3) {
+                    pickupDeadline = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]) + 1, 17, 0, 0);
+                } else {
+                    pickupDeadline = new Date();
+                    pickupDeadline.setHours(17, 0, 0, 0);
+                }
+            } else {
+                pickupDeadline = new Date();
+                pickupDeadline.setHours(17, 0, 0, 0);
+            }
+
+            return now >= pickupDeadline;
+        }
+
+        function renderCustomerHistory() {
+            const tbody = document.getElementById('riwayat-tbody');
+            if (!tbody) return;
+            const validOrders = (state.preOrders || []).filter(p => p.payMethod === 'COD' || p.isPaid === true);
+            if (validOrders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-7 fst-italic py-4"><i class="fa-solid fa-inbox fs-3 d-block mb-2 text-secondary"></i>Belum ada riwayat pesanan. Yuk mulai pesan Mamam Yuk dari menu hari ini!</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = validOrders.map(p => {
+                const expired = isOrderExpired(p);
+                let statusBadge;
+                if (p.cancelStatus === 'approved') {
+                    statusBadge = '<span class="badge bg-danger fs-8">Pesanan Dibatalkan ❌</span>';
+                } else if (p.cancelStatus === 'pending') {
+                    statusBadge = '<span class="badge bg-secondary fs-8">Menunggu Persetujuan Batal</span>';
+                } else if (p.isTaken) {
+                    statusBadge = '<span class="badge bg-success fs-8">Sudah Diambil ✅</span>';
+                } else if (expired) {
+                    statusBadge = '<span class="badge bg-dark text-white fs-8"><i class="fa-regular fa-clock me-1"></i> Kadaluarsa ⏰</span>';
+                } else {
+                    statusBadge = '<span class="badge bg-warning text-dark fs-8">Menunggu Ambil</span>';
+                }
+
+                let actionCell;
+                if (p.cancelStatus === 'approved') {
+                    actionCell = '<span class="text-muted fs-8 fst-italic">Sudah dibatalkan</span>';
+                } else if (p.cancelStatus === 'pending') {
+                    actionCell = '<span class="text-muted fs-8 fst-italic">Menunggu Owner</span>';
+                } else if (p.isTaken) {
+                    actionCell = '<span class="text-muted fs-8 fst-italic">-</span>';
+                } else if (expired) {
+                    actionCell = '<span class="text-muted fs-8 fst-italic">Batas batal lewat (17:00)</span>';
+                } else {
+                    actionCell = `<button class="btn btn-sm btn-outline-danger fs-8 fw-bold" onclick="requestCancelOrder('${p.id}')"><i class="fa-solid fa-ban me-1"></i> Batalkan Pesanan</button>`;
+                    if (p.cancelStatus === 'rejected') {
+                        actionCell = `<div class="text-danger fs-8 mb-1 fst-italic">Permintaan batal sebelumnya ditolak</div>` + actionCell;
+                    }
+                }
+                const pickupDateStr = getPickupDateString(p.date);
+                return `<tr class="${p.cancelStatus === 'approved' || expired ? 'text-decoration-line-through text-muted' : ''}">
+                    <td class="fw-bold text-brand-purple">${p.id}</td>
+                    <td class="fw-semibold">${pickupDateStr}</td>
+                    <td><span class="badge bg-light text-dark border">${p.payMethod}</span></td>
+                    <td class="fw-bold text-dark">${p.items}</td>
+                    <td>${statusBadge}</td>
+                    <td class="text-center">${actionCell}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function requestCancelOrder(orderId) {
+            const order = state.preOrders.find(o => o.id == orderId);
+            if (!order) return;
+            if (order.isTaken) {
+                Swal.fire({ icon: 'info', title: 'Tidak Bisa Dibatalkan', text: 'Pesanan sudah diambil, tidak bisa dibatalkan lagi.' });
+                return;
+            }
+            if (isOrderExpired(order)) {
+                Swal.fire({ icon: 'error', title: 'Batas Waktu Pembatalan Lewat', text: 'Pesanan tidak bisa dibatalkan lagi karena sudah melewati batas waktu jam 17:00.' });
+                return;
+            }
+            Swal.fire({
+                title: 'Ajukan Pembatalan Pesanan?',
+                html: `Pesanan <b>${order.id}</b> akan diajukan pembatalan dan menunggu persetujuan Owner.`,
+                input: 'textarea',
+                inputPlaceholder: 'Alasan pembatalan (opsional)',
+                showCancelButton: true,
+                confirmButtonText: 'Ajukan Pembatalan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc3545'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    order.cancelStatus = 'pending';
+                    order.cancelReason = (res.value || '').trim() || '-';
+                    savePreOrdersToStorage();
+                    renderAllUI();
+                    Swal.fire({ icon: 'success', title: 'Permintaan Terkirim', text: 'Menunggu persetujuan Owner untuk pembatalan pesanan ini.', timer: 1500, showConfirmButton: false });
+                }
+            });
+        }
         function decideCancelOrder(orderId, decision) { const order = state.preOrders.find(o => o.id == orderId); if (!order) return; const isApprove = decision === 'approved'; Swal.fire({ icon: isApprove ? 'warning' : 'question', title: isApprove ? 'Setujui Pembatalan Pesanan?' : 'Tolak Permintaan Pembatalan?', html: `Pesanan <b>${order.id}</b> a.n <b>${order.customerName}</b>${order.cancelReason && order.cancelReason !== '-' ? `<br><span class="fs-8 text-muted">Alasan: ${order.cancelReason}</span>` : ''}`, showCancelButton: true, confirmButtonText: isApprove ? 'Ya, Setujui Pembatalan' : 'Ya, Tolak Pembatalan', cancelButtonText: 'Batal', confirmButtonColor: isApprove ? '#dc3545' : '#B57EDC' }).then(res => { if (res.isConfirmed) { order.cancelStatus = decision; if (isApprove && order.pointsAwarded && order.memberIdentifier && state.members[order.memberIdentifier]) { const member = state.members[order.memberIdentifier]; member.points = Math.max(0, member.points - order.pointsAwarded); member.pointsHistory.unshift({ type: 'adjust', label: `Poin ditarik - pesanan ${order.id} dibatalkan`, points: -order.pointsAwarded, date: new Date().toLocaleString('id-ID') }); order.pointsAwarded = 0; } savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: isApprove ? 'Pembatalan Disetujui' : 'Permintaan Ditolak', text: isApprove ? `Pesanan ${order.id} resmi dibatalkan.` : `Pesanan ${order.id} tetap diproses seperti biasa.`, timer: 1500, showConfirmButton: false }); } }); }
         function saveMembersToStorage() {
             try {
