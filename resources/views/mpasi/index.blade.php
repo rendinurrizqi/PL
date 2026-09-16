@@ -214,11 +214,7 @@
                                                     <div class="text-muted fs-8">Scan QRIS / GoPay / ShopeePay / Virtual Account (BCA, Mandiri, BRI)</div>
                                                 </div>
                                             </label>
-                                            <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
-                                                <input type="radio" name="paymethod" value="Transfer">
-                                                <i class="fa-solid fa-building-columns fs-5 text-primary"></i>
-                                                <div><div class="fw-bold fs-7">Transfer Rekening BCA Manual</div><div class="text-muted fs-8">No. Rek BCA: 8830192831 a/n Mamam Yuk</div></div>
-                                            </label>
+
                                             <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
                                                 <input type="radio" name="paymethod" value="COD">
                                                 <i class="fa-solid fa-hand-holding-dollar fs-5 text-success"></i>
