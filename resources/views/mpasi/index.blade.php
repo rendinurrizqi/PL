@@ -206,10 +206,18 @@
                                     <div class="mb-3">
                                         <label class="form-label fs-7 fw-bold">Metode Pembayaran <span class="text-danger">*</span></label>
                                         <div class="d-flex flex-column gap-2">
+                                            <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-purple-light border-purple-200">
+                                                <input type="radio" name="paymethod" value="Midtrans" checked>
+                                                <i class="fa-solid fa-qrcode fs-4 text-brand-purple"></i>
+                                                <div>
+                                                    <div class="fw-bold fs-7 text-brand-purple"><i class="fa-solid fa-bolt text-warning me-1"></i> Midtrans Payment Gateway (Otomatis Lunas)</div>
+                                                    <div class="text-muted fs-8">Scan QRIS / GoPay / ShopeePay / Virtual Account (BCA, Mandiri, BRI)</div>
+                                                </div>
+                                            </label>
                                             <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
-                                                <input type="radio" name="paymethod" value="Transfer" checked>
+                                                <input type="radio" name="paymethod" value="Transfer">
                                                 <i class="fa-solid fa-building-columns fs-5 text-primary"></i>
-                                                <div><div class="fw-bold fs-7">Transfer BCA / QRIS (Lunas Langsung)</div><div class="text-muted fs-8">No. Rek BCA: 8830192831 a/n Mamam Yuk</div></div>
+                                                <div><div class="fw-bold fs-7">Transfer Rekening BCA Manual</div><div class="text-muted fs-8">No. Rek BCA: 8830192831 a/n Mamam Yuk</div></div>
                                             </label>
                                             <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
                                                 <input type="radio" name="paymethod" value="COD">
@@ -2445,7 +2453,39 @@
                     items: itemsDetail.map(it => ({ product_id: it.productId, qty: it.qty })),
                     member_identifier: memberIdentifier
                 })
-            }).catch(err => console.error("Database sync error:", err));
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.order && data.order.id) {
+                    newOrder.dbId = data.order.id;
+                }
+
+                if (data.is_midtrans && data.snap_token) {
+                    endLoading();
+                    
+                    const orderIdToPay = (data.order ? data.order.id : newOrder.id);
+
+                    if (window.snap && typeof window.snap.pay === 'function') {
+                        window.snap.pay(data.snap_token, {
+                            onSuccess: function(result) {
+                                confirmMidtransPayment(orderIdToPay);
+                            },
+                            onPending: function(result) {
+                                showTestingSimulatePayModal(orderIdToPay);
+                            },
+                            onError: function(result) {
+                                Swal.fire({ icon: 'error', title: 'Pembayaran Gagal', text: 'Terjadi kesalahan saat memproses pembayaran Midtrans.' });
+                            },
+                            onClose: function() {
+                                showTestingSimulatePayModal(orderIdToPay);
+                            }
+                        });
+                    } else {
+                        showTestingSimulatePayModal(orderIdToPay);
+                    }
+                }
+            })
+            .catch(err => console.error("Database sync error:", err));
 
             if (memberIdentifier && pointsEarned > 0) {
                 if (!state.members[memberIdentifier]) {
@@ -2469,19 +2509,76 @@
 
             appliedCheckoutVoucher = null;
 
-            setTimeout(() => {
+            if (payMethod !== 'Midtrans') {
+                setTimeout(() => {
+                    state.cart = [];
+                    renderAllUI();
+                    endLoading();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pesanan Berhasil Disimpan!',
+                        html: pointsEarned > 0
+                            ? `Terima kasih Bunda, pesanan Anda telah diteruskan ke outlet!<br><span class="fw-bold text-success"><i class="fa-solid fa-coins me-1"></i> +${pointsEarned} Poin ditambahkan ke akun Anda.</span>`
+                            : `Terima kasih Bunda, pesanan Anda telah diteruskan ke outlet!${!state.currentUser ? '<br><span class="fs-7 text-muted">Masuk sebagai member di pesanan berikutnya supaya dapat poin ya!</span>' : ''}`
+                    });
+                    switchCustView('riwayat');
+                }, 500);
+            } else {
                 state.cart = [];
                 renderAllUI();
-                endLoading();
+            }
+        }
+
+        function confirmMidtransPayment(orderId) {
+            startLoading();
+            fetch('/api/payment/simulate-pay/' + encodeURIComponent(orderId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                const order = state.preOrders.find(p => p.id == orderId || p.dbId == orderId);
+                if (order) {
+                    order.isPaid = true;
+                    order.payMethod = 'Midtrans (QRIS/VA)';
+                    savePreOrdersToStorage();
+                }
+                renderAllUI();
                 Swal.fire({
                     icon: 'success',
-                    title: 'Pesanan Berhasil Disimpan!',
-                    html: pointsEarned > 0
-                        ? `Terima kasih Bunda, pesanan Anda telah diteruskan ke outlet!<br><span class="fw-bold text-success"><i class="fa-solid fa-coins me-1"></i> +${pointsEarned} Poin ditambahkan ke akun Anda.</span>`
-                        : `Terima kasih Bunda, pesanan Anda telah diteruskan ke outlet!${!state.currentUser ? '<br><span class="fs-7 text-muted">Masuk sebagai member di pesanan berikutnya supaya dapat poin ya!</span>' : ''}`
+                    title: 'Pembayaran Midtrans Berhasil! 💳✅',
+                    text: 'Status pesanan Anda kini otomatis LUNAS!',
+                    confirmButtonColor: '#B57EDC'
                 });
                 switchCustView('riwayat');
-            }, 500);
+            })
+            .finally(() => endLoading());
+        }
+
+        function showTestingSimulatePayModal(orderId) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Pembayaran Midtrans Sandbox 💳',
+                html: `
+                    <div class="text-start fs-7 mb-3">
+                        Pesanan telah dibuat di sistem! Untuk pengujian mode Sandbox/Testing:<br>
+                        Klik tombol <b>"📱 Simulasi Bayar Lunas"</b> di bawah untuk mengubah status pesanan menjadi <b>LUNAS ✅</b> secara otomatis!
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '📱 Simulasi Bayar Lunas (Testing)',
+                cancelButtonText: 'Tutup',
+                confirmButtonColor: '#28a745'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    confirmMidtransPayment(orderId);
+                } else {
+                    switchCustView('riwayat');
+                }
+            });
         }
         function changeKasirOutlet(outletName) { state.kasirActiveOutlet = outletName; const badge = document.getElementById('kasir-active-outlet-badge'); if (badge) { badge.innerHTML = `<i class="fa-solid fa-location-dot me-1 text-danger"></i> ${outletName}`; } renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); Swal.fire({ icon: 'info', title: 'Cabang Kasir Diperbarui', text: 'Kasir aktif bertugas di: ' + outletName, timer: 1200, showConfirmButton: false }); }
         

@@ -22,6 +22,8 @@ Route::put('/api/outlets/{id}/pin', [MpasiController::class, 'apiUpdateOutletPin
 Route::post('/api/daily-menu', [MpasiController::class, 'apiSaveDailyMenu']);
 
 Route::post('/checkout', [MpasiController::class, 'processCheckout'])->name('mpasi.checkout');
+Route::post('/api/payment/notification', [MpasiController::class, 'apiPaymentNotification']);
+Route::post('/api/payment/simulate-pay/{id}', [MpasiController::class, 'apiSimulatePay']);
 Route::post('/pos/checkout', [MpasiController::class, 'posCheckout'])->name('mpasi.pos.checkout');
 Route::post('/member/login', [MpasiController::class, 'loginMember'])->name('mpasi.member.login');
 Route::post('/member/profile', [MpasiController::class, 'updateMemberProfile'])->name('mpasi.member.profile');
