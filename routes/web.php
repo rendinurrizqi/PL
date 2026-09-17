@@ -68,7 +68,10 @@ Route::prefix('owner')->group(function () {
     Route::post('/logout', [MpasiController::class, 'ownerLogout'])->name('owner.logout');
 });
 
-Route::get('/db-seed-now', function () {
+Route::get('/db-seed-now', function (\Illuminate\Http\Request $request) {
+    if ($request->get('key') !== 'mamamyuk2026') {
+        abort(403, 'Akses Ditolak');
+    }
     \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
     return "Database migrated & seeded successfully!";
 });

@@ -155,13 +155,23 @@ class DatabaseSeeder extends Seeder
         Setting::query()->updateOrCreate(['key' => 'store_hours'], ['value' => 'BUKA 24 Jam']);
         Setting::query()->updateOrCreate(['key' => 'points_earn_rate'], ['value' => '1000']);
 
-        // 7. Daily Menus
+        // 7. Daily Menus (Variasi rotasi menu per hari)
         $allProductIds = Product::query()->pluck('id')->toArray();
         $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
         foreach ($days as $index => $day) {
+            $assignedIds = match ($day) {
+                'Senin' => array_slice($allProductIds, 0, 2),
+                'Selasa' => array_slice($allProductIds, 1, 2),
+                'Rabu' => array_slice($allProductIds, 2, 2),
+                'Kamis' => array_slice($allProductIds, 3, 2),
+                'Jumat' => array_slice($allProductIds, 4, 2),
+                'Sabtu' => array_slice($allProductIds, 0, 3),
+                'Minggu' => $allProductIds,
+                default => $allProductIds,
+            };
             DailyMenu::query()->updateOrCreate(
                 ['day_name' => $day],
-                ['product_ids' => $allProductIds]
+                ['product_ids' => $assignedIds]
             );
         }
     }

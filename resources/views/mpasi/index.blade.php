@@ -206,20 +206,20 @@
                                     <div class="mb-3">
                                         <label class="form-label fs-7 fw-bold">Metode Pembayaran <span class="text-danger">*</span></label>
                                         <div class="d-flex flex-column gap-2">
-                                            <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-purple-light border-purple-200">
-                                                <input type="radio" name="paymethod" value="Midtrans" checked>
-                                                <i class="fa-solid fa-qrcode fs-4 text-brand-purple"></i>
-                                                <div>
-                                                    <div class="fw-bold fs-7 text-brand-purple"><i class="fa-solid fa-bolt text-warning me-1"></i> Midtrans Payment Gateway (Otomatis Lunas)</div>
-                                                    <div class="text-muted fs-8">Scan QRIS / GoPay / ShopeePay / Virtual Account (BCA, Mandiri, BRI)</div>
-                                                </div>
-                                            </label>
+                                             <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-purple-light border-purple-200">
+                                                 <input type="radio" name="paymethod" value="Midtrans" checked>
+                                                 <i class="fa-solid fa-qrcode fs-4 text-brand-purple"></i>
+                                                 <div>
+                                                     <div class="fw-bold fs-7 text-brand-purple"><i class="fa-solid fa-bolt text-warning me-1"></i> Midtrans Payment Gateway (Otomatis Lunas)</div>
+                                                     <div class="text-muted fs-8">Scan QRIS / GoPay / ShopeePay / Virtual Account (BCA, Mandiri, BRI)</div>
+                                                 </div>
+                                             </label>
 
-                                            <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
-                                                <input type="radio" name="paymethod" value="COD">
-                                                <i class="fa-solid fa-hand-holding-dollar fs-5 text-success"></i>
-                                                <div><div class="fw-bold fs-7">Bayar Saat Ambil di Tempat (COD Outlet)</div><div class="text-muted fs-8">Bayar tunai/QRIS saat ambil pesanan di outlet</div></div>
-                                            </label>
+                                             <label class="border p-2.5 rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
+                                                 <input type="radio" name="paymethod" value="COD">
+                                                 <i class="fa-solid fa-hand-holding-dollar fs-5 text-success"></i>
+                                                 <div><div class="fw-bold fs-7">Bayar Saat Ambil di Tempat (COD Outlet)</div><div class="text-muted fs-8">Bayar tunai / QRIS saat ambil pesanan di outlet</div></div>
+                                             </label>
                                         </div>
                                     </div>
                                     <button type="submit" class="btn btn-brand-yellow w-100 py-3 fw-bold text-dark fs-6">
@@ -1438,24 +1438,41 @@
                     const saved = localStorage.getItem('mpasi_customer_orders');
                     const localOrders = saved ? (JSON.parse(saved) || []) : [];
 
-                    const combinedMap = {};
+                    const combinedList = [];
+
                     dbOrders.forEach(o => {
-                        if (o && o.id) combinedMap[String(o.id)] = o;
-                    });
-                    localOrders.forEach(o => {
                         if (o && o.id) {
-                            if (!combinedMap[String(o.id)]) {
-                                combinedMap[String(o.id)] = o;
-                            } else {
-                                if (o.isPaid !== undefined) combinedMap[String(o.id)].isPaid = o.isPaid;
-                                if (o.isTaken !== undefined) combinedMap[String(o.id)].isTaken = o.isTaken;
-                                if (o.cancelStatus !== undefined) combinedMap[String(o.id)].cancelStatus = o.cancelStatus;
-                                if (o.cancelReason !== undefined) combinedMap[String(o.id)].cancelReason = o.cancelReason;
+                            if (!o.dbId && o.id.startsWith('ORD-')) {
+                                const num = parseInt(o.id.replace('ORD-', ''), 10);
+                                if (!isNaN(num)) o.dbId = num;
                             }
+                            combinedList.push(o);
                         }
                     });
 
-                    const combinedList = Object.values(combinedMap);
+                    localOrders.forEach(lo => {
+                        if (!lo || !lo.id) return;
+                        
+                        const loDbId = lo.dbId || (lo.id.startsWith('ORD-') ? parseInt(lo.id.replace('ORD-', ''), 10) : null);
+                        
+                        const match = combinedList.find(existing => {
+                            if (existing.id === lo.id) return true;
+                            if (existing.dbId && loDbId && Number(existing.dbId) === Number(loDbId)) return true;
+                            if (loDbId && existing.id === 'ORD-' + String(loDbId).padStart(3, '0')) return true;
+                            return false;
+                        });
+
+                        if (match) {
+                            if (lo.isPaid !== undefined) match.isPaid = lo.isPaid;
+                            if (lo.isTaken !== undefined) match.isTaken = lo.isTaken;
+                            if (lo.cancelStatus !== undefined) match.cancelStatus = lo.cancelStatus;
+                            if (lo.cancelReason !== undefined) match.cancelReason = lo.cancelReason;
+                            if (loDbId && !match.dbId) match.dbId = loDbId;
+                        } else {
+                            combinedList.push(lo);
+                        }
+                    });
+
                     const filtered = combinedList.map(order => {
                         if (!order.date) order.date = todayStr;
                         return order;
@@ -2229,10 +2246,54 @@
         function renderAdminProducts(targetTbodyId, isOwnerView) { const tbody = document.getElementById(targetTbodyId || 'adm-products-tbody'); if (!tbody) return; tbody.innerHTML = state.products.map(p => { const isOutOfStock = (p.stock || 0) <= 0; return ` <tr><td>${productThumbHtml(p, 48)}</td><td class="fw-bold text-brand-purple">${p.id}</td><td class="fw-bold text-dark">${p.name}</td><td>Rp ${p.price.toLocaleString('id-ID')}</td><td>${p.category}</td><td><span class="badge bg-warning text-dark">${p.age}</span></td><td><span class="badge ${isOutOfStock ? 'bg-danger' : 'bg-primary'} fw-bold fs-8">${p.stock || 0} Cup Ready</span></td><td><span class="badge bg-success">${p.status}</span></td><td class="text-center text-nowrap"><button class="btn btn-sm btn-outline-primary py-1 px-2 fs-8 fw-bold" onclick="restockAdminProduct('${p.id}')"><i class="fa-solid fa-plus me-1"></i> Restok</button>${isOwnerView ? `<button class="btn btn-sm btn-outline-secondary py-1 px-2 fs-8 fw-bold ms-1" onclick="editProductModal('${p.id}')"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button><button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8 fw-bold ms-1" onclick="deleteProductOwner('${p.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}</td></tr>`; }).join(''); }
         function renderOwnerProducts() { renderAdminProducts('own-products-tbody', true); }
         function restockAdminProduct(prodId) { const p = state.products.find(x => x.id == prodId); if (!p) return; Swal.fire({ title: 'Restok Ready ' + p.name, input: 'number', inputValue: p.stock || 0, inputLabel: 'Masukkan Jumlah Stok Ready Baru (Cup)', showCancelButton: true, confirmButtonText: 'Simpan Stok', confirmButtonColor: '#B57EDC' }).then(res => { if (res.isConfirmed && res.value !== '') { const newStockVal = parseInt(res.value) || 0; fetch('/api/products/' + prodId, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ stock: newStockVal }) }).then(() => { p.stock = newStockVal; p.initialStock = newStockVal; renderAdminProducts('adm-products-tbody', true); renderOwnerProducts(); renderPosProductsGrid(); renderKasirLeftoverTable(); renderAdminOutletReports(); renderOwnerOutletReports(); Swal.fire({ icon: 'success', title: 'Stok Diperbarui', text: `Stok ready ${p.name} menjadi ${p.stock} cup.`, timer: 1200, showConfirmButton: false }); }); } }); }
-        function readImageFileAsDataUrl(fileInputEl) { return new Promise((resolve) => { const file = fileInputEl && fileInputEl.files && fileInputEl.files[0]; if (!file) { resolve(null); return; } if (!file.type.startsWith('image/')) { Swal.showValidationMessage('File harus berupa gambar (jpg/png/webp)!'); resolve(null); return; } if (file.size > 2 * 1024 * 1024) { Swal.showValidationMessage('Ukuran foto maksimal 2MB, silakan kompres dahulu!'); resolve(null); return; } const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => resolve(null); reader.readAsDataURL(file); }); }
+        function readImageFileAsDataUrl(fileInputEl) {
+            return new Promise((resolve) => {
+                const file = fileInputEl && fileInputEl.files && fileInputEl.files[0];
+                if (!file) { resolve(null); return; }
+                if (!file.type.startsWith('image/')) {
+                    Swal.showValidationMessage('File harus berupa gambar (jpg/png/webp)!');
+                    resolve(null);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxSize = 400;
+
+                        if (width > height) {
+                            if (width > maxSize) {
+                                height = Math.round((height * maxSize) / width);
+                                width = maxSize;
+                            }
+                        } else {
+                            if (height > maxSize) {
+                                width = Math.round((width * maxSize) / height);
+                                height = maxSize;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        resolve(compressedDataUrl);
+                    };
+                    img.onerror = () => resolve(e.target.result);
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(file);
+            });
+        }
         function bindImagePreview(inputId, previewImgId) { const inputEl = document.getElementById(inputId); const previewEl = document.getElementById(previewImgId); if (!inputEl || !previewEl) return; inputEl.addEventListener('change', () => { const file = inputEl.files && inputEl.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { previewEl.src = reader.result; previewEl.style.display = 'block'; }; reader.readAsDataURL(file); }); }
         function editProductModal(prodId) { const p = state.products.find(x => x.id == prodId); if (!p) return; Swal.fire({ title: 'Edit Varian Mamam Yuk', html: `<div class="text-start mb-2"><label class="fw-bold fs-7 d-block mb-1">Foto Produk (opsional)</label><img id="swal-eimg-preview" src="${p.image || ''}" class="rounded-3 mb-2" style="width:100%; max-height:150px; object-fit:cover; ${p.image ? '' : 'display:none;'}"><input id="swal-eimage" type="file" accept="image/*" class="swal2-file"></div><input id="swal-ename" class="swal2-input" placeholder="Nama Varian Mamam Yuk" value="${p.name}"><input id="swal-eprice" class="swal2-input" type="number" placeholder="Harga / Cup (Rp)" value="${p.price}"><select id="swal-ecategory" class="swal2-select"><option value="Bubur" ${p.category === 'Bubur' ? 'selected' : ''}>Bubur</option><option value="Snack" ${p.category === 'Snack' ? 'selected' : ''}>Snack</option></select><select id="swal-eage" class="swal2-select"><option value="6+ Bulan" ${p.age === '6+ Bulan' ? 'selected' : ''}>6+ Bulan</option><option value="8+ Bulan" ${p.age === '8+ Bulan' ? 'selected' : ''}>8+ Bulan</option><option value="12+ Bulan" ${p.age === '12+ Bulan' ? 'selected' : ''}>12+ Bulan</option></select><input id="swal-eingredients" class="swal2-input" placeholder="Komposisi Bahan" value="${p.ingredients}"><select id="swal-estatus" class="swal2-select"><option value="Aktif" ${p.status === 'Aktif' ? 'selected' : ''}>Aktif</option><option value="Nonaktif" ${p.status === 'Nonaktif' ? 'selected' : ''}>Nonaktif</option></select>`, focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan Perubahan', confirmButtonColor: '#B57EDC', didOpen: () => { bindImagePreview('swal-eimage', 'swal-eimg-preview'); }, preConfirm: async () => { const name = document.getElementById('swal-ename').value.trim(); const price = parseInt(document.getElementById('swal-eprice').value) || 0; if (!name || price <= 0) { Swal.showValidationMessage('Harap isi Nama dan Harga produk!'); return false; } const newImageDataUrl = await readImageFileAsDataUrl(document.getElementById('swal-eimage')); return { name, price, category: document.getElementById('swal-ecategory').value, age: document.getElementById('swal-eage').value, ingredients: document.getElementById('swal-eingredients').value.trim(), status: document.getElementById('swal-estatus').value, image: newImageDataUrl }; } }).then(result => { if (result.isConfirmed && result.value) { fetch('/api/products/' + prodId, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify(result.value) }).then(async res => { const data = await res.json().catch(() => ({})); if (!res.ok || data.success === false) { throw new Error(data.message || ('Gagal memperbarui data (Status ' + res.status + ')')); } return data; }).then(() => { p.name = result.value.name; p.price = result.value.price; p.category = result.value.category; p.age = result.value.age; p.ingredients = result.value.ingredients; p.status = result.value.status; if (result.value.image) p.image = result.value.image; renderAllUI(); Swal.fire({ icon: 'success', title: 'Produk Diperbarui', text: `${p.name} berhasil disimpan!`, timer: 1200, showConfirmButton: false }); }).catch(err => { Swal.fire({ icon: 'error', title: 'Gagal Memperbarui Varian', text: err.message || 'Terjadi kesalahan sistem.' }); }); } }); }
-        function deleteProductOwner(prodId) { const p = state.products.find(x => x.id == prodId); if (!p) return; Swal.fire({ icon: 'warning', title: 'Hapus Varian Produk?', text: `Varian "${p.name}" akan dihapus permanen dari master produk dan menu harian.`, showCancelButton: true, confirmButtonText: 'Ya, Hapus', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { fetch('/api/products/' + prodId, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } }).then(() => { state.products = state.products.filter(x => x.id != prodId); state.dailyMenu.forEach(d => { d.productIds = (d.productIds || []).filter(id => id != prodId); }); state.cart = state.cart.filter(c => c.productId != prodId); state.posCart = state.posCart.filter(c => c.productId != prodId); renderAllUI(); Swal.fire({ icon: 'success', title: 'Produk Dihapus', timer: 1000, showConfirmButton: false }); }); } }); }
+        function deleteProductOwner(prodId) { const p = state.products.find(x => x.id == prodId); if (!p) return; Swal.fire({ icon: 'warning', title: 'Hapus Varian Produk?', text: `Varian "${p.name}" akan dihapus permanen dari master produk dan menu harian.`, showCancelButton: true, confirmButtonText: 'Ya, Hapus', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { fetch('/api/products/' + prodId, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' } }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok || data.success === false) { throw new Error(data.message || ('Gagal menghapus produk dari server (Status ' + response.status + ')')); } state.products = state.products.filter(x => x.id != prodId); state.dailyMenu.forEach(d => { d.productIds = (d.productIds || []).filter(id => id != prodId); }); state.cart = state.cart.filter(c => c.productId != prodId); state.posCart = state.posCart.filter(c => c.productId != prodId); renderAllUI(); Swal.fire({ icon: 'success', title: 'Produk Dihapus', timer: 1000, showConfirmButton: false }); }).catch(err => { Swal.fire({ icon: 'error', title: 'Gagal Menghapus Produk', text: err.message || 'Terjadi kesalahan pada server.' }); }); } }); }
         function showAddProductModal() { Swal.fire({ title: 'Tambah Varian Mamam Yuk Baru', html: `<div class="text-start mb-2"><label class="fw-bold fs-7 d-block mb-1">Foto Produk (opsional, maks 2MB)</label><img id="swal-pimg-preview" class="rounded-3 mb-2" style="width:100%; max-height:150px; object-fit:cover; display:none;"><input id="swal-pimage" type="file" accept="image/*" class="swal2-file"></div><input id="swal-pname" class="swal2-input" placeholder="Nama Varian Mamam Yuk"><input id="swal-pprice" class="swal2-input" type="number" placeholder="Harga / Cup (Rp)"><input id="swal-pstock" class="swal2-input" type="number" placeholder="Stok Ready Initial (Cup)"><select id="swal-pcategory" class="swal2-select"><option value="Bubur">Bubur</option><option value="Snack">Snack</option></select><select id="swal-page" class="swal2-select"><option value="6+ Bulan">6+ Bulan</option><option value="8+ Bulan">8+ Bulan</option><option value="12+ Bulan">12+ Bulan</option></select><input id="swal-pingredients" class="swal2-input" placeholder="Komposisi Bahan"><select id="swal-pstatus" class="swal2-select"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select>`, focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan Varian', confirmButtonColor: '#B57EDC', didOpen: () => { bindImagePreview('swal-pimage', 'swal-pimg-preview'); }, preConfirm: async () => { const name = document.getElementById('swal-pname').value.trim(); const price = parseInt(document.getElementById('swal-pprice').value) || 0; const stock = parseInt(document.getElementById('swal-pstock').value) || 0; const category = document.getElementById('swal-pcategory').value; const age = document.getElementById('swal-page').value; const ingredients = document.getElementById('swal-pingredients').value.trim(); const status = document.getElementById('swal-pstatus').value; if (!name || price <= 0) { Swal.showValidationMessage('Harap isi Nama dan Harga produk!'); return false; } const imageDataUrl = await readImageFileAsDataUrl(document.getElementById('swal-pimage')); return { name, price, stock, category, age, age_group: age, ingredients, status, image: imageDataUrl || '' }; } }).then((result) => { if (result.isConfirmed && result.value) { fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify(result.value) }).then(async res => { const data = await res.json().catch(() => ({})); if (!res.ok || data.success === false) { throw new Error(data.message || ('Gagal menyimpan data ke server (Status ' + res.status + ')')); } return data; }).then(data => { if (data.success && data.product) { const newP = { id: data.product.id, name: data.product.name, price: data.product.price, stock: data.product.stock, initialStock: data.product.stock, category: data.product.category || result.value.category || 'Bubur', age: data.product.age_group || result.value.age || '6+ Bulan', ingredients: data.product.ingredients || result.value.ingredients || 'Bahan segar alami', status: data.product.status || result.value.status || 'Aktif', image: data.product.image || result.value.image || '', customPoints: 0 }; state.products.push(newP); (state.dailyMenu || []).forEach(d => { if (!d.productIds) d.productIds = []; if (!d.productIds.includes(newP.id)) d.productIds.push(newP.id); }); renderAllUI(); Swal.fire({ icon: 'success', title: 'Produk Ditambahkan', text: `${newP.name} berhasil disimpan!`, timer: 1200, showConfirmButton: false }); } else { Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: (data && data.message) ? data.message : 'Gagal menyimpan varian baru.' }); } }).catch(err => { Swal.fire({ icon: 'error', title: 'Gagal Menyimpan Varian', text: err.message || 'Terjadi kesalahan sistem.' }); }); } }); }
         function updateCartQty(prodId, delta) { const item = state.cart.find(x => x.productId == prodId); if (item) { item.qty += delta; if (item.qty <= 0) { state.cart = state.cart.filter(x => x.productId != prodId); } } renderCartUI(); }
         function savePreOrdersToStorage() { try { localStorage.setItem('mpasi_customer_orders', JSON.stringify(state.preOrders)); } catch(e){} }
@@ -2283,15 +2344,71 @@
             return now >= pickupDeadline;
         }
 
+        function trackMyCreatedOrder(orderId) {
+            if (!orderId) return;
+            try {
+                let list = JSON.parse(localStorage.getItem('mpasi_my_order_ids') || '[]');
+                const strId = String(orderId);
+                if (!list.includes(strId)) {
+                    list.push(strId);
+                    localStorage.setItem('mpasi_my_order_ids', JSON.stringify(list));
+                }
+            } catch(e){}
+        }
+
         function renderCustomerHistory() {
             const tbody = document.getElementById('riwayat-tbody');
             if (!tbody) return;
-            const validOrders = (state.preOrders || []).filter(p => p.payMethod === 'COD' || p.isPaid === true);
-            if (validOrders.length === 0) {
+
+            let localMyOrderIds = [];
+            try {
+                localMyOrderIds = JSON.parse(localStorage.getItem('mpasi_my_order_ids') || '[]');
+            } catch(e){}
+
+            const currentUserWa = state.currentUser ? (state.currentUser.wa || state.currentUser.identifier || state.currentUser.email || '').trim().toLowerCase() : '';
+            const normalizedUserWa = currentUserWa.replace(/\D/g, '');
+
+            const validOrders = (state.preOrders || []).filter(p => {
+                if (p.payMethod !== 'COD' && !p.isPaid) return false;
+
+                const pWa = (p.wa || '').trim().toLowerCase();
+                const pMember = (p.memberIdentifier || '').trim().toLowerCase();
+                const pWaDigits = pWa.replace(/\D/g, '');
+                const pMemberDigits = pMember.replace(/\D/g, '');
+
+                if (state.currentUser) {
+                    if (currentUserWa) {
+                        if (pWa && (pWa === currentUserWa || (normalizedUserWa.length >= 6 && pWaDigits.length >= 6 && (pWaDigits.includes(normalizedUserWa) || normalizedUserWa.includes(pWaDigits))))) return true;
+                        if (pMember && (pMember === currentUserWa || (normalizedUserWa.length >= 6 && pMemberDigits.length >= 6 && (pMemberDigits.includes(normalizedUserWa) || normalizedUserWa.includes(pMemberDigits))))) return true;
+                    }
+                    return false;
+                }
+
+                const pidStr = String(p.id || '');
+                const pdbIdStr = String(p.dbId || '');
+
+                if (localMyOrderIds.some(id => id == pidStr || id == pdbIdStr || pidStr.includes(id) || id.includes(pidStr))) {
+                    return true;
+                }
+
+                return false;
+            });
+
+            const uniqueValidOrders = [];
+            const seenKeys = new Set();
+            validOrders.forEach(p => {
+                const key = p.dbId ? ('DB-' + p.dbId) : String(p.id || '');
+                if (key && !seenKeys.has(key)) {
+                    seenKeys.add(key);
+                    uniqueValidOrders.push(p);
+                }
+            });
+
+            if (uniqueValidOrders.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-7 fst-italic py-4"><i class="fa-solid fa-inbox fs-3 d-block mb-2 text-secondary"></i>Belum ada riwayat pesanan. Yuk mulai pesan Mamam Yuk dari menu hari ini!</td></tr>`;
                 return;
             }
-            tbody.innerHTML = validOrders.map(p => {
+            tbody.innerHTML = uniqueValidOrders.map(p => {
                 const expired = isOrderExpired(p);
                 let statusBadge;
                 if (p.cancelStatus === 'approved') {
@@ -2556,6 +2673,7 @@
                 pointsAwarded: pointsEarned,
                 date: getTodayDateString()
             };
+            trackMyCreatedOrder(newOrder.id);
             if (payMethod === 'Midtrans') {
                 window.pendingCheckoutOrder = newOrder;
             } else {
@@ -2601,7 +2719,22 @@
             .then(res => res.json())
             .then(data => {
                 if (data.order && data.order.id) {
-                    newOrder.dbId = data.order.id;
+                    const realDbId = data.order.id;
+                    const realFormattedId = 'ORD-' + String(realDbId).padStart(3, '0');
+                    const tempId = newOrder.id;
+
+                    newOrder.dbId = realDbId;
+                    newOrder.id = realFormattedId;
+
+                    const idx = state.preOrders.findIndex(p => p.id === tempId || (p.dbId && p.dbId === realDbId));
+                    if (idx !== -1) {
+                        state.preOrders[idx].id = realFormattedId;
+                        state.preOrders[idx].dbId = realDbId;
+                    }
+                    savePreOrdersToStorage();
+
+                    trackMyCreatedOrder(realFormattedId);
+                    trackMyCreatedOrder(realDbId);
                 }
 
                 if (data.is_midtrans && data.snap_token) {

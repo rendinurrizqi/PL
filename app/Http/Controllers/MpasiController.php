@@ -24,7 +24,16 @@ class MpasiController extends Controller
     public function index()
     {
         $this->ensurePinColumnExists();
-        $products = Product::query()->orderBy('id')->get();
+        try {
+            Product::query()->whereRaw('LENGTH(image) > 50000')->update(['image' => null]);
+        } catch (\Throwable $e) {}
+
+        $products = Product::query()->orderBy('id')->get()->map(function ($p) {
+            if (!empty($p->image) && strlen($p->image) > 50000) {
+                $p->image = '';
+            }
+            return $p;
+        });
         $outlets = Outlet::query()->orderBy('id')->get();
         $dailyMenus = DailyMenu::query()->get();
         $rewards = PointReward::query()->where('is_active', true)->get();
@@ -49,6 +58,7 @@ class MpasiController extends Controller
 
                 return [
                     'id' => 'ORD-' . str_pad($po->id, 3, '0', STR_PAD_LEFT),
+                    'dbId' => $po->id,
                     'customerName' => $po->customer_name,
                     'wa' => $po->whatsapp,
                     'outlet' => $po->outlet ? $po->outlet->name : 'Outlet Pusat (Jl. Pajajaran)',
@@ -60,7 +70,7 @@ class MpasiController extends Controller
                     'isTaken' => (bool) $po->is_taken,
                     'cancelStatus' => $po->cancel_status,
                     'cancelReason' => $po->cancel_reason,
-                    'memberIdentifier' => $po->member ? $po->member->email : null,
+                    'memberIdentifier' => $po->member ? ($po->member->whatsapp ?: $po->member->email) : null,
                     'pointsAwarded' => (int) $po->points_awarded,
                     'date' => $po->created_at ? $po->created_at->format('Y-m-d') : date('Y-m-d'),
                 ];
@@ -372,6 +382,10 @@ class MpasiController extends Controller
             if (!$snapToken) {
                 $snapToken = 'SNAP-MOCK-' . $preOrder->id . '-' . rand(1000, 9999);
             }
+        }
+
+        if (!$isMidtrans) {
+            $this->sendWaNotification($preOrder, 'BERHASIL DICATAT (COD/Transfer)');
         }
 
         return response()->json([
@@ -1032,15 +1046,10 @@ class MpasiController extends Controller
                 'custom_points' => 0,
             ]);
 
-            // Auto-sync new product to all days in daily_menus table
+            // Ensure daily_menus table has entries for all 7 days without forcing new product into all days
             $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
             foreach ($days as $day) {
-                $menu = DailyMenu::firstOrCreate(['day_name' => $day], ['product_ids' => []]);
-                $ids = is_array($menu->product_ids) ? $menu->product_ids : [];
-                if (!in_array($product->id, $ids)) {
-                    $ids[] = $product->id;
-                    $menu->update(['product_ids' => array_values($ids)]);
-                }
+                DailyMenu::firstOrCreate(['day_name' => $day], ['product_ids' => []]);
             }
 
             return response()->json(['success' => true, 'product' => $product]);
@@ -1112,6 +1121,12 @@ class MpasiController extends Controller
                 $ids = array_values(array_filter($ids, fn($i) => $i != $productId));
                 $menu->update(['product_ids' => $ids]);
             }
+        }
+
+        if (Product::count() === 0) {
+            try {
+                DB::statement("ALTER TABLE products AUTO_INCREMENT = 1");
+            } catch (\Throwable $e) {}
         }
 
         return response()->json(['success' => true]);
@@ -1243,6 +1258,8 @@ class MpasiController extends Controller
             $preOrder->is_paid = true;
             $preOrder->pay_method = 'Midtrans (QRIS/VA)';
             $preOrder->save();
+
+            $this->sendWaNotification($preOrder, 'LUNAS ✅');
         }
 
         return response()->json(['success' => true, 'message' => 'Status pembayaran berhasil diperbarui', 'order' => $preOrder]);
@@ -1266,10 +1283,62 @@ class MpasiController extends Controller
         $preOrder->pay_method = 'Midtrans (QRIS/VA)';
         $preOrder->save();
 
+        $this->sendWaNotification($preOrder, 'LUNAS ✅');
+
         return response()->json([
             'success' => true,
             'message' => 'Simulasi Pembayaran Midtrans Berhasil! Status pesanan kini LUNAS ✅',
             'order' => $preOrder
         ]);
+    }
+
+    protected function sendWaNotification(PreOrder $preOrder, string $statusText = 'LUNAS ✅'): void
+    {
+        $token = env('FONNTE_TOKEN', '4roiGmBnGf5EFz4jxUyh');
+        $whatsapp = trim((string) $preOrder->whatsapp);
+
+        if (empty($token) || empty($whatsapp) || $whatsapp === 'POS-WALKIN') {
+            return;
+        }
+
+        $target = preg_replace('/\D/', '', $whatsapp);
+        if (str_starts_with($target, '0')) {
+            $target = '62' . substr($target, 1);
+        }
+
+        $preOrder->loadMissing(['outlet', 'items.product']);
+
+        $itemsList = '';
+        if ($preOrder->items && count($preOrder->items) > 0) {
+            foreach ($preOrder->items as $idx => $item) {
+                $prodName = $item->product ? $item->product->name : ('Produk ID ' . $item->product_id);
+                $itemsList .= ($idx + 1) . ". {$prodName} (x{$item->qty})\n";
+            }
+        } else {
+            $itemsList = "- Varian Mamam Yuk Harian\n";
+        }
+
+        $outletName = $preOrder->outlet ? $preOrder->outlet->name : 'Outlet Pusat (Jl. Pajajaran)';
+        $totalFormatted = 'Rp ' . number_format((float) $preOrder->total_amount, 0, ',', '.');
+
+        $message = "Halo Bunda *{$preOrder->customer_name}*! 💕\n\n"
+                 . "Terima kasih, pembayaran pesanan *ORD-{$preOrder->id}* sebesar *{$totalFormatted}* telah *{$statusText}*.\n\n"
+                 . "📋 *Rincian Pesanan:*\n" . $itemsList . "\n"
+                 . "📍 *Outlet Pengambilan:* {$outletName}\n"
+                 . "📅 *Waktu Ambil:* Besok Pagi (06:00 - 09:00 WIB)\n\n"
+                 . "Silakan tunjukkan pesan ini ke Kasir saat mengambil di outlet ya Bunda.\n"
+                 . "Terima kasih telah memilih *Mamam Yuk*! 👶✨";
+
+        try {
+            \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => $token,
+            ])->post('https://api.fonnte.com/send', [
+                'target' => $target,
+                'message' => $message,
+                'countryCode' => '62',
+            ]);
+        } catch (\Throwable $e) {
+            // Silently catch network exception
+        }
     }
 }
