@@ -28,7 +28,7 @@
                         <span class="fs-8 fw-bold me-2 text-brand-purple"><i class="fa-solid fa-clock me-1"></i> Jam Toko:</span>
                         <span id="store-hours-label" class="fw-bold text-dark fs-8 d-flex align-items-center gap-1">
                             <span id="store-hours-dot" class="d-inline-block rounded-circle bg-success" style="width:8px;height:8px;"></span>
-                            BUKA 24 Jam
+                            BUKA (06.00 - 20.00)
                         </span>
                     </div>
 
@@ -288,45 +288,52 @@
         </div>
 
         <div id="role-portal-kasir" class="role-portal-page" style="display:none;">
-            <div class="d-flex">
+            <div class="d-flex flex-column flex-md-row">
                 <div class="role-sidebar p-3">
-                    <div class="d-flex align-items-center gap-2 mb-3 px-2">
-                        <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-cash-register"></i></div>
-                        <div>
-                            <div class="fw-bold fs-6 text-white">Kasir Outlet</div>
-                            <div class="text-warning fs-8 fw-bold">Portal Penjaga</div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3 px-1">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label text-warning fs-8 fw-bold mb-0"><i class="fa-solid fa-store me-1"></i> Cabang Bertugas:</label>
-                            <span class="badge bg-success fs-8 text-white"><i class="fa-solid fa-lock me-1"></i> Terkunci PIN</span>
-                        </div>
-                        <div class="bg-white border border-warning rounded-3 p-2 text-start mb-2">
-                            <div class="fw-bold text-dark fs-8 text-truncate">
-                                <i class="fa-solid fa-building-circle-check text-brand-purple me-1"></i>
-                                <span id="kasir-active-outlet-name">Outlet Pusat (Jl. Pajajaran)</span>
+                    <div class="d-flex align-items-center justify-content-between mb-3 px-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-cash-register"></i></div>
+                            <div>
+                                <div class="fw-bold fs-6 text-white">Kasir Outlet</div>
+                                <div class="text-warning fs-8 fw-bold">Portal Penjaga</div>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-warning text-white w-100 fw-bold fs-8" onclick="openKasirSwitchOutletModal()">
-                            <i class="fa-solid fa-key me-1"></i> Ganti Cabang (PIN)
+                        <button class="btn btn-sm btn-warning d-md-none fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#kasir-sidebar-collapse" aria-expanded="false">
+                            <i class="fa-solid fa-bars me-1"></i> Menu
                         </button>
                     </div>
 
-                    <nav class="nav flex-column fs-7" id="kasir-sidebar-nav">
-                        <a class="nav-link active" href="#" onclick="switchKasirTab('preorder')"><i class="fa-solid fa-clipboard-check"></i> Daftar Pre-Order</a>
-                        <a class="nav-link" href="#" onclick="switchKasirTab('pos')"><i class="fa-solid fa-store"></i> Kasir POS Walk-In</a>
-                        <a class="nav-link" href="#" onclick="switchKasirTab('leftover')"><i class="fa-solid fa-clipboard-list"></i> Rekapan Penjualan Hari Ini</a>
-                    </nav>
-
-                    <div class="mt-4 pt-3 border-top border-purple-200 px-1">
-                        <form method="POST" action="{{ route('kasir.logout') }}">
-                            @csrf
-                            <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
-                                <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
+                    <div class="collapse d-md-block" id="kasir-sidebar-collapse">
+                        <div class="mb-3 px-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label text-warning fs-8 fw-bold mb-0"><i class="fa-solid fa-store me-1"></i> Cabang Bertugas:</label>
+                                <span class="badge bg-success fs-8 text-white"><i class="fa-solid fa-lock me-1"></i> Terkunci PIN</span>
+                            </div>
+                            <div class="bg-white border border-warning rounded-3 p-2 text-start mb-2">
+                                <div class="fw-bold text-dark fs-8 text-truncate">
+                                    <i class="fa-solid fa-building-circle-check text-brand-purple me-1"></i>
+                                    <span id="kasir-active-outlet-name">Outlet Pusat (Jl. Pajajaran)</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-warning text-white w-100 fw-bold fs-8" onclick="openKasirSwitchOutletModal()">
+                                <i class="fa-solid fa-key me-1"></i> Ganti Cabang (PIN)
                             </button>
-                        </form>
+                        </div>
+
+                        <nav class="nav flex-column fs-7" id="kasir-sidebar-nav">
+                            <a class="nav-link active" href="#" onclick="switchKasirTab('preorder')"><i class="fa-solid fa-clipboard-check"></i> Daftar Pre-Order</a>
+                            <a class="nav-link" href="#" onclick="switchKasirTab('pos')"><i class="fa-solid fa-store"></i> Kasir POS Walk-In</a>
+                            <a class="nav-link" href="#" onclick="switchKasirTab('leftover')"><i class="fa-solid fa-clipboard-list"></i> Rekapan Penjualan Hari Ini</a>
+                        </nav>
+
+                        <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                            <form method="POST" action="{{ route('kasir.logout') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
@@ -496,32 +503,40 @@
         </div>
 
         <div id="role-portal-admin" class="role-portal-page" style="display:none;">
-            <div class="d-flex">
+            <div class="d-flex flex-column flex-md-row">
                 <div class="role-sidebar p-3">
-                    <div class="d-flex align-items-center gap-2 mb-4 px-2">
-                        <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-user-gear"></i></div>
-                        <div>
-                            <div class="fw-bold fs-6 text-white">Portal Admin</div>
-                            <div class="text-warning fs-8 fw-bold">Operational Control</div>
+                    <div class="d-flex align-items-center justify-content-between mb-4 px-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-user-gear"></i></div>
+                            <div>
+                                <div class="fw-bold fs-6 text-white">Portal Admin</div>
+                                <div class="text-warning fs-8 fw-bold">Operational Control</div>
+                            </div>
                         </div>
+                        <button class="btn btn-sm btn-warning d-md-none fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#admin-sidebar-collapse" aria-expanded="false">
+                            <i class="fa-solid fa-bars me-1"></i> Menu
+                        </button>
                     </div>
-                    <nav class="nav flex-column fs-7" id="admin-sidebar-nav">
-                        <a class="nav-link active" href="#" onclick="switchAdminTab('menu')"><i class="fa-solid fa-calendar-days"></i> Atur Menu Harian</a>
-                        <a class="nav-link" href="#" onclick="switchAdminTab('produk')"><i class="fa-solid fa-bowl-food"></i> Master Produk Mamam Yuk</a>
-                        <a class="nav-link" href="#" onclick="switchAdminTab('pesanan')"><i class="fa-solid fa-cart-shopping"></i> Pesanan Per Outlet</a>
-                        <a class="nav-link" href="#" onclick="switchAdminTab('dapur')"><i class="fa-solid fa-industry"></i> Rekap Dapur Masak</a>
-                        <a class="nav-link" href="#" onclick="switchAdminTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> Persediaan Bahan Baku</a>
-                        <a class="nav-link" href="#" onclick="switchAdminTab('laporan-outlet')"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Per Outlet</a>
-                        <a class="nav-link" href="#" onclick="switchAdminTab('poin')"><i class="fa-solid fa-coins"></i> Penukaran Poin <span id="admin-redemptions-pending-badge" class="badge rounded-pill bg-danger ms-1" style="display:none;">0</span></a>
-                    </nav>
 
-                    <div class="mt-4 pt-3 border-top border-purple-200 px-1">
-                        <form method="POST" action="{{ route('admin.logout') }}">
-                            @csrf
-                            <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
-                                <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
-                            </button>
-                        </form>
+                    <div class="collapse d-md-block" id="admin-sidebar-collapse">
+                        <nav class="nav flex-column fs-7" id="admin-sidebar-nav">
+                            <a class="nav-link active" href="#" onclick="switchAdminTab('menu')"><i class="fa-solid fa-calendar-days"></i> Atur Menu Harian</a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('produk')"><i class="fa-solid fa-bowl-food"></i> Master Produk Mamam Yuk</a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('pesanan')"><i class="fa-solid fa-cart-shopping"></i> Pesanan Per Outlet</a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('dapur')"><i class="fa-solid fa-industry"></i> Rekap Dapur Masak</a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> Persediaan Bahan Baku</a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('laporan-outlet')"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Per Outlet</a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('poin')"><i class="fa-solid fa-coins"></i> Penukaran Poin <span id="admin-redemptions-pending-badge" class="badge rounded-pill bg-danger ms-1" style="display:none;">0</span></a>
+                        </nav>
+
+                        <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                            <form method="POST" action="{{ route('admin.logout') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
@@ -794,16 +809,22 @@
         </div>
 
         <div id="role-portal-owner" class="role-portal-page" style="display:none;">
-            <div class="d-flex">
+            <div class="d-flex flex-column flex-md-row">
                 <div class="role-sidebar p-3">
-                    <div class="d-flex align-items-center gap-2 mb-4 px-2">
-                        <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-user-shield"></i></div>
-                        <div>
-                            <div class="fw-bold fs-6 text-white">Portal Owner</div>
-                            <div class="text-warning fs-8 fw-bold">Akses Penuh Bisnis</div>
+                    <div class="d-flex align-items-center justify-content-between mb-4 px-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-user-shield"></i></div>
+                            <div>
+                                <div class="fw-bold fs-6 text-white">Portal Owner</div>
+                                <div class="text-warning fs-8 fw-bold">Akses Penuh Bisnis</div>
+                            </div>
                         </div>
+                        <button class="btn btn-sm btn-warning d-md-none fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#owner-sidebar-collapse" aria-expanded="false">
+                            <i class="fa-solid fa-bars me-1"></i> Menu
+                        </button>
                     </div>
-                    <nav class="nav flex-column fs-7" id="owner-sidebar-nav">
+                    <div class="collapse d-md-block" id="owner-sidebar-collapse">
+                        <nav class="nav flex-column fs-7" id="owner-sidebar-nav">
                         <a class="nav-link active" href="#" onclick="switchOwnerTab('dashboard')"><i class="fa-solid fa-gauge-high"></i> Dashboard Owner</a>
                         <a class="nav-link" href="#" onclick="switchOwnerTab('outlet')"><i class="fa-solid fa-shop"></i> Kelola Outlet</a>
                         <a class="nav-link" href="#" onclick="switchOwnerTab('menu')"><i class="fa-solid fa-calendar-days"></i> Atur Menu Harian</a>
@@ -830,13 +851,14 @@
                         </a>
                     </nav>
 
-                    <div class="mt-4 pt-3 border-top border-purple-200 px-1">
-                        <form method="POST" action="{{ route('owner.logout') }}">
-                            @csrf
-                            <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
-                                <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
-                            </button>
-                        </form>
+                        <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                            <form method="POST" action="{{ route('owner.logout') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Keluar Portal
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
@@ -1385,8 +1407,19 @@
             kasirActiveOutlet: (() => { try { const saved = sessionStorage.getItem('auth_kasir_outlet'); return saved || null; } catch(e) { return null; } })(),
             authenticatedKasirOutlet: (() => { try { const saved = sessionStorage.getItem('auth_kasir_outlet'); return saved || null; } catch(e) { return null; } })(),
             isStoreOpen: true,
-            currentUser: (() => { try { const saved = localStorage.getItem('mpasi_current_user'); return saved ? JSON.parse(saved) : null; } catch(e) { return null; } })(),
-            outletStock: (() => { try { const saved = localStorage.getItem('mamamyuk_outlet_stock'); return saved ? JSON.parse(saved) : {}; } catch(e) { return {}; } })(),
+            outletStock: (() => {
+                try {
+                    let serverStock = window.MPASI_DATA?.settings?.mamamyuk_outlet_stock;
+                    if (typeof serverStock === 'string') {
+                        serverStock = JSON.parse(serverStock);
+                    }
+                    if (serverStock && typeof serverStock === 'object' && Object.keys(serverStock).length > 0) {
+                        return serverStock;
+                    }
+                    const saved = localStorage.getItem('mamamyuk_outlet_stock');
+                    return saved ? JSON.parse(saved) : {};
+                } catch(e) { return {}; }
+            })(),
             cart: [],
             posCart: [],
             products: Array.isArray(window.MPASI_DATA?.products) ? window.MPASI_DATA.products.map((product, index) => ({
@@ -1885,7 +1918,7 @@
         }
         function switchOwnerPoinSubTab(tabName) { const memberPane = document.getElementById('owner-poin-sub-member'); const rewardPane = document.getElementById('owner-poin-sub-reward'); const ratePane = document.getElementById('owner-poin-sub-rate'); const redemptionsPane = document.getElementById('owner-poin-sub-redemptions'); if (memberPane) memberPane.style.display = tabName === 'member' ? 'block' : 'none'; if (rewardPane) rewardPane.style.display = tabName === 'reward' ? 'block' : 'none'; if (ratePane) ratePane.style.display = tabName === 'rate' ? 'block' : 'none'; if (redemptionsPane) redemptionsPane.style.display = tabName === 'redemptions' ? 'block' : 'none'; document.querySelectorAll('#owner-poin-subnav .nav-link').forEach(el => { el.classList.remove('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); el.classList.add('border'); }); if (window.event && window.event.currentTarget) { window.event.currentTarget.classList.add('active', 'bg-purple-light', 'text-brand-purple', 'border-purple-200'); } if (tabName === 'rate') { const rateInput = document.getElementById('owner-points-rate-input'); if (rateInput) rateInput.value = state.pointsEarnRate; updatePointsRateExample(); renderOwnerProductPointsTable(); } else if (tabName === 'redemptions') { renderOwnerRedemptionsTable(); } }
         function switchCustView(viewName) { document.querySelectorAll('.cust-view').forEach(el => el.style.display = 'none'); document.querySelectorAll('.navbar-custom .nav-link').forEach(el => el.classList.remove('active')); document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active')); const target = document.getElementById('cust-view-' + viewName); if (target) target.style.display = 'block'; const navTarget = document.getElementById('cust-nav-' + viewName); if (navTarget) navTarget.classList.add('active'); const mobileNavTarget = document.getElementById('mobile-nav-' + viewName); if (mobileNavTarget) mobileNavTarget.classList.add('active'); const mobileBottomNav = document.querySelector('.mobile-bottom-nav'); const custNavContent = document.getElementById('custNavContent'); const custToggler = document.querySelector('.navbar-toggler'); if (viewName === 'login') { if (mobileBottomNav) mobileBottomNav.style.setProperty('display', 'none', 'important'); if (custNavContent) custNavContent.style.setProperty('display', 'none', 'important'); if (custToggler) custToggler.style.setProperty('display', 'none', 'important'); } else { if (mobileBottomNav) mobileBottomNav.style.removeProperty('display'); if (custNavContent) custNavContent.style.removeProperty('display'); if (custToggler) custToggler.style.removeProperty('display'); } if (viewName === 'checkout') prefillCheckoutForm(); if (viewName === 'poin') renderCustomerPointsPage(); if (viewName === 'akun') renderCustomerProfilePage(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-        function updateStoreHoursStatus() { state.isStoreOpen = true; const alertEl = document.getElementById('closed-hours-alert'); const labelEl = document.getElementById('store-hours-label'); const mobileLabelEl = document.getElementById('store-hours-label-mobile'); if (alertEl) alertEl.style.display = 'none'; if (labelEl) labelEl.innerHTML = '<span id="store-hours-dot" class="d-inline-block rounded-circle bg-success" style="width:8px;height:8px;"></span> BUKA 24 Jam'; if (mobileLabelEl) mobileLabelEl.innerHTML = '<span id="store-hours-dot-mobile" class="d-inline-block rounded-circle bg-success" style="width:7px;height:7px;"></span> BUKA'; }
+        function updateStoreHoursStatus() { const now = new Date(); const currentHour = now.getHours(); state.isStoreOpen = (currentHour >= 6 && currentHour < 20); const alertEl = document.getElementById('closed-hours-alert'); const labelEl = document.getElementById('store-hours-label'); const mobileLabelEl = document.getElementById('store-hours-label-mobile'); if (state.isStoreOpen) { if (alertEl) alertEl.style.display = 'none'; if (labelEl) labelEl.innerHTML = '<span id="store-hours-dot" class="d-inline-block rounded-circle bg-success" style="width:8px;height:8px;"></span> BUKA (06.00 - 20.00)'; if (mobileLabelEl) mobileLabelEl.innerHTML = '<span id="store-hours-dot-mobile" class="d-inline-block rounded-circle bg-success" style="width:7px;height:7px;"></span> BUKA'; } else { if (alertEl) alertEl.style.display = 'block'; if (labelEl) labelEl.innerHTML = '<span id="store-hours-dot" class="d-inline-block rounded-circle bg-danger" style="width:8px;height:8px;"></span> TUTUP (Jam 20.00)'; if (mobileLabelEl) mobileLabelEl.innerHTML = '<span id="store-hours-dot-mobile" class="d-inline-block rounded-circle bg-danger" style="width:7px;height:7px;"></span> TUTUP'; } }
         function getTodayDateString() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function getYesterdayDateString() { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function purgeOldPreOrders() { const todayStr = getTodayDateString(); const yesterdayStr = getYesterdayDateString(); let changed = false; state.preOrders = (state.preOrders || []).filter(order => { if ((order.payMethod === 'Midtrans' || order.payMethod === 'Transfer') && !order.isPaid) { changed = true; return false; } if (!order.date) { order.date = todayStr; return true; } if (order.date === todayStr || order.date === yesterdayStr) { return true; } changed = true; return false; }); if (changed) savePreOrdersToStorage(); }
@@ -2331,14 +2364,14 @@
             if (order.date) {
                 const parts = order.date.split('-');
                 if (parts.length === 3) {
-                    pickupDeadline = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]) + 1, 17, 0, 0);
+                    pickupDeadline = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]) + 1, 20, 0, 0);
                 } else {
                     pickupDeadline = new Date();
-                    pickupDeadline.setHours(17, 0, 0, 0);
+                    pickupDeadline.setHours(20, 0, 0, 0);
                 }
             } else {
                 pickupDeadline = new Date();
-                pickupDeadline.setHours(17, 0, 0, 0);
+                pickupDeadline.setHours(20, 0, 0, 0);
             }
 
             return now >= pickupDeadline;
@@ -2431,7 +2464,7 @@
                 } else if (p.isTaken) {
                     actionCell = '<span class="text-muted fs-8 fst-italic">-</span>';
                 } else if (expired) {
-                    actionCell = '<span class="text-muted fs-8 fst-italic">Batas batal lewat (17:00)</span>';
+                    actionCell = '<span class="text-muted fs-8 fst-italic">Batas batal lewat (20:00)</span>';
                 } else {
                     actionCell = `<button class="btn btn-sm btn-outline-danger fs-8 fw-bold" onclick="requestCancelOrder('${p.id}')"><i class="fa-solid fa-ban me-1"></i> Batalkan Pesanan</button>`;
                     if (p.cancelStatus === 'rejected') {
@@ -2458,7 +2491,7 @@
                 return;
             }
             if (isOrderExpired(order)) {
-                Swal.fire({ icon: 'error', title: 'Batas Waktu Pembatalan Lewat', text: 'Pesanan tidak bisa dibatalkan lagi karena sudah melewati batas waktu jam 17:00.' });
+                Swal.fire({ icon: 'error', title: 'Batas Waktu Pembatalan Lewat', text: 'Pesanan tidak bisa dibatalkan lagi karena sudah melewati batas waktu jam 20:00.' });
                 return;
             }
             Swal.fire({
@@ -3696,22 +3729,36 @@
         }
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); renderAdminOutletStockTable(); }
         function getOutletStock(outletName, product) {
+            if (!product) return 0;
             if (!state.outletStock) state.outletStock = {};
             if (!outletName) outletName = (state.outlets && state.outlets[0]) ? state.outlets[0] : 'Outlet Utama';
             if (!state.outletStock[outletName]) state.outletStock[outletName] = {};
             const pId = String(product.id);
             if (state.outletStock[outletName][pId] !== undefined) {
-                return state.outletStock[outletName][pId];
+                return Number(state.outletStock[outletName][pId]);
             }
-            return 0;
+            return Number(product.stock !== undefined ? product.stock : 20);
         }
         function setOutletStock(outletName, product, newStock) {
+            if (!product) return;
             if (!state.outletStock) state.outletStock = {};
             if (!outletName) outletName = (state.outlets && state.outlets[0]) ? state.outlets[0] : 'Outlet Utama';
             if (!state.outletStock[outletName]) state.outletStock[outletName] = {};
             const pId = String(product.id);
-            state.outletStock[outletName][pId] = Number(newStock);
+            const numStock = Number(newStock);
+            state.outletStock[outletName][pId] = numStock;
+            product.stock = numStock;
+            product.initialStock = numStock;
             try { localStorage.setItem('mamamyuk_outlet_stock', JSON.stringify(state.outletStock)); } catch(e){}
+
+            fetch('/api/outlet-stock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ outlet_stock: state.outletStock })
+            }).catch(e => console.error("Sync outlet stock error:", e));
         }
         function renderAdminOutletStockTable() {
             const selEl = document.getElementById('adm-stock-outlet-select');
@@ -3807,17 +3854,41 @@
             const val = parseInt(input ? input.value : 0);
             const newStock = isNaN(val) ? 0 : Math.max(0, val);
             setOutletStock(outletName, p, newStock);
-            if (editKey) {
-                window._outletStockEditing[editKey] = false;
-            }
-            renderAllUI();
-            Swal.fire({
-                icon: 'success',
-                title: 'Stok Cabang Disimpan!',
-                text: `Stok ready ${p.name} untuk ${outletName} berhasil diatur menjadi ${newStock} cup! Status: Tersimpan ✅`,
-                timer: 1500,
-                showConfirmButton: false
-            });
+            p.stock = newStock;
+            p.initialStock = newStock;
+
+            startLoading();
+            fetch('/api/products/' + prodId, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ stock: newStock })
+            })
+            .then(res => res.json())
+            .then(() => {
+                if (editKey) {
+                    window._outletStockEditing[editKey] = false;
+                }
+                renderAllUI();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Stok Cabang Disimpan!',
+                    text: `Stok ready ${p.name} untuk ${outletName} berhasil diatur menjadi ${newStock} cup ke Database! ✅`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            })
+            .catch(err => {
+                renderAllUI();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Stok Disimpan Lokal',
+                    text: 'Stok tersimpan di browser ini, namun gagal sinkron ke database.'
+                });
+            })
+            .finally(() => endLoading());
         }
         function autoFillStockFromOrders() {
             const selEl = document.getElementById('adm-stock-outlet-select');
@@ -5286,6 +5357,81 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function() { try { selectRolePortal(state.activeRole); renderAllUI(); if (state.activeRole === 'pelanggan') { if (!state.currentUser) { switchCustView('login'); } else { switchCustView('beranda'); } } updateStoreHoursStatus(); setInterval(updateStoreHoursStatus, 30000); } catch (err) { console.error("Render UI Error:", err); } finally { endLoading(); } }); window.onload = function() { endLoading(); }; setTimeout(endLoading, 800);
+        function startAutoSync() {
+            if (window._autoSyncTimer) return;
+            window._autoSyncTimer = setInterval(async () => {
+                try {
+                    const activeEl = document.activeElement;
+                    const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+
+                    const res = await fetch('/api/menu-data');
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    let dataChanged = false;
+
+                    if (data.outletStock && typeof data.outletStock === 'object') {
+                        const newStockStr = JSON.stringify(data.outletStock);
+                        const oldStockStr = JSON.stringify(state.outletStock || {});
+                        if (newStockStr !== oldStockStr) {
+                            state.outletStock = data.outletStock;
+                            try { localStorage.setItem('mamamyuk_outlet_stock', newStockStr); } catch(e){}
+                            dataChanged = true;
+                        }
+                    }
+
+                    if (Array.isArray(data.products) && data.products.length > 0) {
+                        const mappedProducts = data.products.map((product, index) => ({
+                            id: product.id || `PRD-${index + 1}`,
+                            name: product.name || `Produk ${index + 1}`,
+                            price: Number(product.price || 0),
+                            initialStock: Number(product.stock ?? 20),
+                            stock: Number(product.stock ?? 20),
+                            category: product.category || 'Bubur',
+                            age: product.age_group || '6+ Bulan',
+                            ingredients: product.ingredients || product.description || 'Bahan segar alami',
+                            status: product.status || 'Aktif',
+                            image: product.image || product.image_url || '',
+                            customPoints: Number(product.custom_points || 0),
+                        }));
+
+                        if (JSON.stringify(mappedProducts) !== JSON.stringify(state.products)) {
+                            state.products = mappedProducts;
+                            dataChanged = true;
+                        }
+                    }
+
+                    if (Array.isArray(data.dailyMenus)) {
+                        const mappedDaily = data.dailyMenus.map(m => {
+                            let pIds = m.product_ids;
+                            if (typeof pIds === 'string') {
+                                try { pIds = JSON.parse(pIds); } catch(e) { pIds = []; }
+                            }
+                            return {
+                                day: m.day_name,
+                                productIds: Array.isArray(pIds) ? pIds.map(String) : []
+                            };
+                        });
+                        if (JSON.stringify(mappedDaily) !== JSON.stringify(state.dailyMenu)) {
+                            state.dailyMenu = mappedDaily;
+                            dataChanged = true;
+                        }
+                    }
+
+                    if (Array.isArray(data.preOrders)) {
+                        if (JSON.stringify(data.preOrders) !== JSON.stringify(state.preOrders)) {
+                            state.preOrders = data.preOrders;
+                            try { localStorage.setItem('mpasi_customer_orders', JSON.stringify(state.preOrders)); } catch(e){}
+                            dataChanged = true;
+                        }
+                    }
+
+                    if (dataChanged && !isTyping) {
+                        renderAllUI();
+                    }
+                } catch(e) {}
+            }, 3500);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() { try { selectRolePortal(state.activeRole); renderAllUI(); if (state.activeRole === 'pelanggan') { if (!state.currentUser) { switchCustView('login'); } else { switchCustView('beranda'); } } updateStoreHoursStatus(); setInterval(updateStoreHoursStatus, 30000); startAutoSync(); } catch (err) { console.error("Render UI Error:", err); } finally { endLoading(); } }); window.onload = function() { endLoading(); }; setTimeout(endLoading, 800);
     </script>
 @endsection

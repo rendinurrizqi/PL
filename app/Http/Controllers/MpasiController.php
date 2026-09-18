@@ -39,42 +39,7 @@ class MpasiController extends Controller
         $rewards = PointReward::query()->where('is_active', true)->get();
         $settings = Setting::query()->pluck('value', 'key')->toArray();
 
-        $preOrders = PreOrder::query()
-            ->with(['outlet', 'items.product', 'member'])
-            ->latest()
-            ->get()
-            ->map(function ($po) {
-                $itemsText = $po->items->map(function ($item) {
-                    $name = $item->product ? $item->product->name : ('Produk ID ' . $item->product_id);
-                    return $name . ' x' . $item->qty;
-                })->join(', ');
-
-                $itemsDetail = $po->items->map(function ($item) {
-                    return [
-                        'productId' => $item->product_id,
-                        'qty' => $item->qty,
-                    ];
-                })->toArray();
-
-                return [
-                    'id' => 'ORD-' . str_pad($po->id, 3, '0', STR_PAD_LEFT),
-                    'dbId' => $po->id,
-                    'customerName' => $po->customer_name,
-                    'wa' => $po->whatsapp,
-                    'outlet' => $po->outlet ? $po->outlet->name : 'Outlet Pusat (Jl. Pajajaran)',
-                    'items' => $itemsText,
-                    'itemsDetail' => $itemsDetail,
-                    'totalAmount' => (float) $po->total_amount,
-                    'isPaid' => (bool) $po->is_paid,
-                    'payMethod' => $po->pay_method,
-                    'isTaken' => (bool) $po->is_taken,
-                    'cancelStatus' => $po->cancel_status,
-                    'cancelReason' => $po->cancel_reason,
-                    'memberIdentifier' => $po->member ? ($po->member->whatsapp ?: $po->member->email) : null,
-                    'pointsAwarded' => (int) $po->points_awarded,
-                    'date' => $po->created_at ? $po->created_at->format('Y-m-d') : date('Y-m-d'),
-                ];
-            });
+        $preOrders = $this->getFormattedPreOrders();
 
         $member = null;
         $redemptions = PointRedemption::query()->with(['member', 'reward'])->latest()->get();
@@ -250,15 +215,78 @@ class MpasiController extends Controller
         return response()->json(Outlet::query()->orderBy('id')->get());
     }
 
+    public function getFormattedPreOrders()
+    {
+        return PreOrder::query()
+            ->with(['outlet', 'items.product', 'member'])
+            ->latest()
+            ->get()
+            ->map(function ($po) {
+                $itemsText = $po->items->map(function ($item) {
+                    $name = $item->product ? $item->product->name : ('Produk ID ' . $item->product_id);
+                    return $name . ' x' . $item->qty;
+                })->join(', ');
+
+                $itemsDetail = $po->items->map(function ($item) {
+                    return [
+                        'productId' => $item->product_id,
+                        'qty' => $item->qty,
+                    ];
+                })->toArray();
+
+                return [
+                    'id' => 'ORD-' . str_pad($po->id, 3, '0', STR_PAD_LEFT),
+                    'dbId' => $po->id,
+                    'customerName' => $po->customer_name,
+                    'wa' => $po->whatsapp,
+                    'outlet' => $po->outlet ? $po->outlet->name : 'Outlet Pusat (Jl. Pajajaran)',
+                    'items' => $itemsText,
+                    'itemsDetail' => $itemsDetail,
+                    'totalAmount' => (float) $po->total_amount,
+                    'isPaid' => (bool) $po->is_paid,
+                    'payMethod' => $po->pay_method,
+                    'isTaken' => (bool) $po->is_taken,
+                    'cancelStatus' => $po->cancel_status,
+                    'cancelReason' => $po->cancel_reason,
+                    'memberIdentifier' => $po->member ? ($po->member->whatsapp ?: $po->member->email) : null,
+                    'pointsAwarded' => (int) $po->points_awarded,
+                    'date' => $po->created_at ? $po->created_at->format('Y-m-d') : date('Y-m-d'),
+                ];
+            });
+    }
+
     public function getMenuData()
     {
+        $outletStockRaw = $this->getSetting('mamamyuk_outlet_stock', '{}');
+        $outletStock = json_decode($outletStockRaw, true);
+        if (!is_array($outletStock)) {
+            $outletStock = new \stdClass();
+        }
+
         return response()->json([
             'products' => Product::query()->orderBy('id')->get(),
             'outlets' => Outlet::query()->orderBy('id')->get(),
             'dailyMenus' => DailyMenu::query()->orderBy('id')->get(),
             'rewards' => PointReward::query()->where('is_active', true)->get(),
             'pointsEarnRate' => (int) ($this->getSetting('points_earn_rate', 1000)),
+            'outletStock' => $outletStock,
+            'preOrders' => $this->getFormattedPreOrders(),
         ]);
+    }
+
+    public function apiSaveOutletStock(Request $request)
+    {
+        $validated = $request->validate([
+            'outlet_stock' => 'required',
+        ]);
+
+        $value = is_array($validated['outlet_stock']) 
+            ? json_encode($validated['outlet_stock']) 
+            : (string) $validated['outlet_stock'];
+
+        $this->setSetting('mamamyuk_outlet_stock', $value);
+
+        return response()->json(['success' => true]);
     }
 
     public function processCheckout(Request $request)

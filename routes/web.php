@@ -20,6 +20,7 @@ Route::delete('/api/outlets/{id}', [MpasiController::class, 'apiDeleteOutlet']);
 Route::post('/api/outlets/verify-pin', [MpasiController::class, 'apiVerifyOutletPin']);
 Route::put('/api/outlets/{id}/pin', [MpasiController::class, 'apiUpdateOutletPin']);
 Route::post('/api/daily-menu', [MpasiController::class, 'apiSaveDailyMenu']);
+Route::post('/api/outlet-stock', [MpasiController::class, 'apiSaveOutletStock']);
 
 Route::post('/checkout', [MpasiController::class, 'processCheckout'])->name('mpasi.checkout');
 Route::post('/api/payment/notification', [MpasiController::class, 'apiPaymentNotification']);

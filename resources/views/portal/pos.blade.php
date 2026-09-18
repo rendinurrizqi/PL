@@ -3,7 +3,7 @@
 @section('title', 'POS Kasir')
 
 @section('content')
-    <div class="d-flex min-vh-100">
+    <div class="d-flex flex-column flex-md-row min-vh-100">
         <aside class="role-sidebar p-3">
             <div class="d-flex align-items-center gap-2 mb-4 px-2">
                 <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-cash-register"></i></div>

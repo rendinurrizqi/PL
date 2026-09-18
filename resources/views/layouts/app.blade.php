@@ -81,6 +81,7 @@
             background: var(--brand-purple);
             color: #ffffff;
             flex-shrink: 0;
+            transition: all 0.3s ease;
         }
         .role-sidebar .nav-link {
             color: #F5EBFB;
@@ -96,6 +97,18 @@
             background: var(--brand-yellow);
             color: #000000;
             font-weight: 700;
+        }
+
+        @media (max-width: 767.98px) {
+            .role-sidebar {
+                width: 100% !important;
+                min-height: auto !important;
+                padding: 12px 16px !important;
+            }
+            .role-sidebar .nav-link {
+                padding: 10px 14px;
+                font-size: 0.85rem;
+            }
         }
 
         #loading-overlay {
