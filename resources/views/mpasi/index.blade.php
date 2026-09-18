@@ -1411,13 +1411,18 @@
                 try {
                     let serverStock = window.MPASI_DATA?.settings?.mamamyuk_outlet_stock;
                     if (typeof serverStock === 'string') {
-                        serverStock = JSON.parse(serverStock);
+                        try { serverStock = JSON.parse(serverStock); } catch(err){}
                     }
-                    if (serverStock && typeof serverStock === 'object' && Object.keys(serverStock).length > 0) {
+                    if (serverStock && typeof serverStock === 'object' && !Array.isArray(serverStock) && Object.keys(serverStock).length > 0) {
+                        try { localStorage.setItem('mamamyuk_outlet_stock', JSON.stringify(serverStock)); } catch(e){}
                         return serverStock;
                     }
                     const saved = localStorage.getItem('mamamyuk_outlet_stock');
-                    return saved ? JSON.parse(saved) : {};
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+                    }
+                    return {};
                 } catch(e) { return {}; }
             })(),
             cart: [],
@@ -3730,7 +3735,7 @@
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); renderAdminOutletStockTable(); }
         function getOutletStock(outletName, product) {
             if (!product) return 0;
-            if (!state.outletStock) state.outletStock = {};
+            if (!state.outletStock || typeof state.outletStock !== 'object' || Array.isArray(state.outletStock)) state.outletStock = {};
             if (!outletName) outletName = (state.outlets && state.outlets[0]) ? state.outlets[0] : 'Outlet Utama';
             if (!state.outletStock[outletName]) state.outletStock[outletName] = {};
             const pId = String(product.id);
@@ -3739,26 +3744,30 @@
             }
             return Number(product.stock !== undefined ? product.stock : 20);
         }
-        function setOutletStock(outletName, product, newStock) {
-            if (!product) return;
-            if (!state.outletStock) state.outletStock = {};
+        async function setOutletStock(outletName, product, newStock) {
+            if (!product) return false;
+            if (!state.outletStock || typeof state.outletStock !== 'object' || Array.isArray(state.outletStock)) state.outletStock = {};
             if (!outletName) outletName = (state.outlets && state.outlets[0]) ? state.outlets[0] : 'Outlet Utama';
             if (!state.outletStock[outletName]) state.outletStock[outletName] = {};
             const pId = String(product.id);
             const numStock = Number(newStock);
             state.outletStock[outletName][pId] = numStock;
-            product.stock = numStock;
-            product.initialStock = numStock;
             try { localStorage.setItem('mamamyuk_outlet_stock', JSON.stringify(state.outletStock)); } catch(e){}
 
-            fetch('/api/outlet-stock', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ outlet_stock: state.outletStock })
-            }).catch(e => console.error("Sync outlet stock error:", e));
+            try {
+                const res = await fetch('/api/outlet-stock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ outlet_stock: state.outletStock })
+                });
+                return res.ok;
+            } catch(e) {
+                console.error("Sync outlet stock error:", e);
+                return false;
+            }
         }
         function renderAdminOutletStockTable() {
             const selEl = document.getElementById('adm-stock-outlet-select');
@@ -3847,31 +3856,23 @@
             renderAdminOutletStockTable();
         }
 
-        function saveAdminOutletStock(outletName, prodId, inputId, editKey) {
+        async function saveAdminOutletStock(outletName, prodId, inputId, editKey) {
             const p = state.products.find(x => x.id == prodId || String(x.id) === String(prodId));
             if (!p) return;
             const input = document.getElementById(inputId || ('ostock-' + prodId));
             const val = parseInt(input ? input.value : 0);
             const newStock = isNaN(val) ? 0 : Math.max(0, val);
-            setOutletStock(outletName, p, newStock);
-            p.stock = newStock;
-            p.initialStock = newStock;
-
+            
             startLoading();
-            fetch('/api/products/' + prodId, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ stock: newStock })
-            })
-            .then(res => res.json())
-            .then(() => {
-                if (editKey) {
-                    window._outletStockEditing[editKey] = false;
-                }
-                renderAllUI();
+            const success = await setOutletStock(outletName, p, newStock);
+            endLoading();
+
+            if (editKey) {
+                window._outletStockEditing[editKey] = false;
+            }
+            renderAllUI();
+
+            if (success) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Stok Cabang Disimpan!',
@@ -3879,16 +3880,13 @@
                     timer: 1500,
                     showConfirmButton: false
                 });
-            })
-            .catch(err => {
-                renderAllUI();
+            } else {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Stok Disimpan Lokal',
-                    text: 'Stok tersimpan di browser ini, namun gagal sinkron ke database.'
+                    text: 'Stok tersimpan di browser ini, namun gagal sinkron ke server database.'
                 });
-            })
-            .finally(() => endLoading());
+            }
         }
         function autoFillStockFromOrders() {
             const selEl = document.getElementById('adm-stock-outlet-select');
@@ -5369,7 +5367,7 @@
                     const data = await res.json();
                     let dataChanged = false;
 
-                    if (data.outletStock && typeof data.outletStock === 'object') {
+                    if (data.outletStock && typeof data.outletStock === 'object' && !Array.isArray(data.outletStock) && Object.keys(data.outletStock).length > 0) {
                         const newStockStr = JSON.stringify(data.outletStock);
                         const oldStockStr = JSON.stringify(state.outletStock || {});
                         if (newStockStr !== oldStockStr) {

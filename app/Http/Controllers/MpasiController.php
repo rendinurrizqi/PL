@@ -276,13 +276,15 @@ class MpasiController extends Controller
 
     public function apiSaveOutletStock(Request $request)
     {
-        $validated = $request->validate([
-            'outlet_stock' => 'required',
-        ]);
-
-        $value = is_array($validated['outlet_stock']) 
-            ? json_encode($validated['outlet_stock']) 
-            : (string) $validated['outlet_stock'];
+        $stockData = $request->input('outlet_stock');
+        if (is_array($stockData)) {
+            $value = json_encode($stockData);
+        } else if (is_string($stockData)) {
+            $decoded = json_decode($stockData, true);
+            $value = is_array($decoded) ? json_encode($decoded) : $stockData;
+        } else {
+            $value = '{}';
+        }
 
         $this->setSetting('mamamyuk_outlet_stock', $value);
 
@@ -1349,12 +1351,12 @@ class MpasiController extends Controller
         $outletName = $preOrder->outlet ? $preOrder->outlet->name : 'Outlet Pusat (Jl. Pajajaran)';
         $totalFormatted = 'Rp ' . number_format((float) $preOrder->total_amount, 0, ',', '.');
 
-        $message = "Halo Bunda *{$preOrder->customer_name}*! 💕\n\n"
+        $message = "Halo *{$preOrder->customer_name}*! 💕\n\n"
                  . "Terima kasih, pembayaran pesanan *ORD-{$preOrder->id}* sebesar *{$totalFormatted}* telah *{$statusText}*.\n\n"
                  . "📋 *Rincian Pesanan:*\n" . $itemsList . "\n"
                  . "📍 *Outlet Pengambilan:* {$outletName}\n"
                  . "📅 *Waktu Ambil:* Besok Pagi (06:00 - 09:00 WIB)\n\n"
-                 . "Silakan tunjukkan pesan ini ke Kasir saat mengambil di outlet ya Bunda.\n"
+                 . "Silakan tunjukkan pesan ini ke Kasir saat mengambil di outlet ya.\n"
                  . "Terima kasih telah memilih *Mamam Yuk*! 👶✨";
 
         try {
