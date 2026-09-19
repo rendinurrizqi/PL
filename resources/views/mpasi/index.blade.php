@@ -1520,11 +1520,24 @@
                     return filtered;
                 } catch(e) { return []; }
             })(),
-            outletSalesRecords: {
-                'Outlet Pusat (Jl. Pajajaran)': {},
-                'Outlet Cabang 1 (Suryakencana)': {},
-                'Outlet Cabang 2 (Cibinong)': {}
-            },
+            outletSalesRecords: (() => {
+                try {
+                    let serverSales = window.MPASI_DATA?.settings?.mamamyuk_sales_records;
+                    if (typeof serverSales === 'string') {
+                        try { serverSales = JSON.parse(serverSales); } catch(err){}
+                    }
+                    if (serverSales && typeof serverSales === 'object' && !Array.isArray(serverSales) && Object.keys(serverSales).length > 0) {
+                        try { localStorage.setItem('mpasi_outlet_sales_records', JSON.stringify(serverSales)); } catch(e){}
+                        return serverSales;
+                    }
+                    const saved = localStorage.getItem('mpasi_outlet_sales_records');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+                    }
+                    return {};
+                } catch(e) { return {}; }
+            })(),
             resetTickets: [],
             inventory: [
                 { name: 'Beras Organik', stock: '25 Kg', min: '5 Kg', status: 'Aman' },
@@ -3124,6 +3137,16 @@
             } catch(e) {
                 console.error("Sales records storage error:", e);
             }
+            try {
+                fetch('/api/sales-records', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ sales_records: state.outletSalesRecords })
+                }).catch(err => console.error("Failed to sync sales records:", err));
+            } catch(e){}
         }
         
         function renderKasirPreOrders() {
@@ -5456,6 +5479,16 @@
                         if (newStockStr !== oldStockStr) {
                             state.outletStock = data.outletStock;
                             try { localStorage.setItem('mamamyuk_outlet_stock', newStockStr); } catch(e){}
+                            dataChanged = true;
+                        }
+                    }
+
+                    if (data.outletSalesRecords && typeof data.outletSalesRecords === 'object' && !Array.isArray(data.outletSalesRecords)) {
+                        const newSalesStr = JSON.stringify(data.outletSalesRecords);
+                        const oldSalesStr = JSON.stringify(state.outletSalesRecords || {});
+                        if (newSalesStr !== oldSalesStr) {
+                            state.outletSalesRecords = data.outletSalesRecords;
+                            try { localStorage.setItem('mpasi_outlet_sales_records', newSalesStr); } catch(e){}
                             dataChanged = true;
                         }
                     }

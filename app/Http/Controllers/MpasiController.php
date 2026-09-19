@@ -263,6 +263,12 @@ class MpasiController extends Controller
             $outletStock = new \stdClass();
         }
 
+        $salesRecordsRaw = $this->getSetting('mamamyuk_sales_records', '{}');
+        $salesRecords = json_decode($salesRecordsRaw, true);
+        if (!is_array($salesRecords)) {
+            $salesRecords = new \stdClass();
+        }
+
         return response()->json([
             'products' => Product::query()->orderBy('id')->get(),
             'outlets' => Outlet::query()->orderBy('id')->get(),
@@ -270,6 +276,7 @@ class MpasiController extends Controller
             'rewards' => PointReward::query()->where('is_active', true)->get(),
             'pointsEarnRate' => (int) ($this->getSetting('points_earn_rate', 1000)),
             'outletStock' => $outletStock,
+            'outletSalesRecords' => $salesRecords,
             'preOrders' => $this->getFormattedPreOrders(),
         ]);
     }
@@ -287,6 +294,23 @@ class MpasiController extends Controller
         }
 
         $this->setSetting('mamamyuk_outlet_stock', $value);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function apiSaveSalesRecords(Request $request)
+    {
+        $salesData = $request->input('sales_records');
+        if (is_array($salesData)) {
+            $value = json_encode($salesData);
+        } else if (is_string($salesData)) {
+            $decoded = json_decode($salesData, true);
+            $value = is_array($decoded) ? json_encode($decoded) : $salesData;
+        } else {
+            $value = '{}';
+        }
+
+        $this->setSetting('mamamyuk_sales_records', $value);
 
         return response()->json(['success' => true]);
     }
