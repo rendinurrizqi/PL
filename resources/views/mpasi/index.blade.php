@@ -479,7 +479,7 @@
                                 <i class="fa-solid fa-paper-plane me-1"></i> Kirim Rekap Laporan Hari Ini
                             </button>
                         </div>
-                        <div class="card-custom p-3 border-danger border-opacity-50">
+                        <div class="card-custom p-3 border-danger border-opacity-50 mb-3">
                             <div class="table-responsive">
                                 <table class="table align-middle fs-7 mb-0">
                                     <thead>
@@ -496,6 +496,25 @@
                                     <tbody id="kasir-leftover-tbody"></tbody>
                                 </table>
                             </div>
+                        </div>
+
+                        <!-- Section Upload Foto Dokumen / Bukti Rekap Penjualan Kasir -->
+                        <div class="card-custom p-3 border-purple-200">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-brand-purple mb-0">
+                                    <i class="fa-solid fa-camera me-2"></i> Upload Foto Dokumentasi & Bukti Rekap (Bisa Banyak Foto Sekaligus)
+                                </h6>
+                                <span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">
+                                    <i class="fa-solid fa-images me-1"></i> Multi-Upload Foto
+                                </span>
+                            </div>
+                            <p class="text-muted fs-8 mb-3">Upload foto bukti sisa produk, struk fisik, atau suasana outlet hari ini untuk dikirimkan ke Admin & Owner.</p>
+
+                            <div class="mb-3">
+                                <input type="file" id="kasir-rekap-photos-input" class="form-control form-control-sm border-purple-200 fw-bold" accept="image/*" multiple onchange="handleKasirMultiplePhotosUpload(this)">
+                            </div>
+
+                            <div id="kasir-rekap-photos-preview" class="row g-2"></div>
                         </div>
                     </div>
                 </div>
@@ -753,7 +772,7 @@
                             </div>
                         </div>
 
-                        <div class="card-custom p-3 border-danger border-opacity-25">
+                        <div class="card-custom p-3 border-danger border-opacity-25 mb-3">
                             <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                                 <h6 class="fw-bold text-danger mb-0"><i class="fa-solid fa-clipboard-list me-2"></i> Laporan Rekapan Penjualan Per Outlet</h6>
                                 <span class="badge bg-danger fs-8"><i class="fa-solid fa-circle-check me-1"></i> Terhubung Live Kasir</span>
@@ -774,6 +793,14 @@
                                     <tbody id="adm-leftover-report-tbody"></tbody>
                                 </table>
                             </div>
+                        </div>
+
+                        <!-- Foto Dokumentasi Rekap Penjualan Kasir (Admin View) -->
+                        <div class="card-custom p-3 border-purple-200">
+                            <h6 class="fw-bold text-brand-purple border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-camera me-2"></i> Foto Dokumentasi & Bukti Rekap Kasir (Real-Time)
+                            </h6>
+                            <div id="adm-rekap-photos-grid" class="row g-2"></div>
                         </div>
                     </div>
 
@@ -1074,7 +1101,7 @@
                             </div>
                         </div>
 
-                        <div class="card-custom p-3 border-danger border-opacity-25">
+                        <div class="card-custom p-3 border-danger border-opacity-25 mb-3">
                             <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                                 <h6 class="fw-bold text-danger mb-0"><i class="fa-solid fa-clipboard-list me-2"></i> Laporan Rekapan Penjualan Per Outlet</h6>
                                 <span class="badge bg-danger fs-8"><i class="fa-solid fa-circle-check me-1"></i> Terhubung Live Kasir</span>
@@ -1095,6 +1122,14 @@
                                     <tbody id="own-leftover-report-tbody"></tbody>
                                 </table>
                             </div>
+                        </div>
+
+                        <!-- Foto Dokumentasi Rekap Penjualan Kasir (Owner View) -->
+                        <div class="card-custom p-3 border-purple-200">
+                            <h6 class="fw-bold text-brand-purple border-bottom pb-2 mb-3">
+                                <i class="fa-solid fa-camera me-2"></i> Foto Dokumentasi & Bukti Rekap Kasir (Real-Time)
+                            </h6>
+                            <div id="own-rekap-photos-grid" class="row g-2"></div>
                         </div>
                     </div>
 
@@ -3706,10 +3741,169 @@
             return rowsHtml + summaryRows;
         }
 
+        async function compressImageFile(file) {
+            return new Promise((resolve) => {
+                if (!file || !file.type.startsWith('image/')) { resolve(null); return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxSize = 600;
+
+                        if (width > height) {
+                            if (width > maxSize) {
+                                height = Math.round((height * maxSize) / width);
+                                width = maxSize;
+                            }
+                        } else {
+                            if (height > maxSize) {
+                                width = Math.round((width * maxSize) / height);
+                                height = maxSize;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                        resolve(compressedDataUrl);
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function handleKasirMultiplePhotosUpload(inputEl) {
+            const files = Array.from(inputEl.files || []);
+            if (files.length === 0) return;
+            
+            startLoading();
+            const activeOutlet = state.kasirActiveOutlet || (state.outlets && state.outlets[0]) || 'Outlet Pusat (Jl. Pajajaran)';
+            if (!state.outletSalesRecords[activeOutlet]) {
+                state.outletSalesRecords[activeOutlet] = {};
+            }
+            if (!Array.isArray(state.outletSalesRecords[activeOutlet]._photos)) {
+                state.outletSalesRecords[activeOutlet]._photos = [];
+            }
+
+            let addedCount = 0;
+            for (const file of files) {
+                const dataUrl = await compressImageFile(file);
+                if (dataUrl) {
+                    state.outletSalesRecords[activeOutlet]._photos.push({
+                        url: dataUrl,
+                        name: file.name,
+                        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    });
+                    addedCount++;
+                }
+            }
+
+            inputEl.value = '';
+            saveSalesRecordsToStorage();
+            renderKasirRekapPhotos();
+            renderAdminOutletReports();
+            renderOwnerOutletReports();
+            endLoading();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Foto Berhasil Diunggah! 📸',
+                text: `${addedCount} foto dokumentasi rekap berhasil ditambahkan dan disinkronkan ke Admin & Owner!`,
+                timer: 1600,
+                showConfirmButton: false
+            });
+        }
+
+        function deleteKasirRekapPhoto(idx) {
+            const activeOutlet = state.kasirActiveOutlet || (state.outlets && state.outlets[0]) || 'Outlet Pusat (Jl. Pajajaran)';
+            if (state.outletSalesRecords[activeOutlet] && Array.isArray(state.outletSalesRecords[activeOutlet]._photos)) {
+                state.outletSalesRecords[activeOutlet]._photos.splice(idx, 1);
+                saveSalesRecordsToStorage();
+                renderKasirRekapPhotos();
+                renderAdminOutletReports();
+                renderOwnerOutletReports();
+            }
+        }
+
+        function renderKasirRekapPhotos() {
+            const container = document.getElementById('kasir-rekap-photos-preview');
+            if (!container) return;
+            const activeOutlet = state.kasirActiveOutlet || (state.outlets && state.outlets[0]) || 'Outlet Pusat (Jl. Pajajaran)';
+            const photos = (state.outletSalesRecords[activeOutlet] && Array.isArray(state.outletSalesRecords[activeOutlet]._photos)) 
+                ? state.outletSalesRecords[activeOutlet]._photos 
+                : [];
+
+            if (photos.length === 0) {
+                container.innerHTML = `<div class="col-12 text-center text-muted fs-8 fst-italic py-3 bg-light rounded border"><i class="fa-solid fa-camera-retro me-1"></i> Belum ada foto rekap diunggah hari ini. Klik tombol "Choose Files" di atas untuk upload banyak foto sekaligus.</div>`;
+                return;
+            }
+
+            container.innerHTML = photos.map((p, idx) => `
+                <div class="col-6 col-md-3">
+                    <div class="card h-100 border p-1 shadow-sm position-relative rounded-3 bg-white">
+                        <img src="${p.url}" class="card-img-top rounded-2 cursor-pointer" style="height: 120px; object-fit: cover;" onclick="showFullPosterModal('${escAttr(p.name || 'Foto Rekap')}', '${escAttr(p.url)}')">
+                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 py-0 px-1.5 rounded-circle shadow" onclick="deleteKasirRekapPhoto(${idx})" title="Hapus foto ini">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="p-1 text-center">
+                            <div class="fs-9 text-muted font-monospace text-truncate">${p.time || ''} ${p.name || ''}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderReportPhotosGrid(targetGridId, selectedOutlet) {
+            const grid = document.getElementById(targetGridId);
+            if (!grid) return;
+            
+            let allPhotos = [];
+            const outletsList = state.outlets || ['Outlet Pusat (Jl. Pajajaran)'];
+            const outletsToProcess = (selectedOutlet && selectedOutlet !== 'ALL') ? [selectedOutlet] : outletsList;
+
+            outletsToProcess.forEach(outName => {
+                const salesRec = state.outletSalesRecords[outName] || {};
+                const photos = Array.isArray(salesRec._photos) ? salesRec._photos : [];
+                photos.forEach(p => {
+                    allPhotos.push({
+                        ...p,
+                        outlet: outName
+                    });
+                });
+            });
+
+            if (allPhotos.length === 0) {
+                grid.innerHTML = `<div class="col-12 text-center text-muted fs-8 fst-italic py-3 bg-light rounded border"><i class="fa-solid fa-images me-1 text-secondary"></i> Belum ada foto dokumentasi / rekap yang diunggah oleh Kasir hari ini.</div>`;
+                return;
+            }
+
+            grid.innerHTML = allPhotos.map(p => `
+                <div class="col-6 col-md-3">
+                    <div class="card h-100 border p-1 shadow-sm rounded-3 bg-white">
+                        <img src="${p.url}" class="card-img-top rounded-2 cursor-pointer" style="height: 130px; object-fit: cover;" onclick="showFullPosterModal('${escAttr(p.name || 'Foto Rekap')}', '${escAttr(p.url)}')">
+                        <div class="p-1.5 text-center">
+                            <span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-9 d-block text-truncate mb-1">${p.outlet}</span>
+                            <div class="fs-9 text-muted font-monospace text-truncate">${p.time || ''} - ${p.name || 'Dokumentasi'}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         function renderKasirLeftoverTable() {
             const tbody = document.getElementById('kasir-leftover-tbody');
             if (!tbody) return;
             tbody.innerHTML = buildExactFormattedReportRows(state.kasirActiveOutlet, false);
+            renderKasirRekapPhotos();
         }
         function submitAllKasirLeftovers() { renderAdminOutletReports(); renderOwnerOutletReports(); Swal.fire({ icon: 'success', title: 'Rekap Laporan Dikirim!', text: 'Laporan rekapan penjualan, sisa produk, dan keuntungan untuk ' + state.kasirActiveOutlet + ' telah diteruskan ke Admin & Owner secara real-time!', confirmButtonColor: '#B57EDC' }); }
         function renderAdminOutletReports() { renderOutletReportsGeneric({ periodSelectId: 'adm-report-period-filter', outletSelectId: 'adm-report-outlet-filter', cardsId: 'adm-outlet-metric-cards', summaryTbodyId: 'adm-outlet-report-tbody', leftoverTbodyId: 'adm-leftover-report-tbody', isAdmin: true }); }
@@ -3837,6 +4031,7 @@
 
                 leftoverTbody.innerHTML = allLeftoverRows || `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada data rekapan penjualan untuk hari ini.</td></tr>`;
             }
+            renderReportPhotosGrid(cfg.isAdmin ? 'adm-rekap-photos-grid' : 'own-rekap-photos-grid', selectedOutlet);
         }
         function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); renderAdminOutletStockTable(); }
         function getOutletStock(outletName, product) {
