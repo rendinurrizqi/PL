@@ -1108,6 +1108,10 @@ class MpasiController extends Controller
 
     protected function setSetting(string $key, $value): void
     {
+        try {
+            DB::statement('ALTER TABLE settings MODIFY value LONGTEXT NULL');
+        } catch (\Throwable $e) {}
+
         Setting::query()->updateOrCreate(
             ['key' => $key],
             ['value' => $value]
