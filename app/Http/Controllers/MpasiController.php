@@ -291,6 +291,70 @@ class MpasiController extends Controller
         return response()->json(['success' => true]);
     }
 
+    private function findPreOrder($id)
+    {
+        if (is_numeric($id)) {
+            $po = PreOrder::find($id);
+            if ($po) return $po;
+        }
+        $numericId = (int) preg_replace('/\D/', '', $id);
+        if ($numericId > 0) {
+            $po = PreOrder::find($numericId);
+            if ($po) return $po;
+        }
+        return null;
+    }
+
+    public function apiTogglePreOrderTaken(Request $request, $id)
+    {
+        $preOrder = $this->findPreOrder($id);
+        if (!$preOrder) {
+            return response()->json(['success' => false, 'message' => 'Pesanan tidak ditemukan'], 404);
+        }
+
+        if ($request->has('is_taken')) {
+            $preOrder->is_taken = (bool) $request->input('is_taken');
+        } else {
+            $preOrder->is_taken = !$preOrder->is_taken;
+        }
+        $preOrder->save();
+
+        return response()->json(['success' => true, 'is_taken' => (bool) $preOrder->is_taken]);
+    }
+
+    public function apiTogglePreOrderPaid(Request $request, $id)
+    {
+        $preOrder = $this->findPreOrder($id);
+        if (!$preOrder) {
+            return response()->json(['success' => false, 'message' => 'Pesanan tidak ditemukan'], 404);
+        }
+
+        if ($request->has('is_paid')) {
+            $preOrder->is_paid = (bool) $request->input('is_paid');
+        } else {
+            $preOrder->is_paid = !$preOrder->is_paid;
+        }
+        $preOrder->save();
+
+        return response()->json(['success' => true, 'is_paid' => (bool) $preOrder->is_paid]);
+    }
+
+    public function apiUpdateCancelStatus(Request $request, $id)
+    {
+        $preOrder = $this->findPreOrder($id);
+        if (!$preOrder) {
+            return response()->json(['success' => false, 'message' => 'Pesanan tidak ditemukan'], 404);
+        }
+
+        $preOrder->cancel_status = $request->input('cancel_status');
+        if ($request->has('cancel_reason')) {
+            $preOrder->cancel_reason = $request->input('cancel_reason');
+        }
+        $preOrder->save();
+
+        return response()->json(['success' => true, 'cancel_status' => $preOrder->cancel_status]);
+    }
+
     public function processCheckout(Request $request)
     {
         $validated = $request->validate([

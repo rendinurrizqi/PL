@@ -2489,7 +2489,7 @@
         }
 
         function requestCancelOrder(orderId) {
-            const order = state.preOrders.find(o => o.id == orderId);
+            const order = state.preOrders.find(o => o.id == orderId || o.dbId == orderId);
             if (!order) return;
             if (order.isTaken) {
                 Swal.fire({ icon: 'info', title: 'Tidak Bisa Dibatalkan', text: 'Pesanan sudah diambil, tidak bisa dibatalkan lagi.' });
@@ -2514,11 +2514,65 @@
                     order.cancelReason = (res.value || '').trim() || '-';
                     savePreOrdersToStorage();
                     renderAllUI();
+
+                    const targetId = order.dbId || order.id;
+                    fetch('/api/pre-orders/' + encodeURIComponent(targetId) + '/cancel-status', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            cancel_status: 'pending',
+                            cancel_reason: order.cancelReason
+                        })
+                    }).catch(err => console.error("Failed to sync cancel status:", err));
+
                     Swal.fire({ icon: 'success', title: 'Permintaan Terkirim', text: 'Menunggu persetujuan Owner untuk pembatalan pesanan ini.', timer: 1500, showConfirmButton: false });
                 }
             });
         }
-        function decideCancelOrder(orderId, decision) { const order = state.preOrders.find(o => o.id == orderId); if (!order) return; const isApprove = decision === 'approved'; Swal.fire({ icon: isApprove ? 'warning' : 'question', title: isApprove ? 'Setujui Pembatalan Pesanan?' : 'Tolak Permintaan Pembatalan?', html: `Pesanan <b>${order.id}</b> a.n <b>${order.customerName}</b>${order.cancelReason && order.cancelReason !== '-' ? `<br><span class="fs-8 text-muted">Alasan: ${order.cancelReason}</span>` : ''}`, showCancelButton: true, confirmButtonText: isApprove ? 'Ya, Setujui Pembatalan' : 'Ya, Tolak Pembatalan', cancelButtonText: 'Batal', confirmButtonColor: isApprove ? '#dc3545' : '#B57EDC' }).then(res => { if (res.isConfirmed) { order.cancelStatus = decision; if (isApprove && order.pointsAwarded && order.memberIdentifier && state.members[order.memberIdentifier]) { const member = state.members[order.memberIdentifier]; member.points = Math.max(0, member.points - order.pointsAwarded); member.pointsHistory.unshift({ type: 'adjust', label: `Poin ditarik - pesanan ${order.id} dibatalkan`, points: -order.pointsAwarded, date: new Date().toLocaleString('id-ID') }); order.pointsAwarded = 0; } savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: isApprove ? 'Pembatalan Disetujui' : 'Permintaan Ditolak', text: isApprove ? `Pesanan ${order.id} resmi dibatalkan.` : `Pesanan ${order.id} tetap diproses seperti biasa.`, timer: 1500, showConfirmButton: false }); } }); }
+        function decideCancelOrder(orderId, decision) {
+            const order = state.preOrders.find(o => o.id == orderId || o.dbId == orderId);
+            if (!order) return;
+            const isApprove = decision === 'approved';
+            Swal.fire({
+                icon: isApprove ? 'warning' : 'question',
+                title: isApprove ? 'Setujui Pembatalan Pesanan?' : 'Tolak Permintaan Pembatalan?',
+                html: `Pesanan <b>${order.id}</b> a.n <b>${order.customerName}</b>${order.cancelReason && order.cancelReason !== '-' ? `<br><span class="fs-8 text-muted">Alasan: ${order.cancelReason}</span>` : ''}`,
+                showCancelButton: true,
+                confirmButtonText: isApprove ? 'Ya, Setujui Pembatalan' : 'Ya, Tolak Pembatalan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: isApprove ? '#dc3545' : '#B57EDC'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    order.cancelStatus = decision;
+                    if (isApprove && order.pointsAwarded && order.memberIdentifier && state.members[order.memberIdentifier]) {
+                        const member = state.members[order.memberIdentifier];
+                        member.points = Math.max(0, member.points - order.pointsAwarded);
+                        member.pointsHistory.unshift({ type: 'adjust', label: `Poin ditarik - pesanan ${order.id} dibatalkan`, points: -order.pointsAwarded, date: new Date().toLocaleString('id-ID') });
+                        order.pointsAwarded = 0;
+                    }
+                    savePreOrdersToStorage();
+                    renderAllUI();
+
+                    const targetId = order.dbId || order.id;
+                    fetch('/api/pre-orders/' + encodeURIComponent(targetId) + '/cancel-status', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            cancel_status: decision,
+                            cancel_reason: order.cancelReason || '-'
+                        })
+                    }).catch(err => console.error("Failed to sync cancel status:", err));
+
+                    Swal.fire({ icon: 'success', title: isApprove ? 'Pembatalan Disetujui' : 'Permintaan Ditolak', text: isApprove ? `Pesanan ${order.id} resmi dibatalkan.` : `Pesanan ${order.id} tetap diproses seperti biasa.`, timer: 1500, showConfirmButton: false });
+                }
+            });
+        }
         function saveMembersToStorage() {
             try {
                 localStorage.setItem('mamamyuk_members', JSON.stringify(state.members));
@@ -3087,7 +3141,7 @@
         function cancelInfoBadge(p) { if (p.cancelStatus === 'pending') return '<span class="badge bg-secondary fs-8"><i class="fa-solid fa-hourglass-half me-1"></i> Menunggu Persetujuan</span>'; if (p.cancelStatus === 'approved') return '<span class="badge bg-danger fs-8"><i class="fa-solid fa-ban me-1"></i> Dibatalkan</span>'; if (p.cancelStatus === 'rejected') return '<span class="badge bg-light text-dark border fs-8">Pernah Ditolak</span>'; return '<span class="text-muted fs-8">-</span>'; }
         
         function togglePreOrderTaken(orderId) {
-            const item = state.preOrders.find(p => p.id == orderId);
+            const item = state.preOrders.find(p => p.id == orderId || p.dbId == orderId);
             if (item) {
                 item.isTaken = !item.isTaken;
                 savePreOrdersToStorage();
@@ -3096,10 +3150,39 @@
                 renderKasirLeftoverTable();
                 renderAdminOutletReports();
                 renderOwnerOutletReports();
+
+                const targetId = item.dbId || item.id;
+                fetch('/api/pre-orders/' + encodeURIComponent(targetId) + '/toggle-taken', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ is_taken: item.isTaken })
+                }).catch(err => console.error("Failed to sync toggle taken:", err));
             }
         }
         
-        function togglePaymentStatus(orderId) { const item = state.preOrders.find(p => p.id == orderId); if (item) { item.isPaid = !item.isPaid; savePreOrdersToStorage(); renderKasirPreOrders(); renderOwnerPreOrders(); renderKasirLeftoverTable(); } }
+        function togglePaymentStatus(orderId) {
+            const item = state.preOrders.find(p => p.id == orderId || p.dbId == orderId);
+            if (item) {
+                item.isPaid = !item.isPaid;
+                savePreOrdersToStorage();
+                renderKasirPreOrders();
+                renderOwnerPreOrders();
+                renderKasirLeftoverTable();
+
+                const targetId = item.dbId || item.id;
+                fetch('/api/pre-orders/' + encodeURIComponent(targetId) + '/toggle-paid', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ is_paid: item.isPaid })
+                }).catch(err => console.error("Failed to sync toggle paid:", err));
+            }
+        }
         
         function renderOrdersMenuSummary(ordersList, containerId, badgeId, outletLabel) { const summaryContainer = document.getElementById(containerId); if (!summaryContainer) return; const validOrders = (ordersList || []).filter(p => p.cancelStatus !== 'approved'); const menuSummaryMap = {}; let grandTotalCups = 0; validOrders.forEach(o => { if (o.itemsDetail && o.itemsDetail.length > 0) { o.itemsDetail.forEach((it, idx) => { const prod = state.products.find(p => p.id == it.productId || String(p.id) === String(it.productId)); let name = prod ? prod.name : null; if (!name && o.items) { const parts = o.items.split(','); if (parts[idx]) { const match = parts[idx].trim().match(/^(.*?)\s*x\d+$/i); name = match ? match[1].trim() : parts[idx].trim(); } else if (parts.length === 1) { const match = parts[0].trim().match(/^(.*?)\s*x\d+$/i); name = match ? match[0].trim() : parts[0].trim(); } } if (!name) name = 'Produk ID ' + it.productId; const qty = parseInt(it.qty) || 0; menuSummaryMap[name] = (menuSummaryMap[name] || 0) + qty; grandTotalCups += qty; }); } else if (o.items) { const parts = o.items.split(','); parts.forEach(part => { const match = part.trim().match(/^(.*?)\s*x(\d+)$/i); if (match) { const name = match[1].trim(); const qty = parseInt(match[2]) || 1; menuSummaryMap[name] = (menuSummaryMap[name] || 0) + qty; grandTotalCups += qty; } else if (part.trim()) { const name = part.trim(); menuSummaryMap[name] = (menuSummaryMap[name] || 0) + 1; grandTotalCups += 1; } }); } }); const menuEntries = Object.entries(menuSummaryMap); const badgeTotalEl = document.getElementById(badgeId); if (badgeTotalEl) badgeTotalEl.innerText = `Total: ${grandTotalCups} Cup`; if (menuEntries.length === 0) { summaryContainer.innerHTML = `<div class="text-center text-muted fs-8 fst-italic py-3"><i class="fa-solid fa-cookie-bite me-1 text-secondary opacity-50"></i> Belum ada menu yang dipesan untuk ${outletLabel}.</div>`; } else { const rowsHtml = menuEntries.map(([menuName, count]) => `<tr><td class="fw-bold text-dark"><i class="fa-solid fa-bowl-food me-2 text-brand-purple"></i>${menuName}</td><td class="text-end fw-bold text-primary fs-7">${count} Cup</td></tr>`).join(''); summaryContainer.innerHTML = `<div class="table-responsive"><table class="table table-sm align-middle fs-7 mb-0"><thead class="bg-light"><tr><th>Nama Menu Mamam Yuk</th><th class="text-end">Total Jumlah Dipesan</th></tr></thead><tbody>${rowsHtml}<tr class="table-light fw-bold"><td class="text-dark">TOTAL KESELURUHAN MENU DIPESAN (${outletLabel})</td><td class="text-end text-brand-purple fs-6">${grandTotalCups} Cup</td></tr></tbody></table></div>`; } }
         

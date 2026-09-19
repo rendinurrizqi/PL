@@ -21,6 +21,9 @@ Route::post('/api/outlets/verify-pin', [MpasiController::class, 'apiVerifyOutlet
 Route::put('/api/outlets/{id}/pin', [MpasiController::class, 'apiUpdateOutletPin']);
 Route::post('/api/daily-menu', [MpasiController::class, 'apiSaveDailyMenu']);
 Route::post('/api/outlet-stock', [MpasiController::class, 'apiSaveOutletStock']);
+Route::post('/api/pre-orders/{id}/toggle-taken', [MpasiController::class, 'apiTogglePreOrderTaken']);
+Route::post('/api/pre-orders/{id}/toggle-paid', [MpasiController::class, 'apiTogglePreOrderPaid']);
+Route::post('/api/pre-orders/{id}/cancel-status', [MpasiController::class, 'apiUpdateCancelStatus']);
 
 Route::post('/checkout', [MpasiController::class, 'processCheckout'])->name('mpasi.checkout');
 Route::post('/api/payment/notification', [MpasiController::class, 'apiPaymentNotification']);
