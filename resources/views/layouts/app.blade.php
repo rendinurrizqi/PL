@@ -103,11 +103,72 @@
             .role-sidebar {
                 width: 100% !important;
                 min-height: auto !important;
-                padding: 12px 16px !important;
+                padding: 12px 14px !important;
             }
             .role-sidebar .nav-link {
                 padding: 10px 14px;
                 font-size: 0.85rem;
+            }
+            .kasir-nav-horizontal,
+            .portal-nav-horizontal {
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                gap: 6px !important;
+                width: 100% !important;
+                overflow-x: auto !important;
+                white-space: nowrap !important;
+                padding-bottom: 6px !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            .portal-nav-horizontal::-webkit-scrollbar {
+                display: none;
+            }
+            .kasir-nav-horizontal .nav-link {
+                flex: 1 1 0 !important;
+                min-width: 0 !important;
+                padding: 8px 6px !important;
+                font-size: 0.72rem !important;
+                line-height: 1.25 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+                gap: 4px !important;
+                margin-bottom: 0 !important;
+                border-radius: 10px !important;
+            }
+            .kasir-nav-horizontal .nav-link i {
+                font-size: 1.05rem !important;
+            }
+            .portal-nav-horizontal:not(.kasir-nav-horizontal) .nav-link {
+                flex: 0 0 auto !important;
+                padding: 8px 14px !important;
+                font-size: 0.78rem !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 6px !important;
+                margin-bottom: 0 !important;
+                border-radius: 20px !important;
+            }
+            .portal-nav-horizontal:not(.kasir-nav-horizontal) .nav-link i {
+                font-size: 0.9rem !important;
+            }
+            .filter-controls-mobile {
+                width: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                margin-top: 8px !important;
+                gap: 8px !important;
+            }
+            .filter-controls-mobile select,
+            .filter-controls-mobile button,
+            .filter-controls-mobile input {
+                width: 100% !important;
+                max-width: 100% !important;
             }
         }
 

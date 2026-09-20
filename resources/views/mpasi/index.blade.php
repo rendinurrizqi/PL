@@ -298,12 +298,9 @@
                                 <div class="text-warning fs-8 fw-bold">Portal Penjaga</div>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-warning d-md-none fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#kasir-sidebar-collapse" aria-expanded="false">
-                            <i class="fa-solid fa-bars me-1"></i> Menu
-                        </button>
                     </div>
 
-                    <div class="collapse d-md-block" id="kasir-sidebar-collapse">
+                    <div id="kasir-sidebar-content">
                         <div class="mb-3 px-1">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label text-warning fs-8 fw-bold mb-0"><i class="fa-solid fa-store me-1"></i> Cabang Bertugas:</label>
@@ -320,13 +317,13 @@
                             </button>
                         </div>
 
-                        <nav class="nav flex-column fs-7" id="kasir-sidebar-nav">
-                            <a class="nav-link active" href="#" onclick="switchKasirTab('preorder')"><i class="fa-solid fa-clipboard-check"></i> Daftar Pre-Order</a>
-                            <a class="nav-link" href="#" onclick="switchKasirTab('pos')"><i class="fa-solid fa-store"></i> Kasir POS Walk-In</a>
-                            <a class="nav-link" href="#" onclick="switchKasirTab('leftover')"><i class="fa-solid fa-clipboard-list"></i> Rekapan Penjualan Hari Ini</a>
+                        <nav class="nav kasir-nav-horizontal flex-row flex-md-column gap-1.5 fs-7" id="kasir-sidebar-nav">
+                            <a class="nav-link active" href="#" onclick="switchKasirTab('preorder')"><i class="fa-solid fa-clipboard-check"></i> <span>Daftar Pre-Order</span></a>
+                            <a class="nav-link" href="#" onclick="switchKasirTab('pos')"><i class="fa-solid fa-store"></i> <span>Kasir POS Walk-In</span></a>
+                            <a class="nav-link" href="#" onclick="switchKasirTab('leftover')"><i class="fa-solid fa-clipboard-list"></i> <span>Rekapan Penjualan Hari Ini</span></a>
                         </nav>
 
-                        <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                        <div class="mt-3 mt-md-4 pt-3 border-top border-purple-200 px-1">
                             <form method="POST" action="{{ route('kasir.logout') }}">
                                 @csrf
                                 <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
@@ -524,7 +521,7 @@
         <div id="role-portal-admin" class="role-portal-page" style="display:none;">
             <div class="d-flex flex-column flex-md-row">
                 <div class="role-sidebar p-3">
-                    <div class="d-flex align-items-center justify-content-between mb-4 px-2">
+                    <div class="d-flex align-items-center justify-content-between mb-3 px-2">
                         <div class="d-flex align-items-center gap-2">
                             <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-user-gear"></i></div>
                             <div>
@@ -532,23 +529,20 @@
                                 <div class="text-warning fs-8 fw-bold">Operational Control</div>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-warning d-md-none fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#admin-sidebar-collapse" aria-expanded="false">
-                            <i class="fa-solid fa-bars me-1"></i> Menu
-                        </button>
                     </div>
 
-                    <div class="collapse d-md-block" id="admin-sidebar-collapse">
-                        <nav class="nav flex-column fs-7" id="admin-sidebar-nav">
-                            <a class="nav-link active" href="#" onclick="switchAdminTab('menu')"><i class="fa-solid fa-calendar-days"></i> Atur Menu Harian</a>
-                            <a class="nav-link" href="#" onclick="switchAdminTab('produk')"><i class="fa-solid fa-bowl-food"></i> Master Produk Mamam Yuk</a>
-                            <a class="nav-link" href="#" onclick="switchAdminTab('pesanan')"><i class="fa-solid fa-cart-shopping"></i> Pesanan Per Outlet</a>
-                            <a class="nav-link" href="#" onclick="switchAdminTab('dapur')"><i class="fa-solid fa-industry"></i> Rekap Dapur Masak</a>
-                            <a class="nav-link" href="#" onclick="switchAdminTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> Persediaan Bahan Baku</a>
-                            <a class="nav-link" href="#" onclick="switchAdminTab('laporan-outlet')"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Per Outlet</a>
-                            <a class="nav-link" href="#" onclick="switchAdminTab('poin')"><i class="fa-solid fa-coins"></i> Penukaran Poin <span id="admin-redemptions-pending-badge" class="badge rounded-pill bg-danger ms-1" style="display:none;">0</span></a>
+                    <div id="admin-sidebar-content">
+                        <nav class="nav portal-nav-horizontal flex-row flex-md-column gap-1.5 fs-7" id="admin-sidebar-nav">
+                            <a class="nav-link active" href="#" onclick="switchAdminTab('menu')"><i class="fa-solid fa-calendar-days"></i> <span>Atur Menu Harian</span></a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('produk')"><i class="fa-solid fa-bowl-food"></i> <span>Master Produk</span></a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('pesanan')"><i class="fa-solid fa-cart-shopping"></i> <span>Pesanan Outlet</span></a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('dapur')"><i class="fa-solid fa-industry"></i> <span>Rekap Dapur</span></a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> <span>Persediaan Stok</span></a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('laporan-outlet')"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Laporan Outlet</span></a>
+                            <a class="nav-link" href="#" onclick="switchAdminTab('poin')"><i class="fa-solid fa-coins"></i> <span>Penukaran Poin</span> <span id="admin-redemptions-pending-badge" class="badge rounded-pill bg-danger ms-1" style="display:none;">0</span></a>
                         </nav>
 
-                        <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                        <div class="mt-3 mt-md-4 pt-3 border-top border-purple-200 px-1">
                             <form method="POST" action="{{ route('admin.logout') }}">
                                 @csrf
                                 <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
@@ -592,7 +586,7 @@
                                 <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-cart-shopping text-brand-purple me-2"></i> Pesanan Pelanggan Per Outlet</h4>
                                 <p class="text-muted fs-7 mb-0">Pantau siapa memesan apa di cabang mana. Pesanan otomatis di-reset setiap pergantian hari.</p>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex flex-wrap align-items-center gap-2 filter-controls-mobile">
                                 <button class="btn btn-brand-yellow btn-sm fw-bold px-3 py-1.5 fs-8" onclick="showAddManualOrderModal()">
                                     <i class="fa-solid fa-plus-circle me-1"></i> Tambah Pesanan Manual
                                 </button>
@@ -687,7 +681,7 @@
                                 <h4 class="fw-bold text-dark mb-1"><i class="fa-solid fa-industry text-brand-purple me-2"></i> Rekapitulasi Dapur Masak Esok Hari</h4>
                                 <p class="text-muted fs-7 mb-0">Terintegrasi dengan data Pesanan Per Outlet: Total Porsi Masak dihitung murni dari pre-order online yang masih berlaku (tanpa buffer walk-in).</p>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex flex-wrap align-items-center gap-2 filter-controls-mobile">
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('adm-dapur-outlet-filter')">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
                                 </button>
@@ -736,7 +730,7 @@
                                 <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-file-invoice-dollar text-brand-purple me-2"></i> Laporan Penjualan & Keuntungan Per Cabang Outlet</h4>
                                 <p class="text-muted fs-7 mb-0">Pantau omset harian & bulanan, kerugian produk sisa, serta laba bersih per cabang.</p>
                             </div>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 filter-controls-mobile">
                                 <select id="adm-report-period-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderAdminOutletReports()">
                                     <option value="HARIAN">Periode: Harian Hari Ini</option>
                                     <option value="BULANAN">Periode: Bulanan Bulan Ini</option>
@@ -838,7 +832,7 @@
         <div id="role-portal-owner" class="role-portal-page" style="display:none;">
             <div class="d-flex flex-column flex-md-row">
                 <div class="role-sidebar p-3">
-                    <div class="d-flex align-items-center justify-content-between mb-4 px-2">
+                    <div class="d-flex align-items-center justify-content-between mb-3 px-2">
                         <div class="d-flex align-items-center gap-2">
                             <div class="bg-brand-yellow text-dark p-2 rounded-circle fs-5"><i class="fa-solid fa-user-shield"></i></div>
                             <div>
@@ -846,39 +840,31 @@
                                 <div class="text-warning fs-8 fw-bold">Akses Penuh Bisnis</div>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-warning d-md-none fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#owner-sidebar-collapse" aria-expanded="false">
-                            <i class="fa-solid fa-bars me-1"></i> Menu
-                        </button>
                     </div>
-                    <div class="collapse d-md-block" id="owner-sidebar-collapse">
-                        <nav class="nav flex-column fs-7" id="owner-sidebar-nav">
-                        <a class="nav-link active" href="#" onclick="switchOwnerTab('dashboard')"><i class="fa-solid fa-gauge-high"></i> Dashboard Owner</a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('outlet')"><i class="fa-solid fa-shop"></i> Kelola Outlet</a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('menu')"><i class="fa-solid fa-calendar-days"></i> Atur Menu Harian</a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('produk')"><i class="fa-solid fa-bowl-food"></i> Master Produk Mamam Yuk</a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('praorder')">
-                            <i class="fa-solid fa-clipboard-check"></i> Pre-Order Semua Outlet
-                            <span id="owner-cancel-badge" class="badge bg-danger fs-8 ms-auto" style="display:none;">0</span>
-                        </a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('dapur')"><i class="fa-solid fa-industry"></i> Rekap Dapur Masak</a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> Persediaan Bahan Baku</a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('laporan')"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Semua Outlet</a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('poin')">
-                            <i class="fa-solid fa-coins"></i> Poin & Reward Pelanggan
-                        </a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('pengeluaran')">
-                            <i class="fa-solid fa-receipt"></i> Kelola Pengeluaran
-                        </a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('resetpass')">
-                            <i class="fa-solid fa-key"></i> Reset Password Pelanggan
-                            <span id="owner-resetpass-badge" class="badge bg-danger fs-8 ms-auto" style="display:none;">0</span>
-                        </a>
-                        <a class="nav-link" href="#" onclick="switchOwnerTab('background')">
-                            <i class="fa-solid fa-image"></i> Ubah Latar Belakang
-                        </a>
-                    </nav>
 
-                        <div class="mt-4 pt-3 border-top border-purple-200 px-1">
+                    <div id="owner-sidebar-content">
+                        <nav class="nav portal-nav-horizontal flex-row flex-md-column gap-1.5 fs-7" id="owner-sidebar-nav">
+                            <a class="nav-link active" href="#" onclick="switchOwnerTab('dashboard')"><i class="fa-solid fa-gauge-high"></i> <span>Dashboard</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('outlet')"><i class="fa-solid fa-shop"></i> <span>Kelola Outlet</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('menu')"><i class="fa-solid fa-calendar-days"></i> <span>Atur Menu Harian</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('produk')"><i class="fa-solid fa-bowl-food"></i> <span>Master Produk</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('praorder')">
+                                <i class="fa-solid fa-clipboard-check"></i> <span>Pre-Order Outlet</span>
+                                <span id="owner-cancel-badge" class="badge bg-danger fs-8 ms-1" style="display:none;">0</span>
+                            </a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('dapur')"><i class="fa-solid fa-industry"></i> <span>Rekap Dapur</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('stok')"><i class="fa-solid fa-boxes-stacked"></i> <span>Persediaan Stok</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('laporan')"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Laporan Outlet</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('poin')"><i class="fa-solid fa-coins"></i> <span>Poin & Reward</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('pengeluaran')"><i class="fa-solid fa-receipt"></i> <span>Kelola Pengeluaran</span></a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('resetpass')">
+                                <i class="fa-solid fa-key"></i> <span>Reset Password</span>
+                                <span id="owner-resetpass-badge" class="badge bg-danger fs-8 ms-1" style="display:none;">0</span>
+                            </a>
+                            <a class="nav-link" href="#" onclick="switchOwnerTab('background')"><i class="fa-solid fa-image"></i> <span>Ubah Latar</span></a>
+                        </nav>
+
+                        <div class="mt-3 mt-md-4 pt-3 border-top border-purple-200 px-1">
                             <form method="POST" action="{{ route('owner.logout') }}">
                                 @csrf
                                 <button type="submit" class="btn btn-brand-yellow w-100 fw-bold text-dark fs-8 d-flex align-items-center justify-content-center gap-2 py-2">
@@ -916,12 +902,14 @@
                     </div>
 
                     <div id="owner-tab-outlet" class="owner-tab-content" style="display:none;">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                             <div>
                                 <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-shop text-brand-purple me-2"></i> Kelola Cabang Outlet</h4>
                                 <p class="text-muted fs-7 mb-0">Tambah, ubah nama, atau hapus cabang outlet. Perubahan otomatis sinkron ke semua dropdown outlet di seluruh portal.</p>
                             </div>
-                            <button class="btn btn-brand-yellow fw-bold" onclick="showAddOutletModal()"><i class="fa-solid fa-plus me-1"></i> Tambah Outlet Baru</button>
+                            <div class="filter-controls-mobile">
+                                <button class="btn btn-brand-yellow fw-bold" onclick="showAddOutletModal()"><i class="fa-solid fa-plus me-1"></i> Tambah Outlet Baru</button>
+                            </div>
                         </div>
                         <div class="card-custom p-3">
                             <div class="table-responsive">
@@ -942,12 +930,14 @@
                     </div>
 
                     <div id="owner-tab-produk" class="owner-tab-content" style="display:none;">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                             <div>
                                 <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-bowl-food text-brand-purple me-2"></i> Master Data Produk Mamam Yuk</h4>
                                 <p class="text-muted fs-7 mb-0">Owner dapat menambah, mengedit, restok, mengubah status, maupun menghapus varian produk.</p>
                             </div>
-                            <button class="btn btn-brand-yellow fw-bold" onclick="showAddProductModal()"><i class="fa-solid fa-plus me-1"></i> Tambah Varian Baru</button>
+                            <div class="filter-controls-mobile">
+                                <button class="btn btn-brand-yellow fw-bold" onclick="showAddProductModal()"><i class="fa-solid fa-plus me-1"></i> Tambah Varian Baru</button>
+                            </div>
                         </div>
                         <div class="card-custom p-3">
                             <div class="table-responsive">
@@ -1011,7 +1001,7 @@
                                 <h4 class="fw-bold text-dark mb-1"><i class="fa-solid fa-industry text-brand-purple me-2"></i> Rekapitulasi Dapur Masak Esok Hari</h4>
                                 <p class="text-muted fs-7 mb-0">Terintegrasi dengan data Pesanan Per Outlet: Total Porsi Masak dihitung murni dari pre-order online yang masih berlaku (tanpa buffer walk-in).</p>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2 filter-controls-mobile">
                                 <button class="btn btn-brand-purple btn-sm fw-bold px-3 py-1.5 fs-8" onclick="printDapurMasakReport('own-dapur-outlet-filter')">
                                     <i class="fa-solid fa-print me-1"></i> Cetak Rekap Dapur
                                 </button>
@@ -1042,12 +1032,14 @@
                     </div>
 
                     <div id="owner-tab-stok" class="owner-tab-content" style="display:none;">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                             <div>
                                 <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-boxes-stacked text-brand-purple me-2"></i> Persediaan Bahan Baku Dapur</h4>
                                 <p class="text-muted fs-7 mb-0">Owner dapat menambah bahan baru maupun mengubah jumlah stok bahan mentah.</p>
                             </div>
-                            <button class="btn btn-brand-yellow fw-bold" onclick="showAddInventoryModal()"><i class="fa-solid fa-plus me-1"></i> Tambah Bahan Baku</button>
+                            <div class="filter-controls-mobile">
+                                <button class="btn btn-brand-yellow fw-bold" onclick="showAddInventoryModal()"><i class="fa-solid fa-plus me-1"></i> Tambah Bahan Baku</button>
+                            </div>
                         </div>
                         <div class="card-custom p-3">
                             <div class="table-responsive">
@@ -1065,7 +1057,7 @@
                                 <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-file-invoice-dollar text-brand-purple me-2"></i> Laporan Penjualan Semua Cabang</h4>
                                 <p class="text-muted fs-7 mb-0">Owner memantau omset harian & bulanan serta porsi terjual per cabang.</p>
                             </div>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 filter-controls-mobile">
                                 <select id="own-report-period-filter" class="form-select form-select-sm fs-8 w-auto fw-bold" onchange="renderOwnerOutletReports()">
                                     <option value="HARIAN">Periode: Harian Hari Ini</option>
                                     <option value="BULANAN">Periode: Bulanan Bulan Ini</option>
@@ -4117,9 +4109,9 @@
                         let actionColHtml = '';
 
                         if (isSaved && !isEditing) {
-                            stockColHtml = `<div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold fs-8 px-2 py-1"><i class="fa-solid fa-circle-check me-1"></i>Tersimpan</span>
-                                <input type="number" disabled class="form-control form-control-sm fw-bold bg-light text-dark border-0 text-center" style="max-width:90px;" id="ostock-${dayName}-${p.id}" value="${curStock}">
+                            stockColHtml = `<div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-1">
+                                <span class="badge bg-success text-white fw-bold fs-7 px-2.5 py-1.5 shadow-sm"><i class="fa-solid fa-boxes-stacked me-1"></i>${curStock} Cup</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle fs-9 px-1.5 py-0.5"><i class="fa-solid fa-circle-check me-1"></i>Tersimpan</span>
                             </div>`;
                             actionColHtml = `<button class="btn btn-sm btn-outline-purple py-1 px-3 fs-8 fw-bold" onclick="toggleEditOutletStock('${editKey}')">
                                 <i class="fa-solid fa-pen-to-square me-1"></i> Edit Stok ${dayName}
@@ -4520,13 +4512,15 @@
                 const totalOrders = state.preOrders.filter(p => p.outlet === o).length;
                 const pendingOrders = state.preOrders.filter(p => p.outlet === o && !p.isTaken && p.cancelStatus !== 'approved').length;
                 return `<tr>
-                    <td class="fw-bold text-brand-purple">${o}</td>
-                    <td>${totalOrders} Pesanan</td>
-                    <td>${pendingOrders > 0 ? `<span class="badge bg-warning text-dark fs-8">${pendingOrders} Belum Diambil</span>` : '<span class="text-muted fs-8">-</span>'}</td>
+                    <td class="fw-bold text-brand-purple text-nowrap">${o}</td>
+                    <td class="text-nowrap">${totalOrders} Pesanan</td>
+                    <td class="text-nowrap">${pendingOrders > 0 ? `<span class="badge bg-warning text-dark fs-8">${pendingOrders} Belum Diambil</span>` : '<span class="text-muted fs-8">-</span>'}</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-purple py-1 px-2 fs-8 fw-bold" data-outlet="${escAttr(o)}" onclick="editOutletPinModal(this.dataset.outlet)"><i class="fa-solid fa-key me-1"></i> Edit PIN</button>
-                        <button class="btn btn-sm btn-outline-secondary py-1 px-2 fs-8 fw-bold ms-1" data-outlet="${escAttr(o)}" onclick="editOutletModal(this.dataset.outlet)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
-                        <button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8 fw-bold ms-1" data-outlet="${escAttr(o)}" onclick="deleteOutlet(this.dataset.outlet)"><i class="fa-solid fa-trash"></i></button>
+                        <div class="d-flex align-items-center justify-content-center gap-1 text-nowrap">
+                            <button class="btn btn-sm btn-outline-purple py-1 px-2 fs-8 fw-bold" data-outlet="${escAttr(o)}" onclick="editOutletPinModal(this.dataset.outlet)"><i class="fa-solid fa-key me-1"></i> Edit PIN</button>
+                            <button class="btn btn-sm btn-outline-secondary py-1 px-2 fs-8 fw-bold" data-outlet="${escAttr(o)}" onclick="editOutletModal(this.dataset.outlet)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
+                            <button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8 fw-bold" data-outlet="${escAttr(o)}" onclick="deleteOutlet(this.dataset.outlet)"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     </td>
                 </tr>`;
             }).join('');
