@@ -4025,7 +4025,7 @@
             }
             renderReportPhotosGrid(cfg.isAdmin ? 'adm-rekap-photos-grid' : 'own-rekap-photos-grid', selectedOutlet);
         }
-        function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); renderAdminOutletStockTable(); }
+        function renderAdminPesananPerOutlet() { const selectedOutlet = document.getElementById('adm-pesanan-outlet-filter')?.value || 'ALL'; const todayStr = getTodayDateString(); const todayOrders = state.preOrders.filter(p => p.date === todayStr); const tbody = document.getElementById('adm-pesanan-tbody'); const filteredOrders = selectedOutlet === 'ALL' ? todayOrders : todayOrders.filter(p => p.outlet === selectedOutlet); if (tbody) { tbody.innerHTML = filteredOrders.length > 0 ? filteredOrders.map(p => `<tr class="${p.isTaken ? 'bg-light opacity-75' : ''} ${p.cancelStatus === 'approved' ? 'table-danger' : ''}"><td class="fw-bold ${p.isTaken || p.cancelStatus === 'approved' ? 'text-decoration-line-through text-muted' : 'text-dark'}">${p.id} - ${p.customerName}</td><td><span class="badge bg-purple-light text-brand-purple border border-purple-200 fs-8">${p.outlet}</span></td><td><a href="https://wa.me/${p.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${p.wa}</a></td><td class="fs-8">${p.items}</td><td><span class="badge ${p.isPaid ? 'bg-success' : 'bg-danger'} fs-8">${p.isPaid ? 'Lunas ✅' : 'Belum Bayar (COD)'}</span></td><td><span class="badge ${p.isTaken ? 'bg-success' : 'bg-warning text-dark'} fs-8">${p.isTaken ? 'Sudah Diambil ✅' : 'Menunggu Ambil'}</span></td><td>${cancelInfoBadge(p)}</td></tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3">Belum ada pesanan masuk hari ini untuk diambil besok.</td></tr>`; } renderOrdersMenuSummary(filteredOrders, 'adm-pesanan-summary-content', 'adm-pesanan-total-badge', selectedOutlet !== 'ALL' ? selectedOutlet : 'Semua Outlet'); }
         function getOutletStock(outletName, product) {
             if (!product) return 0;
             if (!state.outletStock || typeof state.outletStock !== 'object' || Array.isArray(state.outletStock)) state.outletStock = {};
@@ -4104,6 +4104,9 @@
                         const isSaved = state.outletStock && state.outletStock[selectedOutlet] && state.outletStock[selectedOutlet][String(p.id)] !== undefined;
                         const editKey = `${selectedOutlet}_${p.id}_${dayName}`;
                         const isEditing = window._outletStockEditing && window._outletStockEditing[editKey];
+                        const currentDraft = (window._outletStockDrafts && window._outletStockDrafts[editKey] !== undefined)
+                            ? window._outletStockDrafts[editKey]
+                            : curStock;
 
                         let stockColHtml = '';
                         let actionColHtml = '';
@@ -4117,7 +4120,7 @@
                                 <i class="fa-solid fa-pen-to-square me-1"></i> Edit Stok ${dayName}
                             </button>`;
                         } else {
-                            stockColHtml = `<input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" style="max-width:140px;" id="ostock-${dayName}-${p.id}" value="${curStock}">`;
+                            stockColHtml = `<input type="number" min="0" class="form-control form-control-sm fw-bold border-purple-200 text-primary" style="max-width:140px;" id="ostock-${dayName}-${p.id}" value="${currentDraft}" oninput="window._outletStockDrafts['${editKey}'] = this.value">`;
                             actionColHtml = `<button class="btn btn-sm btn-brand-purple py-1 px-3 fs-8 fw-bold shadow-sm" onclick="saveAdminOutletStock('${escAttr(selectedOutlet)}', '${p.id}', 'ostock-${dayName}-${p.id}', '${editKey}')">
                                 <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Stok ${dayName}
                             </button>`;
@@ -4143,6 +4146,7 @@
         }
 
         window._outletStockEditing = window._outletStockEditing || {};
+        window._outletStockDrafts = window._outletStockDrafts || {};
 
         function toggleEditOutletStock(editKey) {
             window._outletStockEditing[editKey] = true;
@@ -4153,7 +4157,11 @@
             const p = state.products.find(x => x.id == prodId || String(x.id) === String(prodId));
             if (!p) return;
             const input = document.getElementById(inputId || ('ostock-' + prodId));
-            const val = parseInt(input ? input.value : 0);
+            let valStr = input ? input.value : '';
+            if ((valStr === '' || valStr === null) && editKey && window._outletStockDrafts && window._outletStockDrafts[editKey] !== undefined) {
+                valStr = window._outletStockDrafts[editKey];
+            }
+            const val = parseInt(valStr);
             const newStock = isNaN(val) ? 0 : Math.max(0, val);
             
             startLoading();
@@ -4162,6 +4170,7 @@
 
             if (editKey) {
                 window._outletStockEditing[editKey] = false;
+                if (window._outletStockDrafts) delete window._outletStockDrafts[editKey];
             }
             renderAllUI();
 
@@ -5728,7 +5737,9 @@
                         }
                     }
 
-                    if (dataChanged && !isTyping) {
+                    const isEditingOutletStock = window._outletStockEditing && Object.values(window._outletStockEditing).some(v => !!v);
+
+                    if (dataChanged && !isTyping && !isEditingOutletStock) {
                         renderAllUI();
                     }
                 } catch(e) {}
