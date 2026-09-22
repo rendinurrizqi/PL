@@ -3181,7 +3181,7 @@
             if (!tbody) return;
             const todayStr = getTodayDateString();
             const yesterdayStr = getYesterdayDateString();
-            const filteredOrders = state.preOrders.filter(p => isOutletMatch(p.outlet, state.kasirActiveOutlet) && (p.date === todayStr || p.date === yesterdayStr || !p.date) && (p.payMethod === 'COD' || p.isPaid === true));
+            const filteredOrders = state.preOrders.filter(p => isOutletMatch(p.outlet, state.kasirActiveOutlet) && (p.date === yesterdayStr || !p.date) && (p.payMethod === 'COD' || p.isPaid === true));
             if (filteredOrders.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted fs-8 fst-italic py-3"><i class="fa-solid fa-clipboard-check me-1 opacity-50"></i> Belum ada pre-order online untuk diambil hari ini di cabang ini.</td></tr>`;
                 return;
@@ -3503,6 +3503,24 @@
                 });
             }
         }
+        function findBestMatchingProduct(rawName) {
+            if (!rawName || typeof rawName !== 'string') return null;
+            const name = rawName.trim().toLowerCase();
+            let p = state.products.find(x => (x.name || '').toLowerCase() === name);
+            if (p) return p;
+            p = state.products.find(x => (x.name || '').toLowerCase().includes(name) || name.includes((x.name || '').toLowerCase()));
+            if (p) return p;
+            const words = name.split(/\s+/).filter(w => w.length > 2);
+            let best = null, maxScore = 0;
+            state.products.forEach(prod => {
+                const prodName = (prod.name || '').toLowerCase();
+                let score = 0;
+                words.forEach(w => { if (prodName.includes(w)) score++; });
+                if (score > maxScore) { maxScore = score; best = prod; }
+            });
+            return maxScore > 0 ? best : null;
+        }
+
         function getOutletPreorderQty(outletName, product) {
             const todayStr = getTodayDateString();
             const yesterdayStr = getYesterdayDateString();
@@ -3511,15 +3529,21 @@
             const activeOrders = (state.preOrders || []).filter(o =>
                 isOutletMatch(o.outlet, outletName) &&
                 o.cancelStatus !== 'approved' &&
-                (o.date === todayStr || o.date === yesterdayStr || !o.date)
+                (o.date === yesterdayStr || !o.date)
             );
             let totalQty = 0;
             activeOrders.forEach(o => {
                 const details = o.itemsDetail || o.items_detail || o.cart || (Array.isArray(o.items) ? o.items : []);
                 if (Array.isArray(details) && details.length > 0) {
                     details.forEach(it => {
-                        if (String(it.productId || it.product_id || it.id) === pIdStr) {
+                        const itPid = String(it.productId || it.product_id || it.id || '');
+                        if (itPid === pIdStr) {
                             totalQty += parseInt(it.qty || it.quantity) || 0;
+                        } else if (it.name || it.productName) {
+                            const matched = findBestMatchingProduct(it.name || it.productName);
+                            if (matched && String(matched.id) === pIdStr) {
+                                totalQty += parseInt(it.qty || it.quantity) || 0;
+                            }
                         }
                     });
                 } else if (typeof o.items === 'string') {
@@ -3527,14 +3551,18 @@
                     parts.forEach(part => {
                         const match = part.trim().match(/^(.*?)\s*x(\d+)$/i);
                         if (match) {
-                            const name = match[1].trim().toLowerCase();
+                            const name = match[1].trim();
                             const qty = parseInt(match[2]) || 1;
-                            if (pNameLower && (name.includes(pNameLower) || pNameLower.includes(name))) {
+                            const matched = findBestMatchingProduct(name);
+                            if (matched && String(matched.id) === pIdStr) {
+                                totalQty += qty;
+                            } else if (pNameLower && name.toLowerCase().includes(pNameLower)) {
                                 totalQty += qty;
                             }
                         } else if (part.trim()) {
-                            const name = part.trim().toLowerCase();
-                            if (pNameLower && (name.includes(pNameLower) || pNameLower.includes(name))) {
+                            const name = part.trim();
+                            const matched = findBestMatchingProduct(name);
+                            if (matched && String(matched.id) === pIdStr) {
                                 totalQty += 1;
                             }
                         }
@@ -3569,12 +3597,17 @@
             (state.preOrders || []).forEach(order => {
                 if (order && order.cancelStatus !== 'approved') {
                     const orderDateStr = order.date ? String(order.date).substring(0, 10) : todayStr;
-                    if (isOutletMatch(order.outlet, outName) && (orderDateStr === todayStr || orderDateStr === yesterdayStr)) {
+                    if (isOutletMatch(order.outlet, outName) && (orderDateStr === yesterdayStr || !order.date)) {
                         const isOrderTaken = (order.isTaken === true || order.is_taken === true || order.is_taken == 1);
                         const details = order.itemsDetail || order.items_detail || order.cart || (Array.isArray(order.items) ? order.items : []);
                         if (Array.isArray(details) && details.length > 0) {
                             details.forEach(ci => {
-                                const pid = String(ci.productId || ci.product_id || ci.id || '');
+                                let pid = String(ci.productId || ci.product_id || ci.id || '');
+                                let matchingProd = state.products.find(p => String(p.id) === pid);
+                                if (!matchingProd && (ci.name || ci.productName)) {
+                                    matchingProd = findBestMatchingProduct(ci.name || ci.productName);
+                                }
+                                if (matchingProd) pid = String(matchingProd.id);
                                 if (pid) {
                                     const qty = (parseInt(ci.qty || ci.quantity || 1) || 0);
                                     preorderCounts[pid] = (preorderCounts[pid] || 0) + qty;
@@ -3588,9 +3621,9 @@
                             parts.forEach(part => {
                                 const match = part.trim().match(/^(.*?)\s*x(\d+)$/i);
                                 if (match) {
-                                    const name = match[1].trim().toLowerCase();
+                                    const name = match[1].trim();
                                     const qty = parseInt(match[2]) || 1;
-                                    const matchingProd = state.products.find(p => p.name.toLowerCase().includes(name) || name.includes(p.name.toLowerCase()));
+                                    const matchingProd = findBestMatchingProduct(name);
                                     if (matchingProd) {
                                         const pid = String(matchingProd.id);
                                         preorderCounts[pid] = (preorderCounts[pid] || 0) + qty;
@@ -3612,6 +3645,13 @@
                             }
                         }
                     }
+                }
+            });
+
+            state.products.forEach(p => {
+                const pid = String(p.id);
+                if ((preorderCounts[pid] || takenPreorderCounts[pid] || (salesRec[pid] && salesRec[pid].sold)) && !todayProducts.some(tp => String(tp.id) === pid)) {
+                    todayProducts.push(p);
                 }
             });
 
@@ -3920,11 +3960,16 @@
                 (state.preOrders || []).forEach(order => {
                     if (order && order.cancelStatus !== 'approved') {
                         const orderDateStr = order.date ? String(order.date).substring(0, 10) : todayStr;
-                        if (isOutletMatch(order.outlet, outletName) && (orderDateStr === todayStr || orderDateStr === yesterdayStr)) {
+                        if (isOutletMatch(order.outlet, outletName) && (orderDateStr === yesterdayStr || !order.date)) {
                             const details = order.itemsDetail || order.items_detail || order.cart || (Array.isArray(order.items) ? order.items : []);
                             if (Array.isArray(details) && details.length > 0) {
                                 details.forEach(ci => {
-                                    const pid = String(ci.productId || ci.product_id || ci.id || '');
+                                    let pid = String(ci.productId || ci.product_id || ci.id || '');
+                                    let matchingProd = state.products.find(p => String(p.id) === pid);
+                                    if (!matchingProd && (ci.name || ci.productName)) {
+                                        matchingProd = findBestMatchingProduct(ci.name || ci.productName);
+                                    }
+                                    if (matchingProd) pid = String(matchingProd.id);
                                     if (pid) {
                                         preorderCounts[pid] = (preorderCounts[pid] || 0) + (parseInt(ci.qty || ci.quantity || 1) || 0);
                                     }
@@ -3934,9 +3979,9 @@
                                 parts.forEach(part => {
                                     const match = part.trim().match(/^(.*?)\s*x(\d+)$/i);
                                     if (match) {
-                                        const name = match[1].trim().toLowerCase();
+                                        const name = match[1].trim();
                                         const qty = parseInt(match[2]) || 1;
-                                        const matchingProd = state.products.find(p => p.name.toLowerCase().includes(name) || name.includes(p.name.toLowerCase()));
+                                        const matchingProd = findBestMatchingProduct(name);
                                         if (matchingProd) {
                                             const pid = String(matchingProd.id);
                                             preorderCounts[pid] = (preorderCounts[pid] || 0) + qty;
