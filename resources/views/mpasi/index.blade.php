@@ -1967,8 +1967,29 @@
         function getTodayDateString() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function getYesterdayDateString() { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function purgeOldPreOrders() { const todayStr = getTodayDateString(); const yesterdayStr = getYesterdayDateString(); let changed = false; state.preOrders = (state.preOrders || []).filter(order => { if ((order.payMethod === 'Midtrans' || order.payMethod === 'Transfer') && !order.isPaid) { changed = true; return false; } if (!order.date) { order.date = todayStr; return true; } if (order.date === todayStr || order.date === yesterdayStr) { return true; } changed = true; return false; }); if (changed) savePreOrdersToStorage(); }
+        function checkAndResetDailySalesRecords() {
+            const todayStr = getTodayDateString();
+            if (!state.outletSalesRecords || typeof state.outletSalesRecords !== 'object' || Array.isArray(state.outletSalesRecords)) {
+                state.outletSalesRecords = {};
+            }
+            let changed = false;
+            (state.outlets || []).forEach(outName => {
+                if (!state.outletSalesRecords[outName]) {
+                    state.outletSalesRecords[outName] = { _date: todayStr };
+                    changed = true;
+                } else if (state.outletSalesRecords[outName]._date && state.outletSalesRecords[outName]._date !== todayStr) {
+                    const photos = state.outletSalesRecords[outName]._photos || [];
+                    state.outletSalesRecords[outName] = { _date: todayStr, _photos: photos };
+                    changed = true;
+                } else if (!state.outletSalesRecords[outName]._date) {
+                    state.outletSalesRecords[outName]._date = todayStr;
+                    changed = true;
+                }
+            });
+            if (changed) saveSalesRecordsToStorage();
+        }
         function confirmResetAllOrders() { Swal.fire({ icon: 'warning', title: 'Bersihkan Semua Pesanan Hari Ini?', text: 'Seluruh pesanan per outlet hari ini akan dihapus agar data baru besok bersih.', showCancelButton: true, confirmButtonText: 'Ya, Bersihkan', cancelButtonText: 'Batal', confirmButtonColor: '#dc3545' }).then(res => { if (res.isConfirmed) { state.preOrders = []; savePreOrdersToStorage(); renderAllUI(); Swal.fire({ icon: 'success', title: 'Pesanan Dibersihkan!', text: 'Seluruh pesanan hari ini berhasil dihapus.', timer: 1500, showConfirmButton: false }); } }); }
-        function renderAllUI() { purgeOldPreOrders(); renderOutletDropdowns(); renderHomeProducts(); renderCatalogProducts(); renderCartUI(); renderCustomerHistory(); renderCustomerAuthArea(); renderCustomerPointsPage(); renderCustomerProfilePage(); renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); renderAdminProducts('adm-products-tbody', true); renderAdminProduction(); renderAdminInventory(); renderAdminDailyMenuGrid(); renderAdminOutletReports(); renderAdminPesananPerOutlet(); renderOwnerDashboard(); renderOwnerDailyMenuGrid(); renderOwnerProducts(); renderOwnerPreOrders(); renderOwnerProduction(); renderOwnerInventory(); renderOwnerOutletReports(); renderOwnerResetPasswordTable(); renderOwnerOutletsTable(); renderOwnerMembersTable(); renderOwnerRewardsTable(); renderOwnerProductPointsTable(); renderOwnerExpenses(); renderAdminOutletStockTable(); renderOwnerRedemptionsTable(); }
+        function renderAllUI() { purgeOldPreOrders(); checkAndResetDailySalesRecords(); renderOutletDropdowns(); renderHomeProducts(); renderCatalogProducts(); renderCartUI(); renderCustomerHistory(); renderCustomerAuthArea(); renderCustomerPointsPage(); renderCustomerProfilePage(); renderKasirPreOrders(); renderKasirLeftoverTable(); renderPosProductsGrid(); renderAdminProducts('adm-products-tbody', true); renderAdminProduction(); renderAdminInventory(); renderAdminDailyMenuGrid(); renderAdminOutletReports(); renderAdminPesananPerOutlet(); renderOwnerDashboard(); renderOwnerDailyMenuGrid(); renderOwnerProducts(); renderOwnerPreOrders(); renderOwnerProduction(); renderOwnerInventory(); renderOwnerOutletReports(); renderOwnerResetPasswordTable(); renderOwnerOutletsTable(); renderOwnerMembersTable(); renderOwnerRewardsTable(); renderOwnerProductPointsTable(); renderOwnerExpenses(); renderAdminOutletStockTable(); renderOwnerRedemptionsTable(); }
         function getTomorrowDayName() { const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const nextIndex = (new Date().getDay() + 1) % 7; return days[nextIndex]; }
         function getTomorrowProducts() { const tomorrowName = getTomorrowDayName(); const config = state.dailyMenu.find(d => (d.day || '').toLowerCase() === tomorrowName.toLowerCase()); if (!config || !Array.isArray(config.productIds) || config.productIds.length === 0) { return []; } const activeIds = config.productIds.map(String); return state.products.filter(p => activeIds.includes(String(p.id)) && p.status === 'Aktif'); }
         function getTodayProducts() { const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const todayName = days[new Date().getDay()]; const todayConfig = state.dailyMenu.find(d => (d.day || '').toLowerCase() === todayName.toLowerCase()); if (!todayConfig || !Array.isArray(todayConfig.productIds) || todayConfig.productIds.length === 0) { return []; } const activeIds = todayConfig.productIds.map(String); return state.products.filter(p => activeIds.includes(String(p.id)) && p.status === 'Aktif'); }
@@ -3571,7 +3592,7 @@
             });
             return totalQty;
         }
-        function buildExactFormattedReportRows(outName, showOutletHeader = false) {
+        function getOutletReportTotals(outName) {
             const dayNamesMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
             const todayDayName = dayNamesMap[new Date().getDay()] || 'Senin';
             const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === todayDayName.toLowerCase());
@@ -3660,15 +3681,8 @@
             let totalJualan = 0;
             let totalSisa = 0;
             let grandTotalVal = 0;
-            let rowsHtml = '';
-
-            if (showOutletHeader) {
-                rowsHtml += `<tr class="table-primary border-top border-purple-200">
-                    <td colspan="7" class="fw-extrabold text-brand-purple fs-7 py-2 text-start">
-                        <i class="fa-solid fa-store me-2"></i> CABANG OUTLET: ${outName.toUpperCase()} (MENU HARI ${todayDayName.toUpperCase()})
-                    </td>
-                </tr>`;
-            }
+            let totalLoss = 0;
+            const items = [];
 
             todayProducts.forEach(p => {
                 const pid = String(p.id);
@@ -3688,16 +3702,17 @@
                 totalJualan += jualan;
                 totalSisa += sisa;
                 grandTotalVal += itemTotal;
+                totalLoss += sisa * price;
 
-                rowsHtml += `<tr>
-                    <td class="fw-bold text-dark text-start py-2 px-3">${p.name.toUpperCase()}</td>
-                    <td class="text-end py-2 px-3">${price.toLocaleString('id-ID')}</td>
-                    <td class="text-center py-2 px-3 fw-semibold">${stok}</td>
-                    <td class="text-center py-2 px-3">${pesanan}</td>
-                    <td class="text-center py-2 px-3">${jualan}</td>
-                    <td class="text-center py-2 px-3">${sisa}</td>
-                    <td class="text-end fw-bold py-2 px-3">${itemTotal.toLocaleString('id-ID')}</td>
-                </tr>`;
+                items.push({
+                    product: p,
+                    price,
+                    stok,
+                    pesanan,
+                    jualan,
+                    sisa,
+                    itemTotal
+                });
             });
 
             const qrisPosTotal = salesRec._qrisTotal || 0;
@@ -3720,17 +3735,62 @@
                     totalCash = Math.max(0, totalPemasukan - totalQris);
                 }
             }
-            const isCheckTrue = (totalCash + totalQris) === totalPemasukan;
+
+            return {
+                todayProducts,
+                preorderCounts,
+                takenPreorderCounts,
+                qrisPreorderTotal,
+                cashPreorderTotal,
+                totalStok,
+                totalPesanan,
+                totalJualan,
+                totalSisa,
+                grandTotalVal,
+                totalLoss,
+                totalQris,
+                totalCash,
+                totalPemasukan,
+                items,
+                todayDayName
+            };
+        }
+
+        function buildExactFormattedReportRows(outName, showOutletHeader = false) {
+            const totals = getOutletReportTotals(outName);
+            let rowsHtml = '';
+
+            if (showOutletHeader) {
+                rowsHtml += `<tr class="table-primary border-top border-purple-200">
+                    <td colspan="7" class="fw-extrabold text-brand-purple fs-7 py-2 text-start">
+                        <i class="fa-solid fa-store me-2"></i> CABANG OUTLET: ${outName.toUpperCase()} (MENU HARI ${totals.todayDayName.toUpperCase()})
+                    </td>
+                </tr>`;
+            }
+
+            totals.items.forEach(item => {
+                rowsHtml += `<tr>
+                    <td class="fw-bold text-dark text-start py-2 px-3">${item.product.name.toUpperCase()}</td>
+                    <td class="text-end py-2 px-3">${item.price.toLocaleString('id-ID')}</td>
+                    <td class="text-center py-2 px-3 fw-semibold">${item.stok}</td>
+                    <td class="text-center py-2 px-3">${item.pesanan}</td>
+                    <td class="text-center py-2 px-3">${item.jualan}</td>
+                    <td class="text-center py-2 px-3">${item.sisa}</td>
+                    <td class="text-end fw-bold py-2 px-3">${item.itemTotal.toLocaleString('id-ID')}</td>
+                </tr>`;
+            });
+
+            const isCheckTrue = (totals.totalCash + totals.totalQris) === totals.totalPemasukan;
 
             const summaryRows = `
                 <tr class="fw-bold text-dark border-top border-2 border-dark" style="border-top: 2px solid #212121 !important; background-color: #F8F9FA;">
                     <td class="text-start py-2 px-3">TOTAL</td>
                     <td></td>
-                    <td class="text-center py-2 px-3 fw-bold">${totalStok}</td>
-                    <td class="text-center py-2 px-3">${totalPesanan}</td>
-                    <td class="text-center py-2 px-3">${totalJualan}</td>
-                    <td class="text-center py-2 px-3">${totalSisa}</td>
-                    <td class="text-end fw-extrabold py-2 px-3">${grandTotalVal.toLocaleString('id-ID')}</td>
+                    <td class="text-center py-2 px-3 fw-bold">${totals.totalStok}</td>
+                    <td class="text-center py-2 px-3">${totals.totalPesanan}</td>
+                    <td class="text-center py-2 px-3">${totals.totalJualan}</td>
+                    <td class="text-center py-2 px-3">${totals.totalSisa}</td>
+                    <td class="text-end fw-extrabold py-2 px-3">${totals.grandTotalVal.toLocaleString('id-ID')}</td>
                 </tr>
                 <tr class="fw-bold text-dark">
                     <td class="text-start py-2 px-3">PEMASUKAN</td>
@@ -3739,7 +3799,7 @@
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td class="text-end py-2 px-3">${totalPemasukan.toLocaleString('id-ID')}</td>
+                    <td class="text-end py-2 px-3">${totals.totalPemasukan.toLocaleString('id-ID')}</td>
                 </tr>
                 <tr class="fw-bold text-dark">
                     <td class="text-start py-2 px-3">QRIS</td>
@@ -3748,7 +3808,7 @@
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td class="text-end py-2 px-3">${totalQris.toLocaleString('id-ID')}</td>
+                    <td class="text-end py-2 px-3">${totals.totalQris.toLocaleString('id-ID')}</td>
                 </tr>
                 <tr class="fw-bold text-dark">
                     <td class="text-start py-2 px-3">CASH</td>
@@ -3757,7 +3817,7 @@
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td class="text-end fw-extrabold py-2 px-3">${totalCash.toLocaleString('id-ID')}</td>
+                    <td class="text-end fw-extrabold py-2 px-3">${totals.totalCash.toLocaleString('id-ID')}</td>
                 </tr>
                 <tr class="fw-bold text-dark">
                     <td></td>
@@ -3765,7 +3825,7 @@
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td class="text-center fw-extrabold py-2 px-3">${(totalQris + totalCash).toLocaleString('id-ID')}</td>
+                    <td class="text-center fw-extrabold py-2 px-3">${(totals.totalQris + totals.totalCash).toLocaleString('id-ID')}</td>
                     <td class="text-end fw-extrabold py-2 px-3">${isCheckTrue ? '<span class="text-success">TRUE</span>' : '<span class="text-danger">FALSE</span>'}</td>
                 </tr>
             `;
@@ -3945,85 +4005,17 @@
             const selectedPeriod = document.getElementById(cfg.periodSelectId)?.value || 'HARIAN';
             const outletsList = state.outlets;
             const isHarian = selectedPeriod === 'HARIAN';
-            const todayStr = getTodayDateString();
-            const yesterdayStr = getYesterdayDateString();
 
             const outletData = outletsList.map(outletName => {
-                const salesRec = state.outletSalesRecords[outletName] || {};
-                let omset = 0;
-                let porsi = 0;
-                let preorderPorsi = 0;
-                let sisaPorsi = 0;
-                let loss = 0;
-
-                const preorderCounts = {};
-                (state.preOrders || []).forEach(order => {
-                    if (order && order.cancelStatus !== 'approved') {
-                        const orderDateStr = order.date ? String(order.date).substring(0, 10) : todayStr;
-                        if (isOutletMatch(order.outlet, outletName) && (orderDateStr === yesterdayStr || !order.date)) {
-                            const details = order.itemsDetail || order.items_detail || order.cart || (Array.isArray(order.items) ? order.items : []);
-                            if (Array.isArray(details) && details.length > 0) {
-                                details.forEach(ci => {
-                                    let pid = String(ci.productId || ci.product_id || ci.id || '');
-                                    let matchingProd = state.products.find(p => String(p.id) === pid);
-                                    if (!matchingProd && (ci.name || ci.productName)) {
-                                        matchingProd = findBestMatchingProduct(ci.name || ci.productName);
-                                    }
-                                    if (matchingProd) pid = String(matchingProd.id);
-                                    if (pid) {
-                                        preorderCounts[pid] = (preorderCounts[pid] || 0) + (parseInt(ci.qty || ci.quantity || 1) || 0);
-                                    }
-                                });
-                            } else if (typeof order.items === 'string') {
-                                const parts = order.items.split(',');
-                                parts.forEach(part => {
-                                    const match = part.trim().match(/^(.*?)\s*x(\d+)$/i);
-                                    if (match) {
-                                        const name = match[1].trim();
-                                        const qty = parseInt(match[2]) || 1;
-                                        const matchingProd = findBestMatchingProduct(name);
-                                        if (matchingProd) {
-                                            const pid = String(matchingProd.id);
-                                            preorderCounts[pid] = (preorderCounts[pid] || 0) + qty;
-                                        }
-                                    }
-                                });
-                            }
-                        }
-                    }
-                });
-
-                const dayNamesMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-                const todayDayName = dayNamesMap[new Date().getDay()] || 'Senin';
-                const dayConfig = (state.dailyMenu || []).find(d => (d.day || '').toLowerCase() === todayDayName.toLowerCase());
-                const prodIdsForDay = (dayConfig && Array.isArray(dayConfig.productIds)) ? dayConfig.productIds.map(String) : [];
-                let activeProducts = state.products.filter(p => prodIdsForDay.includes(String(p.id)) && p.status === 'Aktif');
-                if (activeProducts.length === 0) activeProducts = state.products.filter(p => p.status === 'Aktif');
-                if (activeProducts.length === 0) activeProducts = state.products;
-
-                activeProducts.forEach(p => {
-                    const pid = String(p.id);
-                    const price = p.price || 0;
-                    const pesanan = preorderCounts[pid] || 0;
-                    const prodSales = salesRec[pid] ? (salesRec[pid].sold || 0) : 0;
-                    const remainingPosAllocated = getOutletStock(outletName, p);
-                    const sisa = Math.max(0, remainingPosAllocated);
-                    
-                    preorderPorsi += pesanan;
-                    porsi += (pesanan + prodSales);
-                    sisaPorsi += sisa;
-                    omset += (pesanan + prodSales) * price;
-                    loss += sisa * price;
-                });
-
+                const totals = getOutletReportTotals(outletName);
                 return { 
                     name: outletName, 
-                    preorderPorsi: preorderPorsi,
-                    porsi: porsi, 
-                    sisaPorsi: sisaPorsi,
-                    loss: loss,
-                    harianOmset: omset, 
-                    bulananOmset: omset * 30 
+                    preorderPorsi: totals.totalPesanan,
+                    porsi: totals.totalJualan, 
+                    sisaPorsi: totals.totalSisa,
+                    loss: totals.totalLoss,
+                    harianOmset: totals.grandTotalVal, 
+                    bulananOmset: totals.grandTotalVal * 30 
                 };
             });
 
@@ -5031,7 +5023,7 @@
             });
         }
 
-        function renderOwnerDashboard() { const outletsList = state.outlets; let totalOmsetHariIni = 0; let totalPorsiHariIni = 0; let totalLabaHariIni = 0; const perOutletRows = []; outletsList.forEach(outletName => { const salesRec = state.outletSalesRecords[outletName] || {}; let omset = 0, porsi = 0, loss = 0; state.products.forEach(p => { const sold = salesRec[p.id] ? salesRec[p.id].sold : 0; const allocated = (p.initialStock !== undefined ? p.initialStock : p.stock) || 0; const leftover = Math.max(0, allocated - sold); omset += sold * p.price; porsi += sold; loss += leftover * p.price; }); const profit = Math.round((omset * 0.4) - loss); totalOmsetHariIni += omset; totalPorsiHariIni += porsi; totalLabaHariIni += profit; perOutletRows.push({ name: outletName, omset, porsi, profit }); }); const pendingTickets = state.resetTickets.filter(t => !t.isResolved); const pendingPreOrders = state.preOrders.filter(p => !p.isTaken).length; const cardsEl = document.getElementById('owner-dashboard-cards'); if (cardsEl) { cardsEl.innerHTML = `<div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET SEMUA OUTLET (HARI INI)</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmsetHariIni.toLocaleString('id-ID')}</div></div></div><div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsiHariIni} Cup</div></div></div>`; } const outletTbody = document.getElementById('owner-dashboard-outlet-tbody'); if (outletTbody) { outletTbody.innerHTML = perOutletRows.map(o => `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${o.omset.toLocaleString('id-ID')}</td><td>${o.porsi} Cup</td><td class="text-success fw-bold">Rp ${o.profit.toLocaleString('id-ID')}</td></tr>`).join(''); } const resetListEl = document.getElementById('owner-dashboard-resetpass-list'); if (resetListEl) { resetListEl.innerHTML = pendingTickets.length > 0 ? pendingTickets.map(t => `<div class="d-flex justify-content-between align-items-center border rounded-3 p-2 bg-light"><div><div class="fw-bold">${t.name}</div><div class="text-muted fs-8">${t.wa} • ${t.time}</div></div><button class="btn btn-sm btn-brand-purple fs-8 fw-bold" onclick="resolveResetTicket('${t.id}')"><i class="fa-solid fa-key me-1"></i> Reset</button></div>`).join('') : '<div class="text-muted fs-8 fst-italic">Tidak ada tiket menunggu diproses 🎉</div>'; } const badgeEl = document.getElementById('owner-resetpass-badge'); if (badgeEl) { badgeEl.innerText = pendingTickets.length; badgeEl.style.display = pendingTickets.length > 0 ? 'inline-block' : 'none'; } }
+        function renderOwnerDashboard() { const outletsList = state.outlets; let totalOmsetHariIni = 0; let totalPorsiHariIni = 0; let totalLabaHariIni = 0; const perOutletRows = []; outletsList.forEach(outletName => { const totals = getOutletReportTotals(outletName); const omset = totals.grandTotalVal; const porsi = totals.totalJualan; const loss = totals.totalLoss; const profit = Math.round((omset * 0.4) - loss); totalOmsetHariIni += omset; totalPorsiHariIni += porsi; totalLabaHariIni += profit; perOutletRows.push({ name: outletName, omset, porsi, profit }); }); const pendingTickets = state.resetTickets.filter(t => !t.isResolved); const pendingPreOrders = state.preOrders.filter(p => !p.isTaken).length; const cardsEl = document.getElementById('owner-dashboard-cards'); if (cardsEl) { cardsEl.innerHTML = `<div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-primary"><div class="text-muted fs-8 fw-bold">TOTAL OMSET SEMUA OUTLET (HARI INI)</div><div class="fs-5 fw-bold text-primary">Rp ${totalOmsetHariIni.toLocaleString('id-ID')}</div></div></div><div class="col-md-6"><div class="card-custom p-3 border-start border-4 border-info"><div class="text-muted fs-8 fw-bold">TOTAL PORSI TERJUAL</div><div class="fs-5 fw-bold text-info">${totalPorsiHariIni} Cup</div></div></div>`; } const outletTbody = document.getElementById('owner-dashboard-outlet-tbody'); if (outletTbody) { outletTbody.innerHTML = perOutletRows.map(o => `<tr><td class="fw-bold text-brand-purple">${o.name}</td><td class="fw-bold">Rp ${o.omset.toLocaleString('id-ID')}</td><td>${o.porsi} Cup</td><td class="text-success fw-bold">Rp ${o.profit.toLocaleString('id-ID')}</td></tr>`).join(''); } const resetListEl = document.getElementById('owner-dashboard-resetpass-list'); if (resetListEl) { resetListEl.innerHTML = pendingTickets.length > 0 ? pendingTickets.map(t => `<div class="d-flex justify-content-between align-items-center border rounded-3 p-2 bg-light"><div><div class="fw-bold">${t.name}</div><div class="text-muted fs-8">${t.wa} • ${t.time}</div></div><button class="btn btn-sm btn-brand-purple fs-8 fw-bold" onclick="resolveResetTicket('${t.id}')"><i class="fa-solid fa-key me-1"></i> Reset</button></div>`).join('') : '<div class="text-muted fs-8 fst-italic">Tidak ada tiket menunggu diproses 🎉</div>'; } const badgeEl = document.getElementById('owner-resetpass-badge'); if (badgeEl) { badgeEl.innerText = pendingTickets.length; badgeEl.style.display = pendingTickets.length > 0 ? 'inline-block' : 'none'; } }
         function renderOwnerResetPasswordTable() { const tbody = document.getElementById('own-resetpass-tbody'); if (!tbody) return; if (state.resetTickets.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fs-8 fst-italic py-3">Belum ada permintaan reset password.</td></tr>`; } else { tbody.innerHTML = state.resetTickets.map(t => `<tr class="${t.isResolved ? 'bg-light opacity-75' : ''}"><td class="fw-bold text-brand-purple">${t.id}</td><td class="fw-bold text-dark">${t.name}</td><td><a href="https://wa.me/${t.wa}" target="_blank" class="text-success text-decoration-none fw-bold"><i class="fa-brands fa-whatsapp me-1"></i> ${t.wa}</a></td><td>${t.time}</td><td><span class="badge ${t.isResolved ? 'bg-success' : 'bg-warning text-dark'} fs-8">${t.isResolved ? 'Selesai Direset ✅' : 'Menunggu Diproses'}</span></td><td class="text-center">${t.isResolved ? '<span class="text-muted fs-8 fst-italic">-</span>' : `<button class="btn btn-sm btn-brand-purple fs-8 fw-bold" onclick="resolveResetTicket('${t.id}')"><i class="fa-solid fa-key me-1"></i> Reset Sekarang</button>`}</td></tr>`).join(''); } const pendingCount = state.resetTickets.filter(t => !t.isResolved).length; const badgeEl = document.getElementById('owner-resetpass-badge'); if (badgeEl) { badgeEl.innerText = pendingCount; badgeEl.style.display = pendingCount > 0 ? 'inline-block' : 'none'; } }
         function resolveResetTicket(ticketId) { const t = state.resetTickets.find(x => x.id == ticketId); if (!t) return; Swal.fire({ title: 'Reset Password Pelanggan', html: `<div class="text-start fs-7 mb-2">Pelanggan: <b>${t.name}</b> (${t.wa})</div><input id="swal-newpass" class="swal2-input" placeholder="Password Baru Sementara" value="mamamyuk${Math.floor(1000 + Math.random() * 9000)}">`, showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-key me-1"></i> Kirim Password Baru', confirmButtonColor: '#B57EDC', preConfirm: () => { const val = document.getElementById('swal-newpass').value.trim(); if (!val) { Swal.showValidationMessage('Password baru wajib diisi!'); return false; } return val; } }).then(result => { if (result.isConfirmed) { t.isResolved = true; renderOwnerResetPasswordTable(); renderOwnerDashboard(); Swal.fire({ icon: 'success', title: 'Password Berhasil Direset', text: `Password baru "${result.value}" telah dikirim ke WhatsApp ${t.wa}.`, timer: 1800, showConfirmButton: false }); } }); }
         function showManualResetPasswordModal() { Swal.fire({ title: 'Reset Password Manual', html: `<div class="text-start fs-7 text-muted mb-2">Gunakan ini jika pelanggan menghubungi langsung tanpa mengirim tiket dari website.</div><input id="swal-mname" class="swal2-input" placeholder="Nama Pelanggan"><input id="swal-mwa" class="swal2-input" placeholder="Nomor WhatsApp Pelanggan"><input id="swal-mnewpass" class="swal2-input" placeholder="Password Baru Sementara">`, focusConfirm: false, showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-key me-1"></i> Reset Password', confirmButtonColor: '#B57EDC', preConfirm: () => { const name = document.getElementById('swal-mname').value.trim(); const wa = document.getElementById('swal-mwa').value.trim(); const newpass = document.getElementById('swal-mnewpass').value.trim(); if (!name || !wa || !newpass) { Swal.showValidationMessage('Harap isi Nama, WhatsApp, dan Password Baru!'); return false; } return { name, wa, newpass }; } }).then(result => { if (result.isConfirmed && result.value) { state.resetTickets.push({ id: 'RST-' + Math.floor(100 + Math.random() * 900), name: result.value.name, wa: result.value.wa, time: 'Reset Manual Owner', isResolved: true }); renderOwnerResetPasswordTable(); renderOwnerDashboard(); Swal.fire({ icon: 'success', title: 'Password Berhasil Direset', text: `Password baru "${result.value.newpass}" telah dikirim ke WhatsApp ${result.value.wa}.`, timer: 1800, showConfirmButton: false }); } }); }
